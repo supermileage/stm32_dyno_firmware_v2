@@ -50,3 +50,5 @@ release
 *.su
 *.idb
 *.pdb
+
+*.bat
