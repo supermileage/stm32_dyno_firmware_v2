@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "test.h"
 #include "LCD/LumexLCD.h"
+#include "xqueue.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,7 +54,7 @@ const osThreadAttr_t lcdTask_attributes = {
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* USER CODE BEGIN PV */
-
+extern QueueHandle_t sessionControllerToLumexLCDqHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,7 +126,11 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+  if (!InitAllQueues())
+  {
+
+	  return 0;
+  }
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -334,14 +339,7 @@ static void MX_GPIO_Init(void)
 void lcdDisplayTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-//  for(;;)
-//  {
-//	  HAL_GPIO_WritePin(TEST_PIN_GPIO_Port, TEST_PIN_Pin, 1);
-//	  cpp_main();
-//    osDelay(1);
-//  }
-	lumex_lcd_main(&htim16);
+	lumex_lcd_main(&htim16, sessionControllerToLumexLCDqHandle);
   /* USER CODE END 5 */
 }
 

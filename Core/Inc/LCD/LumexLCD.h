@@ -4,11 +4,13 @@
 #include "main.h"
 #include "string.h"
 
+#include "xqueue.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void lumex_lcd_main(TIM_HandleTypeDef* timer);
+void lumex_lcd_main(TIM_HandleTypeDef* timer, QueueHandle_t qHandle);
 
 #ifdef __cplusplus
 }

@@ -3,7 +3,7 @@
 class LumexLCD
 {
 	public:
-		LumexLCD(TIM_HandleTypeDef* timer);
+		LumexLCD(TIM_HandleTypeDef* timer, QueueHandle_t qHandle);
 		virtual ~LumexLCD() = default;
 
 		bool Init();
@@ -25,11 +25,13 @@ class LumexLCD
 
 
 		TIM_HandleTypeDef* _timer;
+		QueueHandle_t _qHandle;
 		volatile bool _timerflag;
 };
 
-LumexLCD::LumexLCD(TIM_HandleTypeDef* timer) :
+LumexLCD::LumexLCD(TIM_HandleTypeDef* timer, QueueHandle_t qHandle) :
 		_timer(timer),
+		_qHandle(qHandle),
 		_timerflag(false)
 {}
 
@@ -89,7 +91,20 @@ void LumexLCD::Run(void)
 {
 	while(1)
 	{
+		session_controller_to_lumex_lcd* msg;
+		xQueueReceive(_qHandle, &msg, 500);
+		switch(msg->op)
+		{
+			case NONE:
+				break;
+			case CLEAR_DISPLAY:
+				ClearDisplay();
+				break;
+			case WRITE_TO_DISPLAY:
+				DisplayString(msg->row, msg->column, msg->display_string);
+				break;
 
+		}
 	}
 }
 
@@ -235,9 +250,9 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, char* string)
 
 }
 
-extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer)
+extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, QueueHandle_t qHandle)
 {
-	LumexLCD lcd = LumexLCD(timer);
+	LumexLCD lcd = LumexLCD(timer, qHandle);
 
 	if (!lcd.Init())
 	{
