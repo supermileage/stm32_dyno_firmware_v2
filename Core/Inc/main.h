@@ -59,8 +59,30 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BRAKE_OUTPUT_Pin GPIO_PIN_6
-#define BRAKE_OUTPUT_GPIO_Port GPIOF
+#define ROT_EN_A_Pin GPIO_PIN_3
+#define ROT_EN_A_GPIO_Port GPIOE
+#define ROT_EN_SW_Pin GPIO_PIN_4
+#define ROT_EN_SW_GPIO_Port GPIOE
+#define ROT_EN_SW_EXTI_IRQn EXTI4_IRQn
+#define BTN_SELECT_Pin GPIO_PIN_5
+#define BTN_SELECT_GPIO_Port GPIOE
+#define BTN_SELECT_EXTI_IRQn EXTI9_5_IRQn
+#define BTN_BACK_Pin GPIO_PIN_6
+#define BTN_BACK_GPIO_Port GPIOE
+#define BTN_BACK_EXTI_IRQn EXTI9_5_IRQn
+#define ROT_EN_B_Pin GPIO_PIN_8
+#define ROT_EN_B_GPIO_Port GPIOI
+#define ROT_EN_B_EXTI_IRQn EXTI9_5_IRQn
+#define BPM_CTRL_OUT_Pin GPIO_PIN_6
+#define BPM_CTRL_OUT_GPIO_Port GPIOF
+#define OP_IN_Pin GPIO_PIN_9
+#define OP_IN_GPIO_Port GPIOF
+#define ADC1_BPM_CTRL_IN_Pin GPIO_PIN_0
+#define ADC1_BPM_CTRL_IN_GPIO_Port GPIOC
+#define ILI_SPI2_MOSI_Pin GPIO_PIN_1
+#define ILI_SPI2_MOSI_GPIO_Port GPIOC
+#define ILI_SPI2_MISO_Pin GPIO_PIN_2
+#define ILI_SPI2_MISO_GPIO_Port GPIOC
 #define LCD_D0_Pin GPIO_PIN_0
 #define LCD_D0_GPIO_Port GPIOA
 #define LCD_D1_Pin GPIO_PIN_1
@@ -81,6 +103,40 @@ void Error_Handler(void);
 #define LCD_EN_GPIO_Port GPIOC
 #define LCD_RS_Pin GPIO_PIN_5
 #define LCD_RS_GPIO_Port GPIOC
+#define ILI_SPI2_SCK_Pin GPIO_PIN_10
+#define ILI_SPI2_SCK_GPIO_Port GPIOB
+#define ILI_SPI2_TOUCH_CS_Pin GPIO_PIN_6
+#define ILI_SPI2_TOUCH_CS_GPIO_Port GPIOH
+#define ILI_SPI_SD_CS_Pin GPIO_PIN_7
+#define ILI_SPI_SD_CS_GPIO_Port GPIOH
+#define ADS1115_I2C3_SDA_Pin GPIO_PIN_8
+#define ADS1115_I2C3_SDA_GPIO_Port GPIOH
+#define ADS1115_I2C3_SCL_Pin GPIO_PIN_8
+#define ADS1115_I2C3_SCL_GPIO_Port GPIOA
+#define ILI_LCD_DC_Pin GPIO_PIN_5
+#define ILI_LCD_DC_GPIO_Port GPIOD
+#define ILI_LCD_RST_Pin GPIO_PIN_6
+#define ILI_LCD_RST_GPIO_Port GPIOD
+#define ILI_SPI1_MOSI_Pin GPIO_PIN_7
+#define ILI_SPI1_MOSI_GPIO_Port GPIOD
+#define ILI_SPI1_MISO_Pin GPIO_PIN_9
+#define ILI_SPI1_MISO_GPIO_Port GPIOG
+#define ILI_SPI1_CS_Pin GPIO_PIN_10
+#define ILI_SPI1_CS_GPIO_Port GPIOG
+#define ILI_SPI1_SCK_Pin GPIO_PIN_11
+#define ILI_SPI1_SCK_GPIO_Port GPIOG
+#define ADS1115_ALERT_Pin GPIO_PIN_9
+#define ADS1115_ALERT_GPIO_Port GPIOB
+#define ADS1115_ALERT_EXTI_IRQn EXTI9_5_IRQn
+#define LED_BRAKE_Pin GPIO_PIN_4
+#define LED_BRAKE_GPIO_Port GPIOI
+#define LED_SELECT_Pin GPIO_PIN_5
+#define LED_SELECT_GPIO_Port GPIOI
+#define LED_BACK_Pin GPIO_PIN_6
+#define LED_BACK_GPIO_Port GPIOI
+#define BTN_BRAKE_Pin GPIO_PIN_7
+#define BTN_BRAKE_GPIO_Port GPIOI
+#define BTN_BRAKE_EXTI_IRQn EXTI9_5_IRQn
 
 /* USER CODE BEGIN Private defines */
 
