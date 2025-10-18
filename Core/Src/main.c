@@ -25,6 +25,7 @@
 #include "test.h"
 #include "LCD/LumexLCD.h"
 #include "xqueue.h"
+#include "forcesensor/forcesensor_adc.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +45,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 I2C_HandleTypeDef hi2c3;
 
@@ -53,6 +55,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
@@ -66,6 +69,18 @@ const osThreadAttr_t lcdTask_attributes = {
   .name = "lcdTask",
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
+};
+/* Definitions for Forcesensor */
+osThreadId_t ForcesensorHandle;
+const osThreadAttr_t Forcesensor_attributes = {
+  .name = "Forcesensor",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for ForcesensorADC_to_SessionController */
+osMessageQueueId_t ForcesensorADC_to_SessionControllerHandle;
+const osMessageQueueAttr_t ForcesensorADC_to_SessionController_attributes = {
+  .name = "ForcesensorADC_to_SessionController"
 };
 /* USER CODE BEGIN PV */
 extern QueueHandle_t sessionControllerToLumexLCDqHandle;
@@ -86,7 +101,10 @@ static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C3_Init(void);
+static void MX_ADC2_Init(void);
+static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
+void forcesensorADCTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -142,6 +160,8 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_I2C3_Init();
+  MX_ADC2_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -161,6 +181,10 @@ int main(void)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of ForcesensorADC_to_SessionController */
+  ForcesensorADC_to_SessionControllerHandle = osMessageQueueNew (16, sizeof(force_sensor_adc_to_session_controller), &ForcesensorADC_to_SessionController_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   if (!InitAllQueues())
   {
@@ -172,6 +196,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of lcdTask */
   lcdTaskHandle = osThreadNew(lcdDisplayTask, NULL, &lcdTask_attributes);
+
+  /* creation of Forcesensor */
+  ForcesensorHandle = osThreadNew(forcesensorADCTask, NULL, &Forcesensor_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -350,6 +377,66 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV2;
+  hadc2.Init.Resolution = ADC_RESOLUTION_16B;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc2.Init.LowPowerAutoWait = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+  hadc2.Init.OversamplingMode = DISABLE;
+  hadc2.Init.Oversampling.Ratio = 1;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  sConfig.OffsetSignedSaturation = DISABLE;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -572,6 +659,51 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -917,6 +1049,21 @@ void lcdDisplayTask(void *argument)
   /* USER CODE BEGIN 5 */
 	lumex_lcd_main(&htim16, sessionControllerToLumexLCDqHandle);
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_forcesensorADCTask */
+/**
+* @brief Function implementing the Forcesensor thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_forcesensorADCTask */
+void forcesensorADCTask(void *argument)
+{
+  /* USER CODE BEGIN forcesensorADCTask */
+  /* Infinite loop */
+  force_sensor_adc_main(&htim2, ForcesensorADC_to_SessionControllerHandle, &hadc2);
+  /* USER CODE END forcesensorADCTask */
 }
 
  /* MPU Configuration */

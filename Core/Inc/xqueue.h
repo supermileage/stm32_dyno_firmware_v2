@@ -25,6 +25,11 @@ typedef struct {
 } session_controller_to_lumex_lcd;
 
 
+typedef struct {
+	int adc_timestamp;
+	float adc_force_action;
+} force_sensor_adc_to_session_controller;
+
 
 
 #endif /* INC_XQUEUE_H_ */

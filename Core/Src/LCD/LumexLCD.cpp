@@ -89,23 +89,21 @@ bool LumexLCD::Init()
 
 void LumexLCD::Run(void)
 {
-	while(1)
+	session_controller_to_lumex_lcd* msg;
+	xQueueReceive(_qHandle, &msg, 500);
+	switch(msg->op)
 	{
-		session_controller_to_lumex_lcd* msg;
-		xQueueReceive(_qHandle, &msg, 500);
-		switch(msg->op)
-		{
-			case NONE:
-				break;
-			case CLEAR_DISPLAY:
-				ClearDisplay();
-				break;
-			case WRITE_TO_DISPLAY:
-				DisplayString(msg->row, msg->column, msg->display_string);
-				break;
+		case NONE:
+			break;
+		case CLEAR_DISPLAY:
+			ClearDisplay();
+			break;
+		case WRITE_TO_DISPLAY:
+			DisplayString(msg->row, msg->column, msg->display_string);
+			break;
 
-		}
 	}
+
 }
 
 
