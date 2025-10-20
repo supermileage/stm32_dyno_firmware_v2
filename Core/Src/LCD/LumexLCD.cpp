@@ -39,7 +39,7 @@ bool LumexLCD::Init()
 {
 
     // Enable to GND to tell that we are in command mode, not data mode
-	HAL_GPIO_WritePin(LCD_EN_GPIO_Port, LCD_EN_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
 
     HAL_Delay(40);
 
@@ -132,18 +132,18 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 bool LumexLCD::SendByte(uint8_t byte)
 {
 	// Very Inefficient Way of Toggling Pins but may decide to use registers instead in the future
-	HAL_GPIO_WritePin(LCD_D7_GPIO_Port, LCD_D7_Pin, static_cast<GPIO_PinState>((byte >> 7) & 0x01));
-	HAL_GPIO_WritePin(LCD_D6_GPIO_Port, LCD_D6_Pin, static_cast<GPIO_PinState>((byte >> 6) & 0x01));
-	HAL_GPIO_WritePin(LCD_D5_GPIO_Port, LCD_D5_Pin, static_cast<GPIO_PinState>((byte >> 5) & 0x01));
-	HAL_GPIO_WritePin(LCD_D4_GPIO_Port, LCD_D4_Pin, static_cast<GPIO_PinState>((byte >> 4) & 0x01));
-	HAL_GPIO_WritePin(LCD_D3_GPIO_Port, LCD_D3_Pin, static_cast<GPIO_PinState>((byte >> 3) & 0x01));
-	HAL_GPIO_WritePin(LCD_D2_GPIO_Port, LCD_D2_Pin, static_cast<GPIO_PinState>((byte >> 2) & 0x01));
-	HAL_GPIO_WritePin(LCD_D1_GPIO_Port, LCD_D1_Pin, static_cast<GPIO_PinState>((byte >> 1) & 0x01));
-	HAL_GPIO_WritePin(LCD_D0_GPIO_Port, LCD_D0_Pin, static_cast<GPIO_PinState>((byte >> 0) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D7_GPIO_Port, LUMEX_LCD_D7_Pin, static_cast<GPIO_PinState>((byte >> 7) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D6_GPIO_Port, LUMEX_LCD_D6_Pin, static_cast<GPIO_PinState>((byte >> 6) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D5_GPIO_Port, LUMEX_LCD_D5_Pin, static_cast<GPIO_PinState>((byte >> 5) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D4_GPIO_Port, LUMEX_LCD_D4_Pin, static_cast<GPIO_PinState>((byte >> 4) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D3_GPIO_Port, LUMEX_LCD_D3_Pin, static_cast<GPIO_PinState>((byte >> 3) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D2_GPIO_Port, LUMEX_LCD_D2_Pin, static_cast<GPIO_PinState>((byte >> 2) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D1_GPIO_Port, LUMEX_LCD_D1_Pin, static_cast<GPIO_PinState>((byte >> 1) & 0x01));
+	HAL_GPIO_WritePin(LUMEX_LCD_D0_GPIO_Port, LUMEX_LCD_D0_Pin, static_cast<GPIO_PinState>((byte >> 0) & 0x01));
 
 
 	// Set EN Pin and start timer
-	HAL_GPIO_WritePin(LCD_EN_GPIO_Port, LCD_EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_SET);
 
 	if (!StartTimer(40))
 	{
@@ -157,15 +157,13 @@ bool LumexLCD::SendByte(uint8_t byte)
 		return false;
 	}
 
-	HAL_GPIO_WritePin(LCD_EN_GPIO_Port, LCD_EN_Pin, GPIO_PIN_RESET);
-
 	return true;
 
 }
 
 bool LumexLCD::WriteData(uint8_t data)
 {
-	HAL_GPIO_WritePin(LCD_RS_GPIO_Port, LCD_RS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LUMEX_LCD_RS_GPIO_Port, LUMEX_LCD_RS_Pin, GPIO_PIN_SET);
 
 	if (!SendByte(data))
 	{
@@ -178,7 +176,7 @@ bool LumexLCD::WriteData(uint8_t data)
 
 bool LumexLCD::WriteCommand(uint8_t command)
 {
-	HAL_GPIO_WritePin(LCD_RS_GPIO_Port, LCD_RS_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LUMEX_LCD_RS_GPIO_Port, LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
 
 	if (!SendByte(command))
 	{
@@ -255,6 +253,7 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, char* string)
 extern "C" void LumexLCDTimerInterrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle)
 {
 	HAL_StatusTypeDef status = HAL_TIM_Base_Stop_IT(timer);
+	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
 	osMessageQueuePut(timInterruptCallbackqHandle, &status, 0, 0);
 
 
