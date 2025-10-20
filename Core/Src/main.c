@@ -22,9 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "test.h"
 #include "LCD/LumexLCD.h"
-#include "xqueue.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,6 +51,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
@@ -67,8 +66,20 @@ const osThreadAttr_t lcdTask_attributes = {
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
+/* Definitions for sessionControllerToLumexLcd */
+osMessageQueueId_t sessionControllerToLumexLcdHandle;
+const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
+  .name = "sessionControllerToLumexLcd"
+};
+/* Definitions for lumexLcdTimerInterrupt */
+osMessageQueueId_t lumexLcdTimerInterruptHandle;
+const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
+  .name = "lumexLcdTimerInterrupt"
+};
 /* USER CODE BEGIN PV */
-extern QueueHandle_t sessionControllerToLumexLCDqHandle;
+TIM_HandleTypeDef* lumexLCDTimer = &htim13;
+TIM_TypeDef* lumexLCDTimInstance = TIM13;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -86,6 +97,7 @@ static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C3_Init(void);
+static void MX_TIM13_Init(void);
 void lcdDisplayTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -142,6 +154,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_I2C3_Init();
+  MX_TIM13_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -161,12 +174,15 @@ int main(void)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
-  if (!InitAllQueues())
-  {
+  /* Create the queue(s) */
+  /* creation of sessionControllerToLumexLcd */
+  sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
-	  return 0;
-  }
+  /* creation of lumexLcdTimerInterrupt */
+  lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -576,6 +592,37 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM13 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM13_Init(void)
+{
+
+  /* USER CODE BEGIN TIM13_Init 0 */
+
+  /* USER CODE END TIM13_Init 0 */
+
+  /* USER CODE BEGIN TIM13_Init 1 */
+
+  /* USER CODE END TIM13_Init 1 */
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 200-1;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim13.Init.Period = 40-1;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM13_Init 2 */
+
+  /* USER CODE END TIM13_Init 2 */
+
+}
+
+/**
   * @brief TIM14 Initialization Function
   * @param None
   * @retval None
@@ -915,7 +962,7 @@ static void MX_GPIO_Init(void)
 void lcdDisplayTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	lumex_lcd_main(&htim16, sessionControllerToLumexLCDqHandle);
+	lumex_lcd_main(lumexLCDTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
 }
 
@@ -966,7 +1013,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  else if (htim->Instance == lumexLCDTimInstance)
+  {
+	  LumexLCDTimerInterrupt(htim, lumexLcdTimerInterruptHandle);
+  }
   /* USER CODE END Callback 1 */
 }
 
