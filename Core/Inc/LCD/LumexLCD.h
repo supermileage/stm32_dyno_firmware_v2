@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-void LumexLCDTimerInterrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle);
+void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle);
 void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle);
 
 #ifdef __cplusplus
