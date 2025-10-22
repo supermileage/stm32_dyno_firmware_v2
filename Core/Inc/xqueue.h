@@ -17,6 +17,13 @@ typedef enum
 	WRITE_TO_DISPLAY,
 } session_controller_to_lumex_lcd_opcode;
 
+typedef enum
+{
+	START = 0,
+	STOP,
+	SET_DUTY_CYCLE,
+} session_controller_to_bpm_opcode;
+
 typedef struct {
 	session_controller_to_lumex_lcd_opcode op;
     uint8_t row;
@@ -25,6 +32,9 @@ typedef struct {
 } session_controller_to_lumex_lcd;
 
 
-
+typedef struct {
+	session_controller_to_bpm_opcode op;
+	uint16_t new_duty_cycle; // only look  at this if it needs changing
+} session_controller_to_bpm;
 
 #endif /* INC_XQUEUE_H_ */
