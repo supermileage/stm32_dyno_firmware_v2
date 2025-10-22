@@ -1,4 +1,4 @@
-#include <LCD/LumexLCD.h>
+#include <lcd/lumexLcd.h>
 
 class LumexLCD
 {
@@ -250,7 +250,7 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, char* string)
 
 }
 
-extern "C" void LumexLCDTimerInterrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle)
+extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle)
 {
 	HAL_StatusTypeDef status = HAL_TIM_Base_Stop_IT(timer);
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);

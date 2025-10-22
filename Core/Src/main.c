@@ -17,12 +17,12 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <lcd/lumexLcd.h>
 #include "main.h"
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "LCD/LumexLCD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -76,8 +76,8 @@ const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
   .name = "lumexLcdTimerInterrupt"
 };
 /* USER CODE BEGIN PV */
-TIM_HandleTypeDef* lumexLCDTimer = &htim13;
-TIM_TypeDef* lumexLCDTimInstance = TIM13;
+TIM_HandleTypeDef* lumexLcdTimer = &htim13;
+TIM_TypeDef* lumexLcdTimInstance = TIM13;
 
 /* USER CODE END PV */
 
@@ -888,7 +888,7 @@ static void MX_GPIO_Init(void)
 void lcdDisplayTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	lumex_lcd_main(lumexLCDTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
+	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
 }
 
@@ -939,9 +939,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  else if (htim->Instance == lumexLCDTimInstance)
+  else if (htim->Instance == lumexLcdTimInstance)
   {
-	  LumexLCDTimerInterrupt(htim, lumexLcdTimerInterruptHandle);
+	  lumex_lcd_timer_interrupt(htim, lumexLcdTimerInterruptHandle);
   }
   /* USER CODE END Callback 1 */
 }
