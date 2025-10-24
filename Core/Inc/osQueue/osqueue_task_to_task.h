@@ -16,7 +16,10 @@ typedef struct {
     char* display_string;
 } session_controller_to_lumex_lcd;
 
+typedef struct
+{
 
+} session_controller_to_pid_controller;
 
 
 #endif /* INC_OSQUEUE_TASK_TO_TASK_H_ */

@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <lcd/lumexLcd.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -65,6 +64,13 @@ const osThreadAttr_t lcdTask_attributes = {
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
+/* Definitions for pidTask */
+osThreadId_t pidTaskHandle;
+const osThreadAttr_t pidTask_attributes = {
+  .name = "pidTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -74,6 +80,16 @@ const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
 osMessageQueueId_t lumexLcdTimerInterruptHandle;
 const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
   .name = "lumexLcdTimerInterrupt"
+};
+/* Definitions for sessionControllerToPidController */
+osMessageQueueId_t sessionControllerToPidControllerHandle;
+const osMessageQueueAttr_t sessionControllerToPidController_attributes = {
+  .name = "sessionControllerToPidController"
+};
+/* Definitions for opticalEncoderToPidController */
+osMessageQueueId_t opticalEncoderToPidControllerHandle;
+const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
+  .name = "opticalEncoderToPidController"
 };
 /* USER CODE BEGIN PV */
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
@@ -97,6 +113,7 @@ static void MX_TIM1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 void lcdDisplayTask(void *argument);
+void pidTaskEntry(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -178,6 +195,12 @@ int main(void)
   /* creation of lumexLcdTimerInterrupt */
   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
 
+  /* creation of sessionControllerToPidController */
+  sessionControllerToPidControllerHandle = osMessageQueueNew (3, sizeof(bool), &sessionControllerToPidController_attributes);
+
+  /* creation of opticalEncoderToPidController */
+  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -185,6 +208,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of lcdTask */
   lcdTaskHandle = osThreadNew(lcdDisplayTask, NULL, &lcdTask_attributes);
+
+  /* creation of pidTask */
+  pidTaskHandle = osThreadNew(pidTaskEntry, NULL, &pidTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -890,6 +916,24 @@ void lcdDisplayTask(void *argument)
   /* USER CODE BEGIN 5 */
 	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_pidTaskEntry */
+/**
+* @brief Function implementing the pidTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_pidTaskEntry */
+void pidTaskEntry(void *argument)
+{
+  /* USER CODE BEGIN pidTaskEntry */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END pidTaskEntry */
 }
 
  /* MPU Configuration */
