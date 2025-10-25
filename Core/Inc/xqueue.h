@@ -19,8 +19,8 @@ typedef enum
 
 typedef enum
 {
-	START = 0,
-	STOP,
+	START_PWM = 0,
+	STOP_PWM,
 	SET_DUTY_CYCLE,
 } session_controller_to_bpm_opcode;
 
