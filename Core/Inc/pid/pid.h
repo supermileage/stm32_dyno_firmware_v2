@@ -7,6 +7,8 @@
 
 #include "osQueue/osqueue_task_to_task.h"
 
+#include "config.h"
+
 
 
 #endif /* INC_PID_PID_H_ */

@@ -18,8 +18,17 @@ typedef struct {
 
 typedef struct
 {
-
+	bool enable_status;
+	float desired_rpm;
 } session_controller_to_pid_controller;
+
+typedef struct
+{
+	uint32_t timestamp;
+	float rpm;
+} optical_encoder_to_pid_controller;
+
+void EmptyQueue(osMessageQueueId_t qHandle);
 
 
 #endif /* INC_OSQUEUE_TASK_TO_TASK_H_ */

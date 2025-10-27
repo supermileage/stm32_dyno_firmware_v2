@@ -196,7 +196,7 @@ int main(void)
   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
 
   /* creation of sessionControllerToPidController */
-  sessionControllerToPidControllerHandle = osMessageQueueNew (3, sizeof(bool), &sessionControllerToPidController_attributes);
+  sessionControllerToPidControllerHandle = osMessageQueueNew (3, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
 
   /* creation of opticalEncoderToPidController */
   opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
