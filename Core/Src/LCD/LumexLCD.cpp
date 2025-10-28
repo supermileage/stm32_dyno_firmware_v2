@@ -257,7 +257,6 @@ extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQue
 	osMessageQueuePut(timInterruptCallbackqHandle, &status, 0, 0);
 
 
-
 }
 
 extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
