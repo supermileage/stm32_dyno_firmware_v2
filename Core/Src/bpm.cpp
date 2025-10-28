@@ -1,5 +1,4 @@
 #include "bpm.h"
-#include "bpm_main.h"
 
 // Need Init
 // bpm_control_enable
@@ -83,3 +82,15 @@ void PWMToggle(sessioncontroller* controller)
 	}
 }
 
+extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
+{
+	LumexLCD lcd = LumexLCD(timer, lumexLcdToSessionControllerqHandle, timInterruptCallbackqHandle);
+
+	if (!lcd.Init())
+	{
+		return;
+	}
+
+
+	lcd.Run();
+}
