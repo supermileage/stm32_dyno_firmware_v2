@@ -1,4 +1,4 @@
-#include "bpm.h"
+#include "osQueue/osqueue_task_to_task.h"
 
 // Need Init
 // bpm_control_enable
@@ -85,11 +85,11 @@ extern "C" void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t bpmToSessi
 {
 	BPM bpm = BPM(timer);
 
-	if (!lcd.Init())
+	if (!bpm.Init())
 	{
 		return;
 	}
 
 
-	lcd.Run();
+	bpm.Run();
 }
