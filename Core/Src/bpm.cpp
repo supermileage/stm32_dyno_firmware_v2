@@ -49,7 +49,6 @@ void BPM::Run(void)
 					PWMToggle(TIM_CHANNEL_1);
 					break;
 				case SET_DUTY_CYCLE:
-					DisplayString(msg->row, msg->column, msg->display_string);
 					break;
 				default:
 					break;
@@ -82,9 +81,9 @@ void PWMToggle(sessioncontroller* controller)
 	}
 }
 
-extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
+extern "C" void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t bpmToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
 {
-	LumexLCD lcd = LumexLCD(timer, lumexLcdToSessionControllerqHandle, timInterruptCallbackqHandle);
+	BPM bpm = BPM(timer);
 
 	if (!lcd.Init())
 	{
