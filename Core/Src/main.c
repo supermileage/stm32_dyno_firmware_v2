@@ -23,6 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <LCD/LumexLCD.h>
+#include <bpm/bpm.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,6 +67,13 @@ const osThreadAttr_t lcdTask_attributes = {
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
+/* Definitions for bpmTask */
+osThreadId_t bpmTaskHandle;
+const osThreadAttr_t bpmTask_attributes = {
+  .name = "bpmTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -75,9 +84,16 @@ osMessageQueueId_t lumexLcdTimerInterruptHandle;
 const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
   .name = "lumexLcdTimerInterrupt"
 };
+/* Definitions for sessionControllerToBpm */
+osMessageQueueId_t sessionControllerToBpmHandle;
+const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
+  .name = "sessionControllerToBpm"
+};
 /* USER CODE BEGIN PV */
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
+
+TIM_HandleTypeDef* bpmTimer = &htim16;
 
 /* USER CODE END PV */
 
@@ -97,6 +113,7 @@ static void MX_TIM1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 void lcdDisplayTask(void *argument);
+void bpmCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -178,6 +195,9 @@ int main(void)
   /* creation of lumexLcdTimerInterrupt */
   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
 
+  /* creation of sessionControllerToBpm */
+  sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -185,6 +205,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of lcdTask */
   lcdTaskHandle = osThreadNew(lcdDisplayTask, NULL, &lcdTask_attributes);
+
+  /* creation of bpmTask */
+  bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -612,9 +635,9 @@ static void MX_TIM16_Init(void)
 
   /* USER CODE END TIM16_Init 1 */
   htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 32-1;
+  htim16.Init.Prescaler = 100-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 100-1;
+  htim16.Init.Period = 200-1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -890,6 +913,21 @@ void lcdDisplayTask(void *argument)
   /* USER CODE BEGIN 5 */
 	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_bpmCtrlTask */
+/**
+* @brief Function implementing the bpmTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_bpmCtrlTask */
+void bpmCtrlTask(void *argument)
+{
+  /* USER CODE BEGIN bpmCtrlTask */
+  /* Infinite loop */
+	bpm_main(bpmTimer, sessionControllerToBpmHandle);
+  /* USER CODE END bpmCtrlTask */
 }
 
  /* MPU Configuration */
