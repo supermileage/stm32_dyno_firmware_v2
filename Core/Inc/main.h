@@ -61,6 +61,7 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define ROT_EN_A_Pin GPIO_PIN_3
 #define ROT_EN_A_GPIO_Port GPIOE
+#define ROT_EN_A_EXTI_IRQn EXTI3_IRQn
 #define ROT_EN_SW_Pin GPIO_PIN_4
 #define ROT_EN_SW_GPIO_Port GPIOE
 #define ROT_EN_SW_EXTI_IRQn EXTI4_IRQn
@@ -101,6 +102,8 @@ void Error_Handler(void);
 #define LUMEX_LCD_EN_GPIO_Port GPIOC
 #define LUMEX_LCD_RS_Pin GPIO_PIN_5
 #define LUMEX_LCD_RS_GPIO_Port GPIOC
+#define ADC2_FORCE_IN_Pin GPIO_PIN_1
+#define ADC2_FORCE_IN_GPIO_Port GPIOB
 #define ILI_SPI2_SCK_Pin GPIO_PIN_10
 #define ILI_SPI2_SCK_GPIO_Port GPIOB
 #define ILI_SPI2_TOUCH_CS_Pin GPIO_PIN_6
@@ -123,6 +126,9 @@ void Error_Handler(void);
 #define ILI_SPI1_CS_GPIO_Port GPIOG
 #define ILI_SPI1_SCK_Pin GPIO_PIN_11
 #define ILI_SPI1_SCK_GPIO_Port GPIOG
+#define ILI_TOUCH_IRQ_Pin GPIO_PIN_14
+#define ILI_TOUCH_IRQ_GPIO_Port GPIOG
+#define ILI_TOUCH_IRQ_EXTI_IRQn EXTI15_10_IRQn
 #define ADS1115_ALERT_Pin GPIO_PIN_9
 #define ADS1115_ALERT_GPIO_Port GPIOB
 #define ADS1115_ALERT_EXTI_IRQn EXTI9_5_IRQn
