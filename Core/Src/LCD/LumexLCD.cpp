@@ -256,7 +256,6 @@ extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQue
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
 	osMessageQueuePut(timInterruptCallbackqHandle, &status, 0, 0);
 
-
 }
 
 extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
