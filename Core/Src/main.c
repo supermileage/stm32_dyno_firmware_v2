@@ -55,6 +55,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
@@ -87,8 +88,34 @@ osMessageQueueId_t forcesensorCallbackHandle;
 const osMessageQueueAttr_t forcesensorCallback_attributes = {
   .name = "forcesensorCallback"
 };
+/* Definitions for bpmTask */
+osThreadId_t bpmTaskHandle;
+const osThreadAttr_t bpmTask_attributes = {
+  .name = "bpmTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for sessionControllerToLumexLcd */
+osMessageQueueId_t sessionControllerToLumexLcdHandle;
+const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
+  .name = "sessionControllerToLumexLcd"
+};
+/* Definitions for lumexLcdTimerInterrupt */
+osMessageQueueId_t lumexLcdTimerInterruptHandle;
+const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
+  .name = "lumexLcdTimerInterrupt"
+};
+/* Definitions for sessionControllerToBpm */
+osMessageQueueId_t sessionControllerToBpmHandle;
+const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
+  .name = "sessionControllerToBpm"
+};
 /* USER CODE BEGIN PV */
-extern QueueHandle_t sessionControllerToLumexLCDqHandle;
+TIM_HandleTypeDef* lumexLcdTimer = &htim13;
+TIM_TypeDef* lumexLcdTimInstance = TIM13;
+
+TIM_HandleTypeDef* bpmTimer = &htim16;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,12 +131,14 @@ static void MX_TIM14_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM13_Init(void);
+static void MX_ADC2_Init(void);
 void lcdDisplayTask(void *argument);
 void forcesensorADCTask(void *argument);
+void bpmCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -163,10 +192,11 @@ int main(void)
   MX_SPI1_Init();
   MX_SPI2_Init();
   MX_TIM1_Init();
-  MX_ADC1_Init();
   MX_I2C3_Init();
   MX_ADC2_Init();
   MX_TIM2_Init();
+  MX_TIM13_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -193,12 +223,18 @@ int main(void)
   /* creation of forcesensorCallback */
   forcesensorCallbackHandle = osMessageQueueNew (128, sizeof(forcesensor_callback), &forcesensorCallback_attributes);
 
-  /* USER CODE BEGIN RTOS_QUEUES */
-  if (!InitAllQueues())
-  {
+  /* Create the queue(s) */
+  /* creation of sessionControllerToLumexLcd */
+  sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
-	  return 0;
-  }
+  /* creation of lumexLcdTimerInterrupt */
+  lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
+
+  /* creation of sessionControllerToBpm */
+  sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -207,6 +243,9 @@ int main(void)
 
   /* creation of Forcesensor */
   ForcesensorHandle = osThreadNew(forcesensorADCTask, NULL, &Forcesensor_attributes);
+
+  /* creation of bpmTask */
+  bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -320,23 +359,22 @@ void PeriphCommonClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
+  * @brief ADC2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_ADC1_Init(void)
+static void MX_ADC2_Init(void)
 {
 
-  /* USER CODE BEGIN ADC1_Init 0 */
+  /* USER CODE BEGIN ADC2_Init 0 */
 
-  /* USER CODE END ADC1_Init 0 */
+  /* USER CODE END ADC2_Init 0 */
 
-  ADC_MultiModeTypeDef multimode = {0};
   ADC_ChannelConfTypeDef sConfig = {0};
 
-  /* USER CODE BEGIN ADC1_Init 1 */
+  /* USER CODE BEGIN ADC2_Init 1 */
 
-  /* USER CODE END ADC1_Init 1 */
+  /* USER CODE END ADC2_Init 1 */
 
   /** Common config
   */
@@ -371,20 +409,20 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
   sConfig.OffsetSignedSaturation = DISABLE;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN ADC1_Init 2 */
+  /* USER CODE BEGIN ADC2_Init 2 */
 
-  /* USER CODE END ADC1_Init 2 */
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -716,6 +754,37 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM13 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM13_Init(void)
+{
+
+  /* USER CODE BEGIN TIM13_Init 0 */
+
+  /* USER CODE END TIM13_Init 0 */
+
+  /* USER CODE BEGIN TIM13_Init 1 */
+
+  /* USER CODE END TIM13_Init 1 */
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 200-1;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim13.Init.Period = 40-1;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM13_Init 2 */
+
+  /* USER CODE END TIM13_Init 2 */
+
+}
+
+/**
   * @brief TIM14 Initialization Function
   * @param None
   * @retval None
@@ -779,9 +848,9 @@ static void MX_TIM16_Init(void)
 
   /* USER CODE END TIM16_Init 1 */
   htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 32-1;
+  htim16.Init.Prescaler = 100-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 100-1;
+  htim16.Init.Period = 200-1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -931,11 +1000,11 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LCD_D0_Pin|LCD_D1_Pin|LCD_D2_Pin|LCD_D3_Pin
-                          |LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LUMEX_LCD_D0_Pin|LUMEX_LCD_D1_Pin|LUMEX_LCD_D2_Pin|LUMEX_LCD_D3_Pin
+                          |LUMEX_LCD_D4_Pin|LUMEX_LCD_D5_Pin|LUMEX_LCD_D6_Pin|LUMEX_LCD_D7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LCD_EN_Pin|LCD_RS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI_SD_CS_Pin, GPIO_PIN_RESET);
@@ -967,17 +1036,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ROT_EN_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LCD_D0_Pin LCD_D1_Pin LCD_D2_Pin LCD_D3_Pin
-                           LCD_D4_Pin LCD_D5_Pin LCD_D6_Pin LCD_D7_Pin */
-  GPIO_InitStruct.Pin = LCD_D0_Pin|LCD_D1_Pin|LCD_D2_Pin|LCD_D3_Pin
-                          |LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin;
+  /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
+                           LUMEX_LCD_D4_Pin LUMEX_LCD_D5_Pin LUMEX_LCD_D6_Pin LUMEX_LCD_D7_Pin */
+  GPIO_InitStruct.Pin = LUMEX_LCD_D0_Pin|LUMEX_LCD_D1_Pin|LUMEX_LCD_D2_Pin|LUMEX_LCD_D3_Pin
+                          |LUMEX_LCD_D4_Pin|LUMEX_LCD_D5_Pin|LUMEX_LCD_D6_Pin|LUMEX_LCD_D7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LCD_EN_Pin LCD_RS_Pin */
-  GPIO_InitStruct.Pin = LCD_EN_Pin|LCD_RS_Pin;
+  /*Configure GPIO pins : LUMEX_LCD_EN_Pin LUMEX_LCD_RS_Pin */
+  GPIO_InitStruct.Pin = LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1003,6 +1072,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(ILI_SPI1_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ILI_TOUCH_IRQ_Pin */
+  GPIO_InitStruct.Pin = ILI_TOUCH_IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ILI_TOUCH_IRQ_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ADS1115_ALERT_Pin */
   GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
@@ -1030,11 +1105,17 @@ static void MX_GPIO_Init(void)
   HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ROT_EN_A_EXTI_IRQn);
+
   HAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ROT_EN_SW_EXTI_IRQn);
 
   HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(BTN_SELECT_EXTI_IRQn);
+
+  HAL_NVIC_SetPriority(ILI_TOUCH_IRQ_EXTI_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ILI_TOUCH_IRQ_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -1055,7 +1136,7 @@ static void MX_GPIO_Init(void)
 void lcdDisplayTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	lumex_lcd_main(&htim16, sessionControllerToLumexLCDqHandle);
+	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
 }
 
@@ -1072,6 +1153,21 @@ void forcesensorADCTask(void *argument)
   /* Infinite loop */
   force_sensor_adc_main(&htim2, ForcesensorADC_to_SessionControllerHandle, &hadc2);
   /* USER CODE END forcesensorADCTask */
+}
+
+/* USER CODE BEGIN Header_bpmCtrlTask */
+/**
+* @brief Function implementing the bpmTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_bpmCtrlTask */
+void bpmCtrlTask(void *argument)
+{
+  /* USER CODE BEGIN bpmCtrlTask */
+  /* Infinite loop */
+	bpm_main(bpmTimer, sessionControllerToBpmHandle);
+  /* USER CODE END bpmCtrlTask */
 }
 
  /* MPU Configuration */
@@ -1121,7 +1217,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  else if (htim->Instance == lumexLcdTimInstance)
+  {
+	  lumex_lcd_timer_interrupt(htim, lumexLcdTimerInterruptHandle);
+  }
   /* USER CODE END Callback 1 */
 }
 
@@ -1139,8 +1238,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
