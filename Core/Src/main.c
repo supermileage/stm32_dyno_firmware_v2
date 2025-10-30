@@ -82,6 +82,11 @@ osMessageQueueId_t ForcesensorADC_to_SessionControllerHandle;
 const osMessageQueueAttr_t ForcesensorADC_to_SessionController_attributes = {
   .name = "ForcesensorADC_to_SessionController"
 };
+/* Definitions for forcesensorCallback */
+osMessageQueueId_t forcesensorCallbackHandle;
+const osMessageQueueAttr_t forcesensorCallback_attributes = {
+  .name = "forcesensorCallback"
+};
 /* USER CODE BEGIN PV */
 extern QueueHandle_t sessionControllerToLumexLCDqHandle;
 /* USER CODE END PV */
@@ -184,6 +189,9 @@ int main(void)
   /* Create the queue(s) */
   /* creation of ForcesensorADC_to_SessionController */
   ForcesensorADC_to_SessionControllerHandle = osMessageQueueNew (16, sizeof(force_sensor_adc_to_session_controller), &ForcesensorADC_to_SessionController_attributes);
+
+  /* creation of forcesensorCallback */
+  forcesensorCallbackHandle = osMessageQueueNew (128, sizeof(forcesensor_callback), &forcesensorCallback_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   if (!InitAllQueues())
