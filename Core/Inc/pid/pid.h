@@ -11,6 +11,14 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INC_PID_PID_H_ */

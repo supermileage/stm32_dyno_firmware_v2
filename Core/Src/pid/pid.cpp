@@ -3,23 +3,7 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState, TIM_HandleTypeDef* bpmTimer) :
-			_qHandleSCRcv(sessionControllerToPidControllerHandle),
-			_qHandleOERcv(opticalEncoderToPidControllerHandle),
-			_qHandleBPMSend(pidToBpmHandle),
-			_enabled(initialState),
-			_curTimestamp(0),
-			_prevTimestamp(0),
-			_curRpm(static_cast<float>(0)),
-			_desiredRpm(static_cast<float>(0)),
-			_prevError(static_cast<float>(0)),
-			_error(static_cast<float>(0)),
-			_bpmTimerAutoreload(__HAL_TIM_GET_AUTORELOAD(bpmTimer)),
-			_oeMsg{}
-
-		{
-
-		}
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
 
 		virtual ~PIDController() = default;
 
@@ -41,20 +25,28 @@ class PIDController
 		float _prevError;
 		float _error;
 
-		uint16_t _bpmTimerAutoreload;
-
-		optical_encoder_to_pid_controller _oeMsg;
-
 		uint32_t GetTimeDelta();
 
 		void ReceiveInstruction();
-		void ReceiveLatestOpticalEncoderData();
-		void SendPWMDuty(uint16_t new_duty_cycle);
+		void SendDutyCycle(float new_duty_cycle_percent);
 
 		void Reset();
 
 
 };
+
+PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
+			_qHandleSCRcv(sessionControllerToPidControllerHandle),
+			_qHandleOERcv(opticalEncoderToPidControllerHandle),
+			_qHandleBPMSend(pidToBpmHandle),
+			_enabled(initialState),
+			_curTimestamp(0),
+			_prevTimestamp(0),
+			_curRpm(static_cast<float>(0)),
+			_desiredRpm(static_cast<float>(0)),
+			_prevError(static_cast<float>(0)),
+			_error(static_cast<float>(0))
+{}
 
 bool PIDController::Init()
 {
@@ -64,33 +56,59 @@ bool PIDController::Init()
 
 void PIDController::Run()
 {
-	float value = 0;
-	uint32_t time_delta;
-	while(true)
-	{
-		ReceiveInstruction();
+    float controlValue = 0;
+    float integral = 0;
+    float derivative = 0;
+    uint32_t timeDelta;
+    optical_encoder_to_pid_controller latestOE;
 
-		if (!_enabled)
-		{
-			EmptyQueue(_qHandleBPMSend);
-		}
-		else
-		{
-			ReceiveLatestOpticalEncoderData();
+    while (true)
+    {
+        // Process any incoming instructions
+        ReceiveInstruction();
 
-			time_delta = GetTimeDelta();
+        if (!_enabled)
+        {
+            // If PID is disabled, clear any pending BPM commands
+            EmptyQueue(_qHandleBPMSend, sizeof(session_controller_to_bpm));
+            continue; // skip PID processing
+        }
 
-			_error = _desiredRpm - _curRpm;
-			value = K_P * _error + K_D * (_error - _prevError ) / time_delta + K_I * _error;
+        // BLOCKING: wait forever for the latest optical encoder message
+        GetLatestFromQueue(_qHandleOERcv, &latestOE, sizeof(latestOE), osWaitForever);
 
+        // Update current values
+        _curTimestamp = latestOE.timestamp;
+        _curRpm = latestOE.rpm;
 
-			_prevTimestamp = _curTimestamp;
-			_prevError = _error;
-		}
-	}
+        // Compute time delta safely, handling timer overflow
+        timeDelta = GetTimeDelta();
 
+        // PID error calculation
+        _error = _desiredRpm - _curRpm;
 
+        derivative = (_error - _prevError) / (float)timeDelta;
+        integral += _error * (float)timeDelta;
+
+        // PID control output
+        controlValue = K_P * _error
+                     + K_D * derivative
+                     + K_I * integral;
+
+        // Update previous values for next iteration
+        _prevTimestamp = _curTimestamp;
+        _prevError = _error;
+
+        // Send controlValue to BPM queue
+        SendDutyCycle(controlValue);
+
+        // Optional: small delay to yield (not strictly necessary since blocking)
+        osDelay(1);
+    }
 }
+
+
+
 
 uint32_t PIDController::GetTimeDelta()
 {
@@ -140,26 +158,27 @@ void PIDController::ReceiveInstruction()
 	}
 }
 
-void PIDController::ReceiveLatestOpticalEncoderData()
-{
-	osStatus_t status;
-
-	while ((status = osMessageQueueGet(_qHandleOERcv, &_oeMsg, NULL, 0)) == osOK)
-	{
-		_curTimestamp = _oeMsg.timestamp;
-		_curRpm = _oeMsg.rpm;
-	}
-
-}
-
-void PIDController::SendPWMDuty(uint16_t new_duty_cycle)
+void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 {
 
-	if (osMessageQueuePut(_qHandleBPMSend, &new_duty_cycle, 0, osWaitForever) != osOK)
+	if (osMessageQueuePut(_qHandleBPMSend, &new_duty_cycle_percent, 0, 0) != osOK)
 	{
 		return;
 	}
 
+}
+
+extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) 
+{
+	PIDController controller = PIDController(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidToBpmHandle, initialState);
+
+	if (!controller.Init())
+	{
+		return;
+	}
+
+
+	controller.Run();
 }
 
 

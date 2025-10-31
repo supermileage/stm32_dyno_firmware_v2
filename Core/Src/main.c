@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <LCD/LumexLCD.h>
 #include <bpm/bpm.h>
+#include <pid/pid.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,6 +74,7 @@ const osThreadAttr_t pidTask_attributes = {
   .name = "pidTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
+};
 /* Definitions for bpmTask */
 osThreadId_t bpmTaskHandle;
 const osThreadAttr_t bpmTask_attributes = {
@@ -99,10 +101,16 @@ const osMessageQueueAttr_t sessionControllerToPidController_attributes = {
 osMessageQueueId_t opticalEncoderToPidControllerHandle;
 const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
   .name = "opticalEncoderToPidController"
+};
 /* Definitions for sessionControllerToBpm */
 osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
   .name = "sessionControllerToBpm"
+};
+/* Definitions for pidToBpm */
+osMessageQueueId_t pidToBpmHandle;
+const osMessageQueueAttr_t pidToBpm_attributes = {
+  .name = "pidToBpm"
 };
 /* USER CODE BEGIN PV */
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
@@ -218,8 +226,12 @@ int main(void)
 
   /* creation of opticalEncoderToPidController */
   opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
+
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
+
+  /* creation of pidToBpm */
+  pidToBpmHandle = osMessageQueueNew (5, sizeof(float), &pidToBpm_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -231,6 +243,7 @@ int main(void)
 
   /* creation of pidTask */
   pidTaskHandle = osThreadNew(pidTaskEntry, NULL, &pidTask_attributes);
+
   /* creation of bpmTask */
   bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
 
@@ -1024,12 +1037,10 @@ void lcdDisplayTask(void *argument)
 void pidTaskEntry(void *argument)
 {
   /* USER CODE BEGIN pidTaskEntry */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidToBpmHandle, false);
   /* USER CODE END pidTaskEntry */
+}
+
 /* USER CODE BEGIN Header_bpmCtrlTask */
 /**
 * @brief Function implementing the bpmTask thread.
@@ -1040,8 +1051,7 @@ void pidTaskEntry(void *argument)
 void bpmCtrlTask(void *argument)
 {
   /* USER CODE BEGIN bpmCtrlTask */
-  /* Infinite loop */
-	bpm_main(bpmTimer, sessionControllerToBpmHandle);
+	bpm_main(bpmTimer, sessionControllerToBpmHandle, pidToBpmHandle);
   /* USER CODE END bpmCtrlTask */
 }
 

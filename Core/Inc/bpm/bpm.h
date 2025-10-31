@@ -6,12 +6,14 @@
 
 #include "osQueue/osqueue_task_to_task.h"
 
+#include "config.h"
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmqHandle);
+void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle);
 
 #ifdef __cplusplus
 }
