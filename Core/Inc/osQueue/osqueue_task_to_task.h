@@ -26,6 +26,24 @@ typedef struct
 	float desired_rpm;
 } session_controller_to_pid_controller;
 
+typedef enum
+{
+	START_PWM = 0,
+	STOP_PWM,
+	SET_DUTY_CYCLE,
+} session_controller_to_bpm_opcode;
+
+typedef struct {
+	session_controller_to_bpm_opcode op;
+	uint16_t new_duty_cycle; // only look  at this if it needs changing
+} session_controller_to_bpm;
+
+
+
+
+
+
+
 typedef struct
 {
 	uint32_t timestamp;
