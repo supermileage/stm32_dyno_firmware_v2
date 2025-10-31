@@ -39,7 +39,6 @@ bool BPM::Init()
 void BPM::Run(void)
 {
 	session_controller_to_bpm scMsg;
-	float newDutyCyclePercent;
 	bool readFromPID = false;;
 
 	while(1) {
@@ -52,8 +51,7 @@ void BPM::Run(void)
 					readFromPID = true;
 					break;
 				case START_PWM:
-					newDutyCyclePercent = scMsg.new_duty_cycle_percent;
-					SetDutyCycle(newDutyCyclePercent);
+					SetDutyCycle(scMsg.new_duty_cycle_percent);
 					TogglePWM(true);
 					readFromPID = false;
 					break;
@@ -68,15 +66,15 @@ void BPM::Run(void)
 
 
 		}
-		else if (readFromPID)
+		if (readFromPID)
 		{
-			if (osMessageQueueGet(_fromPIDHandle, &newDutyCyclePercent, NULL, 0) != osOK)
+			float latestDutyCycle;
+			// Get the latest available value (non-blocking)
+			if (GetLatestFromQueue(_fromPIDHandle, &latestDutyCycle, sizeof(latestDutyCycle), 0))
 			{
-				continue;
+				SetDutyCycle(latestDutyCycle);
+				TogglePWM(true);
 			}
-
-			SetDutyCycle(newDutyCyclePercent);
-			TogglePWM(true);
 		}
 
 
