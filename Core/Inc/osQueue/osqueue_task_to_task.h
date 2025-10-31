@@ -2,6 +2,10 @@
 #define INC_OSQUEUE_TASK_TO_TASK_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "cmsis_os.h"
 
 typedef enum
 {

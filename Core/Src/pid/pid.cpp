@@ -9,6 +9,7 @@ class PIDController
 			_qHandleBPMSend(pidToBpmHandle),
 			_enabled(initialState),
 			_curTimestamp(0),
+			_prevTimestamp(0),
 			_curRpm(static_cast<float>(0)),
 			_desiredRpm(static_cast<float>(0)),
 			_prevError(static_cast<float>(0)),
@@ -31,6 +32,7 @@ class PIDController
 		bool _enabled;
 
 		uint32_t _curTimestamp;
+		uint32_t _prevTimestamp;
 
 		float _curRpm;
 
@@ -43,9 +45,11 @@ class PIDController
 
 		optical_encoder_to_pid_controller _oeMsg;
 
+		uint32_t GetTimeDelta();
+
 		void ReceiveInstruction();
 		void ReceiveLatestOpticalEncoderData();
-		void SendPWMDuty();
+		void SendPWMDuty(uint16_t new_duty_cycle);
 
 		void Reset();
 
@@ -61,6 +65,7 @@ bool PIDController::Init()
 void PIDController::Run()
 {
 	float value = 0;
+	uint32_t time_delta;
 	while(true)
 	{
 		ReceiveInstruction();
@@ -71,12 +76,15 @@ void PIDController::Run()
 		}
 		else
 		{
-			ReceiveLatestOpticalEncoderData()
+			ReceiveLatestOpticalEncoderData();
 
-			_error = (_desiredRpm - _curRpm);
-			value = K_P * _error + K_D * _
+			time_delta = GetTimeDelta();
+
+			_error = _desiredRpm - _curRpm;
+			value = K_P * _error + K_D * (_error - _prevError ) / time_delta + K_I * _error;
 
 
+			_prevTimestamp = _curTimestamp;
 			_prevError = _error;
 		}
 	}
@@ -84,12 +92,27 @@ void PIDController::Run()
 
 }
 
+uint32_t PIDController::GetTimeDelta()
+{
+	if (_curTimestamp > _prevTimestamp)
+	{
+		return _curTimestamp - _prevTimestamp;
+	}
+	else if (_curTimestamp == _prevTimestamp)
+	{
+		return 1;
+	}
+	else
+	{
+		return (UINT32_MAX - _prevTimestamp) + _curTimestamp + 1;
+	}
+}
+
 void PIDController::Reset()
 {
 	_curTimestamp = 0;
-	_curRpm = static_cast<float>(0);
 	_prevTimestamp = 0;
-	_prevRpm = static_cast<float>(0);
+	_curRpm = static_cast<float>(0);
 
 	_error = static_cast<float>(0);
 	_prevError = static_cast<float>(0);

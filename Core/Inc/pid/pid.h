@@ -9,6 +9,8 @@
 
 #include "config.h"
 
+#include <stdint.h>
+
 
 
 #endif /* INC_PID_PID_H_ */
