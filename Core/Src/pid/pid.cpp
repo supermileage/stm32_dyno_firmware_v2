@@ -25,7 +25,7 @@ class PIDController
 		float _prevError;
 		float _error;
 
-		uint32_t GetTimeDelta();
+		float GetTimeDelta();
 
 		void ReceiveInstruction();
 		void SendDutyCycle(float new_duty_cycle_percent);
@@ -110,19 +110,21 @@ void PIDController::Run()
 
 
 
-uint32_t PIDController::GetTimeDelta()
+float PIDController::GetTimeDelta()
 {
+	float timeDelta;
+	
 	if (_curTimestamp > _prevTimestamp)
 	{
-		return _curTimestamp - _prevTimestamp;
+		timeDelta = _curTimestamp - _prevTimestamp;
 	}
 	else if (_curTimestamp == _prevTimestamp)
 	{
-		return 1;
+		timeDelta = 1;
 	}
 	else
 	{
-		return (UINT32_MAX - _prevTimestamp) + _curTimestamp + 1;
+		timeDelta = (UINT32_MAX - _prevTimestamp) + _curTimestamp + 1;
 	}
 }
 
