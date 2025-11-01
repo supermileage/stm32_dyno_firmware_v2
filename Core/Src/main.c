@@ -77,6 +77,13 @@ const osThreadAttr_t bpmTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for forcesensorTask */
+osThreadId_t forcesensorTaskHandle;
+const osThreadAttr_t forcesensorTask_attributes = {
+  .name = "forcesensorTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -136,6 +143,7 @@ static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
 void bpmCtrlTask(void *argument);
+void forcesensorCtrlTask01(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -241,6 +249,9 @@ int main(void)
 
   /* creation of bpmTask */
   bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
+
+  /* creation of forcesensorTask */
+  forcesensorTaskHandle = osThreadNew(forcesensorCtrlTask01, NULL, &forcesensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1051,7 +1062,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* instanceTimer, osMessageQueueId_t adcCallbackForcesensorHandle) // Seeing if this works
 {
     if (hadc->Instance == ADC2)
     {
@@ -1087,6 +1098,24 @@ void bpmCtrlTask(void *argument)
   /* Infinite loop */
 	bpm_main(bpmTimer, sessionControllerToBpmHandle);
   /* USER CODE END bpmCtrlTask */
+}
+
+/* USER CODE BEGIN Header_forcesensorCtrlTask01 */
+/**
+* @brief Function implementing the forcesensorTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_forcesensorCtrlTask01 */
+void forcesensorCtrlTask01(void *argument)
+{
+  /* USER CODE BEGIN forcesensorCtrlTask01 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END forcesensorCtrlTask01 */
 }
 
  /* MPU Configuration */

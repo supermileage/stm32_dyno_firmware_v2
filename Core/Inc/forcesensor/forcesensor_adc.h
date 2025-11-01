@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-void force_sensor_adc_main(TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle, ADC_HandleTypeDef* adcHandle);
+void force_sensor_adc_main(osMessageQueueId_t sc_to_fsHandle, osMessageQueueId_t fs_to_scHandle, osMessageQueueId_t adcCallbackHandle, ADC_HandleTypeDef* adcHandle);
 
 #ifdef __cplusplus
 }

@@ -17,12 +17,11 @@ class ForcesensorADC /* Class definition because we can't use headers for C++ ba
 		void Run();
 
 	private:
-		float GetForce(void);
+		float GetForce(uint16_t adcValue);
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
 		osMessageQueueId_t _adcCallbackHandle;
-
 
 		ADC_HandleTypeDef* _adcHandle;
 
@@ -45,19 +44,17 @@ bool ForcesensorADC::Init()
 
 void ForcesensorADC::Run(void)
 {
-	osStatus_t status;
 	bool enableADC = false;
 	adc_callback_to_forcesensor callbackData; // data coming from the forcesensor interrupt
 	forcesensor_adc_to_session_controller outputData;
 
 	while (1)
 	{
-	    status = osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADC, 0, 0);
-		if (enableADC) {
+	    if (enableADC) {
 			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
 			osMessageQueueGet(_adcCallbackHandle, &callbackData, 0, osWaitForever); // osWaitForever is an "enum"
 			outputData.timestamp = callbackData.timestamp;
-			outputData.force = GetForce(adc_value);
+			outputData.force = GetForce(callbackData.adc_value);
 
 			osMessageQueuePut(_forceSensorToSessionControllerHandle, &outputData, 0, 0);
 		}
@@ -67,13 +64,13 @@ void ForcesensorADC::Run(void)
 
 
 
-float ForcesensorADC::GetForce(void)
+float ForcesensorADC::GetForce(uint16_t adcValue)
 {
 	return static_cast<float> (adcValue) / SIXTEEN_BIT_MAX * MAX_FORCE * LBF_TO_NEWTON; // Have the calculation here
 }
 
 
-extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, osMessageQueueId_t osHandle)
+extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle)
 {
 	adc_callback_to_forcesensor msg;
 	msg.timestamp = __HAL_TIM_GET_COUNTER(timer);
