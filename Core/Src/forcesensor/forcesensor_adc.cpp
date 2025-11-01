@@ -4,106 +4,86 @@
 #define MAX_FORCE 25
 #define LBF_TO_NEWTON 4.44822
 
-uint16_t adcValue = 0;
-volatile bool timerflag = false;
-
-class forcesensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
+class ForcesensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
-		forcesensorADC(TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle, ADC_HandleTypeDef* adcHandle);
-		virtual ~forcesensorADC() = default;
+		ForcesensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle,
+				osMessageQueueId_t forceSensorToSessionControllerHandle,
+				osMessageQueueId_t adcCallbackHandle,
+				ADC_HandleTypeDef* adcHandle);
+		virtual ~ForcesensorADC() = default;
 
 		bool Init();
 		void Run();
-		void Toggle(bool status,
-		                force_sensor_adc_to_session_controller msg,
-		                osMessageQueueId_t osHandle);
 
 	private:
 		float GetForce(void);
 
-		TIM_HandleTypeDef* _timer;
-		osMessageQueueId_t _osHandle;
+		osMessageQueueId_t _sessionControllerToForceSensorHandle;
+		osMessageQueueId_t _forceSensorToSessionControllerHandle;
+		osMessageQueueId_t _adcCallbackHandle;
+
+
 		ADC_HandleTypeDef* _adcHandle;
-		force_sensor_adc_to_session_controller _msg; // object of force_sensor_adc_to_session_controller
-		bool _adc_toggle;
 
 };
 
-forcesensorADC::forcesensorADC(TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle, ADC_HandleTypeDef* adcHandle) : /* Constructor */
-		_timer(timer),
-		_osHandle(osHandle),
-		_adcHandle(adcHandle),
-		_msg{},
-		_adc_toggle{}
+ForcesensorADC::ForcesensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle,
+				osMessageQueueId_t forceSensorToSessionControllerHandle,
+				osMessageQueueId_t adcCallbackHandle,
+				ADC_HandleTypeDef* adcHandle) : /* Constructor */
+		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle),
+		_forceSensorToSessionControllerHandle(forceSensorToSessionControllerHandle),
+		_adcCallbackHandle(adcCallbackHandle),
+		_adcHandle(adcHandle)
 {}
 
-void forcesensorADC::Toggle(bool status, force_sensor_adc_to_session_controller msg, osMessageQueueId_t osHandle)
-{
-    bool confirm = false; // Will likely be changed by reading message
-
-    if (status && !confirm)
-        _adc_toggle = true;
-    else
-        _adc_toggle = false;
-}
-
-bool forcesensorADC::Init()
+bool ForcesensorADC::Init()
 {
 	return true;
 }
 
-void forcesensorADC::Run(void)
+void ForcesensorADC::Run(void)
 {
-
-
-	timerflag = false;
-	HAL_ADC_Start_IT(_adcHandle); // starts adc, and does callback once fired
-	while (!timerflag); // puts "Run" on hold until callback occurs
-
-	_msg.adc_timestamp = 0;
-	_msg.adc_force_action = GetForce();
-//	osStatus_t status = osMessageQueuePut(_osHandle, &_msg, 0, 0);
-
 	osStatus_t status;
 	bool enableADC = false;
+	adc_callback_to_forcesensor callbackData; // data coming from the forcesensor interrupt
+	forcesensor_adc_to_session_controller outputData;
 
 	while (1)
 	{
-	    status = osMessageQueueGet(_osHandle, &enableADC, NULL, 0);
-	    if (status == osOK)
-	    {
-	        Toggle(enableADC, _msg, _osHandle);
-	    }
+	    status = osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADC, 0, 0);
+		if (enableADC) {
+			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
+			osMessageQueueGet(_adcCallbackHandle, &callbackData, 0, osWaitForever); // osWaitForever is an "enum"
+			outputData.timestamp = callbackData.timestamp;
+			outputData.force = GetForce(adc_value);
 
-	    if (enableADC)
-	    {
-	        float value = static_cast<float>(adcValue);
-	        osMessageQueuePut(_osHandle, &value, 0, 0);
-	    }
+			osMessageQueuePut(_forceSensorToSessionControllerHandle, &outputData, 0, 0);
+		}
 	}
 
 }
 
 
 
-float forcesensorADC::GetForce(void)
+float ForcesensorADC::GetForce(void)
 {
 	return static_cast<float> (adcValue) / SIXTEEN_BIT_MAX * MAX_FORCE * LBF_TO_NEWTON; // Have the calculation here
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+
+extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, osMessageQueueId_t osHandle)
 {
-    if (hadc->Instance == ADC2)
-    {
-        adcValue = HAL_ADC_GetValue(hadc); // read converted value
-        timerflag = true;
-    }
+	adc_callback_to_forcesensor msg;
+	msg.timestamp = __HAL_TIM_GET_COUNTER(timer);
+	msg.adc_value = HAL_ADC_GetValue(hadc);
+	osMessageQueuePut(osHandle, &msg, 0, 0); // priority and timeout are last two numbers
 }
 
-extern "C" void force_sensor_adc_main(TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle, ADC_HandleTypeDef* adcHandle)
+extern "C" void force_sensor_adc_main(osMessageQueueId_t sc_to_fsHandle, osMessageQueueId_t fs_to_scHandle, osMessageQueueId_t adcCallbackHandle, ADC_HandleTypeDef* adcHandle)
 {
-	forcesensorADC forcesensor = forcesensorADC(timer, osHandle, adcHandle);
+	ForcesensorADC forcesensor = ForcesensorADC(sc_to_fsHandle, fs_to_scHandle, adcCallbackHandle, adcHandle);
 
 	if (!forcesensor.Init())
 	{

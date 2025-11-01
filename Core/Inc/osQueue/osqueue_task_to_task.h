@@ -32,9 +32,10 @@ typedef struct {
 } session_controller_to_bpm;
 
 
-
-
-
+typedef struct {
+	uint32_t timestamp;
+	float force;
+} forcesensor_adc_to_session_controller;
 
 
 

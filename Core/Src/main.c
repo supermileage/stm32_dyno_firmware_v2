@@ -24,8 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "test.h"
 #include "LCD/LumexLCD.h"
-#include "xqueue.h"
 #include "forcesensor/forcesensor_adc.h"
+#include "bpm/bpm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +44,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 
 I2C_HandleTypeDef hi2c3;
@@ -57,7 +56,6 @@ SPI_HandleTypeDef hspi2;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim13;
-TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
@@ -71,23 +69,6 @@ const osThreadAttr_t lcdTask_attributes = {
   .name = "lcdTask",
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
-};
-/* Definitions for Forcesensor */
-osThreadId_t ForcesensorHandle;
-const osThreadAttr_t Forcesensor_attributes = {
-  .name = "Forcesensor",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
-};
-/* Definitions for ForcesensorADC_to_SessionController */
-osMessageQueueId_t ForcesensorADC_to_SessionControllerHandle;
-const osMessageQueueAttr_t ForcesensorADC_to_SessionController_attributes = {
-  .name = "ForcesensorADC_to_SessionController"
-};
-/* Definitions for forcesensorCallback */
-osMessageQueueId_t forcesensorCallbackHandle;
-const osMessageQueueAttr_t forcesensorCallback_attributes = {
-  .name = "forcesensorCallback"
 };
 /* Definitions for bpmTask */
 osThreadId_t bpmTaskHandle;
@@ -110,6 +91,21 @@ const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
 osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
   .name = "sessionControllerToBpm"
+};
+/* Definitions for forcesensorToSessionController */
+osMessageQueueId_t forcesensorToSessionControllerHandle;
+const osMessageQueueAttr_t forcesensorToSessionController_attributes = {
+  .name = "forcesensorToSessionController"
+};
+/* Definitions for sessionControllerToForcesensor */
+osMessageQueueId_t sessionControllerToForcesensorHandle;
+const osMessageQueueAttr_t sessionControllerToForcesensor_attributes = {
+  .name = "sessionControllerToForcesensor"
+};
+/* Definitions for adcCallbackForcesensor */
+osMessageQueueId_t adcCallbackForcesensorHandle;
+const osMessageQueueAttr_t adcCallbackForcesensor_attributes = {
+  .name = "adcCallbackForcesensor"
 };
 /* USER CODE BEGIN PV */
 TIM_HandleTypeDef* timestampTimer = &htim2;
@@ -135,13 +131,10 @@ static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C3_Init(void);
-static void MX_ADC2_Init(void);
-static void MX_TIM2_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
-void forcesensorADCTask(void *argument);
 void bpmCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -197,8 +190,6 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM1_Init();
   MX_I2C3_Init();
-  MX_ADC2_Init();
-  MX_TIM2_Init();
   MX_TIM13_Init();
   MX_ADC2_Init();
   MX_TIM2_Init();
@@ -222,13 +213,6 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
-  /* creation of ForcesensorADC_to_SessionController */
-  ForcesensorADC_to_SessionControllerHandle = osMessageQueueNew (16, sizeof(force_sensor_adc_to_session_controller), &ForcesensorADC_to_SessionController_attributes);
-
-  /* creation of forcesensorCallback */
-  forcesensorCallbackHandle = osMessageQueueNew (128, sizeof(forcesensor_callback), &forcesensorCallback_attributes);
-
-  /* Create the queue(s) */
   /* creation of sessionControllerToLumexLcd */
   sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
@@ -238,6 +222,15 @@ int main(void)
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
+  /* creation of forcesensorToSessionController */
+  forcesensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forcesensorToSessionController_attributes);
+
+  /* creation of sessionControllerToForcesensor */
+  sessionControllerToForcesensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForcesensor_attributes);
+
+  /* creation of adcCallbackForcesensor */
+  adcCallbackForcesensorHandle = osMessageQueueNew (16, sizeof(adc_callback_to_forcesensor), &adcCallbackForcesensor_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -245,9 +238,6 @@ int main(void)
   /* Create the thread(s) */
   /* creation of lcdTask */
   lcdTaskHandle = osThreadNew(lcdDisplayTask, NULL, &lcdTask_attributes);
-
-  /* creation of Forcesensor */
-  ForcesensorHandle = osThreadNew(forcesensorADCTask, NULL, &Forcesensor_attributes);
 
   /* creation of bpmTask */
   bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
@@ -361,74 +351,6 @@ void PeriphCommonClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ADC2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC2_Init(void)
-{
-
-  /* USER CODE BEGIN ADC2_Init 0 */
-
-  /* USER CODE END ADC2_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC2_Init 1 */
-
-  /* USER CODE END ADC2_Init 1 */
-
-  /** Common config
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV2;
-  hadc1.Init.Resolution = ADC_RESOLUTION_16B;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
-  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
-  hadc1.Init.OversamplingMode = DISABLE;
-  hadc1.Init.Oversampling.Ratio = 1;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure the ADC multi-mode
-  */
-  multimode.Mode = ADC_MODE_INDEPENDENT;
-  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  sConfig.OffsetSignedSaturation = DISABLE;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC2_Init 2 */
-
-  /* USER CODE END ADC2_Init 2 */
-
 }
 
 /**
@@ -1129,6 +1051,13 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    if (hadc->Instance == ADC2)
+    {
+        adc_forcesensor_interrupt(hadc, instanceTimer, adcCallbackForcesensorHandle);
+    }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_lcdDisplayTask */
@@ -1143,21 +1072,6 @@ void lcdDisplayTask(void *argument)
   /* USER CODE BEGIN 5 */
 	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_forcesensorADCTask */
-/**
-* @brief Function implementing the Forcesensor thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_forcesensorADCTask */
-void forcesensorADCTask(void *argument)
-{
-  /* USER CODE BEGIN forcesensorADCTask */
-  /* Infinite loop */
-  force_sensor_adc_main(&htim2, ForcesensorADC_to_SessionControllerHandle, &hadc2);
-  /* USER CODE END forcesensorADCTask */
 }
 
 /* USER CODE BEGIN Header_bpmCtrlTask */

@@ -108,7 +108,7 @@ void LumexLCD::Run(void)
 				break;
 			default:
 				break;
-
+		}
 	}
 
 }
