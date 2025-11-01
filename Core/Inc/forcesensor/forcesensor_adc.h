@@ -3,7 +3,6 @@
 
 #include "main.h"
 #include "cmsis_os2.h"
-#include "xqueue.h"
 
 #ifdef __cplusplus
 extern "C" {

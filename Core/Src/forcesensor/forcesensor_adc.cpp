@@ -56,6 +56,7 @@ bool forcesensorADC::Init()
 void forcesensorADC::Run(void)
 {
 
+
 	timerflag = false;
 	HAL_ADC_Start_IT(_adcHandle); // starts adc, and does callback once fired
 	while (!timerflag); // puts "Run" on hold until callback occurs
