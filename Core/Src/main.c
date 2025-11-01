@@ -55,6 +55,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim14;
@@ -111,6 +112,8 @@ const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
   .name = "sessionControllerToBpm"
 };
 /* USER CODE BEGIN PV */
+TIM_HandleTypeDef* timestampTimer = &htim2;
+
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
 
@@ -136,6 +139,7 @@ static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC2_Init(void);
+static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
 void forcesensorADCTask(void *argument);
 void bpmCtrlTask(void *argument);
@@ -197,6 +201,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM13_Init();
   MX_ADC2_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -727,11 +732,11 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 200-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
