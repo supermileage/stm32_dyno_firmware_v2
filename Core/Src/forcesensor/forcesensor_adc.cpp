@@ -70,7 +70,7 @@ float ForcesensorADC::GetForce(uint16_t adcValue)
 }
 
 
-extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer, osMessageQueueId_t osHandle)
+extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer,  osMessageQueueId_t osHandle)
 {
 	adc_callback_to_forcesensor msg;
 	msg.timestamp = __HAL_TIM_GET_COUNTER(timer);
