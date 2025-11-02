@@ -44,7 +44,7 @@ bool ForcesensorADC::Init()
 void ForcesensorADC::Run(void)
 {
 	bool enableADC = false;
-	forcesensor_adc_to_session_controller outputData;
+	forcesensor_output_data outputData;
 
 	while (1)
 	{

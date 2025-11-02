@@ -60,7 +60,7 @@ void PIDController::Run()
     float integral = 0;
     float derivative = 0;
     uint32_t timeDelta;
-    optical_encoder_to_pid_controller latestOE;
+    optical_encoder_output_data latestOE;
 
     while (true)
     {
