@@ -1,5 +1,7 @@
 #include <usb/usb.h>
 
+#define CDC_TX_BUFFER_SIZE 256
+
 class USB
 {
 	public:
@@ -9,6 +11,7 @@ class USB
 		bool Init();
 		void Run();
 	private:
+		uint8_t _txBuffer[CDC_TX_BUFFER_SIZE];
 
 };
 
@@ -21,7 +24,7 @@ void USB::Run()
 {
 	while(1)
 	{
-
+		
 	}
 
 }
