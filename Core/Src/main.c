@@ -22,7 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "test.h"
 #include "LCD/LumexLCD.h"
 #include "forcesensor/forcesensor_adc.h"
 #include "bpm/bpm.h"
@@ -99,22 +98,19 @@ osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
   .name = "sessionControllerToBpm"
 };
-/* Definitions for forcesensorToSessionController */
-osMessageQueueId_t forcesensorToSessionControllerHandle;
-const osMessageQueueAttr_t forcesensorToSessionController_attributes = {
-  .name = "forcesensorToSessionController"
+/* Definitions for forceSensorToSessionController */
+osMessageQueueId_t forceSensorToSessionControllerHandle;
+const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
+  .name = "forceSensorToSessionController"
 };
-/* Definitions for sessionControllerToForcesensor */
-osMessageQueueId_t sessionControllerToForcesensorHandle;
-const osMessageQueueAttr_t sessionControllerToForcesensor_attributes = {
-  .name = "sessionControllerToForcesensor"
-};
-/* Definitions for adcCallbackForcesensor */
-osMessageQueueId_t adcCallbackForcesensorHandle;
-const osMessageQueueAttr_t adcCallbackForcesensor_attributes = {
-  .name = "adcCallbackForcesensor"
+/* Definitions for sessionControllerToForceSensor */
+osMessageQueueId_t sessionControllerToForceSensorHandle;
+const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
+  .name = "sessionControllerToForceSensor"
 };
 /* USER CODE BEGIN PV */
+ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
+
 TIM_HandleTypeDef* timestampTimer = &htim2;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
@@ -143,7 +139,7 @@ static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
 void bpmCtrlTask(void *argument);
-void forcesensorCtrlTask01(void *argument);
+void forcesensorCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -230,14 +226,11 @@ int main(void)
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
-  /* creation of forcesensorToSessionController */
-  forcesensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forcesensorToSessionController_attributes);
+  /* creation of forceSensorToSessionController */
+  forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forceSensorToSessionController_attributes);
 
-  /* creation of sessionControllerToForcesensor */
-  sessionControllerToForcesensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForcesensor_attributes);
-
-  /* creation of adcCallbackForcesensor */
-  adcCallbackForcesensorHandle = osMessageQueueNew (16, sizeof(adc_callback_to_forcesensor), &adcCallbackForcesensor_attributes);
+  /* creation of sessionControllerToForceSensor */
+  sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -251,7 +244,7 @@ int main(void)
   bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
 
   /* creation of forcesensorTask */
-  forcesensorTaskHandle = osThreadNew(forcesensorCtrlTask01, NULL, &forcesensorTask_attributes);
+  forcesensorTaskHandle = osThreadNew(forcesensorCtrlTask, NULL, &forcesensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1066,7 +1059,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
 {
     if (hadc->Instance == ADC2)
     {
-        adc_forcesensor_interrupt(hadc);
+        adc_forcesensor_interrupt(hadc, timestampTimer);
     }
 }
 /* USER CODE END 4 */
@@ -1100,22 +1093,18 @@ void bpmCtrlTask(void *argument)
   /* USER CODE END bpmCtrlTask */
 }
 
-/* USER CODE BEGIN Header_forcesensorCtrlTask01 */
+/* USER CODE BEGIN Header_forcesensorCtrlTask */
 /**
 * @brief Function implementing the forcesensorTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_forcesensorCtrlTask01 */
-void forcesensorCtrlTask01(void *argument)
+/* USER CODE END Header_forcesensorCtrlTask */
+void forcesensorCtrlTask(void *argument)
 {
-  /* USER CODE BEGIN forcesensorCtrlTask01 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END forcesensorCtrlTask01 */
+  /* USER CODE BEGIN forcesensorCtrlTask */
+	force_sensor_adc_main(sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle, forceSensorADCHandle);
+  /* USER CODE END forcesensorCtrlTask */
 }
 
  /* MPU Configuration */

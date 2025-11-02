@@ -1966,7 +1966,7 @@ uint32_t                HAL_ADC_GetValue(const ADC_HandleTypeDef *hadc);
 
 /* ADC IRQHandler and Callbacks used in non-blocking modes (Interruption and DMA) */
 void                    HAL_ADC_IRQHandler(ADC_HandleTypeDef *hadc);
-void                    HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
+void                    HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
 void                    HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc);
 void                    HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc);
 void                    HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);

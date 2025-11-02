@@ -1,5 +1,7 @@
 #include <lcd/lumexLcd.h>
 
+volatile bool timerCallbackFlag = false;
+
 class LumexLCD
 {
 	public:
@@ -145,17 +147,14 @@ bool LumexLCD::SendByte(uint8_t byte)
 	// Set EN Pin and start timer
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_SET);
 
+	timerCallbackFlag = false;
+
 	if (!StartTimer(40))
 	{
 		return false;
 	}
 
-	HAL_StatusTypeDef status;
-	osMessageQueueGet(_timqHandle, &status, NULL, osWaitForever);
-	if (status != HAL_OK)
-	{
-		return false;
-	}
+	while(!timerCallbackFlag);
 
 	return true;
 
@@ -252,9 +251,9 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, char* string)
 
 extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle)
 {
-	HAL_StatusTypeDef status = HAL_TIM_Base_Stop_IT(timer);
+	HAL_TIM_Base_Stop_IT(timer);
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
-	osMessageQueuePut(timInterruptCallbackqHandle, &status, 0, 0);
+	timerCallbackFlag = true;
 
 }
 
