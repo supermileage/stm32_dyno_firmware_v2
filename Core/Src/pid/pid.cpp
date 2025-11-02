@@ -10,9 +10,9 @@ class PIDController
 		bool Init();
 		void Run();
 	private:
-		osMessageQueueId_t _qHandleSCRcv;
-		osMessageQueueId_t _qHandleOERcv;
-		osMessageQueueId_t _qHandleBPMSend;
+		osMessageQueueId_t _pidToSessionControllerHandle;
+		osMessageQueueId_t _opticalEncoderToPidControllerHandle;
+		osMessageQueueId_t _pidToBpmHandle;
 		bool _enabled;
 
 		uint32_t _curTimestamp;
@@ -36,9 +36,9 @@ class PIDController
 };
 
 PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
-			_qHandleSCRcv(sessionControllerToPidControllerHandle),
-			_qHandleOERcv(opticalEncoderToPidControllerHandle),
-			_qHandleBPMSend(pidToBpmHandle),
+			_pidToSessionControllerHandle(sessionControllerToPidControllerHandle),
+			_opticalEncoderToPidControllerHandle(opticalEncoderToPidControllerHandle),
+			_pidToBpmHandle(pidToBpmHandle),
 			_enabled(initialState),
 			_curTimestamp(0),
 			_prevTimestamp(0),
@@ -70,12 +70,12 @@ void PIDController::Run()
         if (!_enabled)
         {
             // If PID is disabled, clear any pending BPM commands
-            EmptyQueue(_qHandleBPMSend, sizeof(session_controller_to_bpm));
+            EmptyQueue(_pidToBpmHandle, sizeof(session_controller_to_bpm));
             continue; // skip PID processing
         }
 
         // BLOCKING: wait forever for the latest optical encoder message
-        GetLatestFromQueue(_qHandleOERcv, &latestOE, sizeof(latestOE), osWaitForever);
+        GetLatestFromQueue(_opticalEncoderToPidControllerHandle, &latestOE, sizeof(latestOE), osWaitForever);
 
         // Update current values
         _curTimestamp = latestOE.timestamp;
@@ -126,6 +126,8 @@ float PIDController::GetTimeDelta()
 	{
 		timeDelta = (UINT32_MAX - _prevTimestamp) + _curTimestamp + 1;
 	}
+
+	return timeDelta;
 }
 
 void PIDController::Reset()
@@ -144,7 +146,7 @@ void PIDController::ReceiveInstruction()
 
 	session_controller_to_pid_controller msg;
 
-	status = osMessageQueueGet(_qHandleSCRcv, &msg, NULL, 0);
+	status = osMessageQueueGet(_pidToSessionControllerHandle, &msg, NULL, 0);
 
 	if (status != osOK)
 	{
@@ -163,7 +165,7 @@ void PIDController::ReceiveInstruction()
 void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 {
 
-	if (osMessageQueuePut(_qHandleBPMSend, &new_duty_cycle_percent, 0, 0) != osOK)
+	if (osMessageQueuePut(_pidToBpmHandle, &new_duty_cycle_percent, 0, 0) != osOK)
 	{
 		return;
 	}

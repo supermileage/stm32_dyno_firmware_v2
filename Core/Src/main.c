@@ -67,29 +67,29 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 osThreadId_t lcdTaskHandle;
 const osThreadAttr_t lcdTask_attributes = {
   .name = "lcdTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
-};
-/* Definitions for pidTask */
-osThreadId_t pidTaskHandle;
-const osThreadAttr_t pidTask_attributes = {
-  .name = "pidTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for bpmTask */
 osThreadId_t bpmTaskHandle;
 const osThreadAttr_t bpmTask_attributes = {
   .name = "bpmTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityRealtime1,
 };
-/* Definitions for forcesensorTask */
-osThreadId_t forcesensorTaskHandle;
-const osThreadAttr_t forcesensorTask_attributes = {
-  .name = "forcesensorTask",
+/* Definitions for forceSensorTask */
+osThreadId_t forceSensorTaskHandle;
+const osThreadAttr_t forceSensorTask_attributes = {
+  .name = "forceSensorTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for pidTask */
+osThreadId_t pidTaskHandle;
+const osThreadAttr_t pidTask_attributes = {
+  .name = "pidTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -101,6 +101,21 @@ osMessageQueueId_t lumexLcdTimerInterruptHandle;
 const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
   .name = "lumexLcdTimerInterrupt"
 };
+/* Definitions for sessionControllerToBpm */
+osMessageQueueId_t sessionControllerToBpmHandle;
+const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
+  .name = "sessionControllerToBpm"
+};
+/* Definitions for forceSensorToSessionController */
+osMessageQueueId_t forceSensorToSessionControllerHandle;
+const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
+  .name = "forceSensorToSessionController"
+};
+/* Definitions for sessionControllerToForceSensor */
+osMessageQueueId_t sessionControllerToForceSensorHandle;
+const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
+  .name = "sessionControllerToForceSensor"
+};
 /* Definitions for sessionControllerToPidController */
 osMessageQueueId_t sessionControllerToPidControllerHandle;
 const osMessageQueueAttr_t sessionControllerToPidController_attributes = {
@@ -111,24 +126,10 @@ osMessageQueueId_t opticalEncoderToPidControllerHandle;
 const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
   .name = "opticalEncoderToPidController"
 };
-/* Definitions for sessionControllerToBpm */
-osMessageQueueId_t sessionControllerToBpmHandle;
-const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
-  .name = "sessionControllerToBpm"
-};
-/* Definitions for pidToBpm */
-osMessageQueueId_t pidToBpmHandle;
-const osMessageQueueAttr_t pidToBpm_attributes = {
-  .name = "pidToBpm"
-/* Definitions for forceSensorToSessionController */
-osMessageQueueId_t forceSensorToSessionControllerHandle;
-const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
-  .name = "forceSensorToSessionController"
-};
-/* Definitions for sessionControllerToForceSensor */
-osMessageQueueId_t sessionControllerToForceSensorHandle;
-const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
-  .name = "sessionControllerToForceSensor"
+/* Definitions for pidControllerToBpm */
+osMessageQueueId_t pidControllerToBpmHandle;
+const osMessageQueueAttr_t pidControllerToBpm_attributes = {
+  .name = "pidControllerToBpm"
 };
 /* USER CODE BEGIN PV */
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
@@ -159,10 +160,10 @@ static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
-void lcdDisplayTask(void *argument);
-void pidTaskEntry(void *argument);
-void bpmCtrlTask(void *argument);
-void forcesensorCtrlTask(void *argument);
+void lcdDisplay(void *argument);
+void bpmCtrl(void *argument);
+void forceSensor(void *argument);
+void pidController(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -246,22 +247,23 @@ int main(void)
   /* creation of lumexLcdTimerInterrupt */
   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
 
-  /* creation of sessionControllerToPidController */
-  sessionControllerToPidControllerHandle = osMessageQueueNew (3, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
-
-  /* creation of opticalEncoderToPidController */
-  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
-
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
-  /* creation of pidToBpm */
-  pidToBpmHandle = osMessageQueueNew (5, sizeof(float), &pidToBpm_attributes);
   /* creation of forceSensorToSessionController */
   forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forceSensorToSessionController_attributes);
 
   /* creation of sessionControllerToForceSensor */
   sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
+
+  /* creation of sessionControllerToPidController */
+  sessionControllerToPidControllerHandle = osMessageQueueNew (5, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
+
+  /* creation of opticalEncoderToPidController */
+  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
+
+  /* creation of pidControllerToBpm */
+  pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -269,16 +271,16 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of lcdTask */
-  lcdTaskHandle = osThreadNew(lcdDisplayTask, NULL, &lcdTask_attributes);
-
-  /* creation of pidTask */
-  pidTaskHandle = osThreadNew(pidTaskEntry, NULL, &pidTask_attributes);
+  lcdTaskHandle = osThreadNew(lcdDisplay, NULL, &lcdTask_attributes);
 
   /* creation of bpmTask */
-  bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
+  bpmTaskHandle = osThreadNew(bpmCtrl, NULL, &bpmTask_attributes);
 
-  /* creation of forcesensorTask */
-  forcesensorTaskHandle = osThreadNew(forcesensorCtrlTask, NULL, &forcesensorTask_attributes);
+  /* creation of forceSensorTask */
+  forceSensorTaskHandle = osThreadNew(forceSensor, NULL, &forceSensorTask_attributes);
+
+  /* creation of pidTask */
+  pidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1098,60 +1100,63 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
 }
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_lcdDisplayTask */
+/* USER CODE BEGIN Header_lcdDisplay */
 /**
   * @brief  Function implementing the lcdTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_lcdDisplayTask */
-void lcdDisplayTask(void *argument)
+/* USER CODE END Header_lcdDisplay */
+void lcdDisplay(void *argument)
 {
   /* USER CODE BEGIN 5 */
 	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_pidTaskEntry */
-/**
-* @brief Function implementing the pidTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_pidTaskEntry */
-void pidTaskEntry(void *argument)
-{
-  /* USER CODE BEGIN pidTaskEntry */
-  pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidToBpmHandle, false);
-  /* USER CODE END pidTaskEntry */
-}
-
-/* USER CODE BEGIN Header_bpmCtrlTask */
+/* USER CODE BEGIN Header_bpmCtrl */
 /**
 * @brief Function implementing the bpmTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_bpmCtrlTask */
-void bpmCtrlTask(void *argument)
+/* USER CODE END Header_bpmCtrl */
+void bpmCtrl(void *argument)
 {
-  /* USER CODE BEGIN bpmCtrlTask */
-	bpm_main(bpmTimer, sessionControllerToBpmHandle, pidToBpmHandle);
-  /* USER CODE END bpmCtrlTask */
+  /* USER CODE BEGIN bpmCtrl */
+  /* Infinite loop */
+	bpm_main(bpmTimer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+  /* USER CODE END bpmCtrl */
 }
 
-/* USER CODE BEGIN Header_forcesensorCtrlTask */
+/* USER CODE BEGIN Header_forceSensor */
 /**
-* @brief Function implementing the forcesensorTask thread.
+* @brief Function implementing the forceSensorTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_forcesensorCtrlTask */
-void forcesensorCtrlTask(void *argument)
+/* USER CODE END Header_forceSensor */
+void forceSensor(void *argument)
 {
-  /* USER CODE BEGIN forcesensorCtrlTask */
-	force_sensor_adc_main(sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle, forceSensorADCHandle);
-  /* USER CODE END forcesensorCtrlTask */
+  /* USER CODE BEGIN forceSensor */
+  /* Infinite loop */
+	force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+  /* USER CODE END forceSensor */
+}
+
+/* USER CODE BEGIN Header_pidController */
+/**
+* @brief Function implementing the pidTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_pidController */
+void pidController(void *argument)
+{
+  /* USER CODE BEGIN pidController */
+  /* Infinite loop */
+	pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
+  /* USER CODE END pidController */
 }
 
  /* MPU Configuration */

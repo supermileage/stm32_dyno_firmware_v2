@@ -116,9 +116,9 @@ void BPM::SetDutyCycle(float new_duty_cycle_percent)
 }
 
 
-extern "C" void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
+extern "C" void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidControllerToBpmHandle)
 {
-	BPM bpm = BPM(timer, sessionControllerToBpmHandle, pidToBpmHandle);
+	BPM bpm = BPM(timer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
 
 	if (!bpm.Init())
 	{

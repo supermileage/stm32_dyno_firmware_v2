@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer);
-void force_sensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle, ADC_HandleTypeDef* adcHandle);
+void force_sensor_adc_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle);
 
 #ifdef __cplusplus
 }

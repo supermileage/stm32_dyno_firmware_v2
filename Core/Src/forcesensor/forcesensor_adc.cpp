@@ -1,6 +1,6 @@
 #include <forcesensor/forcesensor_adc.h>
 
-#define MAX_FORCE 25
+#define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
 
 // Global interrupts
@@ -10,9 +10,9 @@ volatile uint16_t adc_value = 0;
 class ForcesensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
-		ForcesensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle,
-				osMessageQueueId_t forceSensorToSessionControllerHandle,
-				ADC_HandleTypeDef* adcHandle);
+		ForcesensorADC(ADC_HandleTypeDef* adcHandle,
+				osMessageQueueId_t sessionControllerToForceSensorHandle,
+				osMessageQueueId_t forceSensorToSessionControllerHandle);
 		virtual ~ForcesensorADC() = default;
 
 		bool Init();
@@ -21,20 +21,19 @@ class ForcesensorADC /* Class definition because we can't use headers for C++ ba
 	private:
 		float GetForce(uint16_t adcValue);
 
+		ADC_HandleTypeDef* _adcHandle;
+
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
-		osMessageQueueId_t _adcCallbackHandle;
-
-		ADC_HandleTypeDef* _adcHandle;
 
 };
 
-ForcesensorADC::ForcesensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle,
-				osMessageQueueId_t forceSensorToSessionControllerHandle,
-				ADC_HandleTypeDef* adcHandle) : /* Constructor */
+ForcesensorADC::ForcesensorADC(ADC_HandleTypeDef* adcHandle,
+				osMessageQueueId_t sessionControllerToForceSensorHandle,
+				osMessageQueueId_t forceSensorToSessionControllerHandle) : /* Constructor */
+		_adcHandle(adcHandle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle),
-		_forceSensorToSessionControllerHandle(forceSensorToSessionControllerHandle),
-		_adcHandle(adcHandle)
+		_forceSensorToSessionControllerHandle(forceSensorToSessionControllerHandle)
 {}
 
 bool ForcesensorADC::Init()
@@ -66,7 +65,7 @@ void ForcesensorADC::Run(void)
 
 float ForcesensorADC::GetForce(uint16_t adcValue)
 {
-	return static_cast<float> (adcValue) / UINT16_MAX * MAX_FORCE * LBF_TO_NEWTON; // Have the calculation here
+	return static_cast<float> (adcValue) / UINT16_MAX * MAX_FORCE_LBF * LBF_TO_NEWTON; // Have the calculation here
 }
 
 
@@ -76,9 +75,9 @@ extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTyp
 	adc_value = HAL_ADC_GetValue(hadc);
 }
 
-extern "C" void force_sensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle, ADC_HandleTypeDef* adcHandle)
+extern "C" void force_sensor_adc_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle)
 {
-	ForcesensorADC forcesensor = ForcesensorADC(sessionControllerToForceSensorADCHandle, forceSensorADCToSessionControllerHandle, adcHandle);
+	ForcesensorADC forcesensor = ForcesensorADC(adcHandle, sessionControllerToForceSensorADCHandle, forceSensorADCToSessionControllerHandle);
 
 	if (!forcesensor.Init())
 	{
