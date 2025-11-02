@@ -49,13 +49,13 @@ typedef struct
 {
 	uint32_t timestamp;  // Timestamp of the reading
 	float rpm;           // Measured RPM from the encoder
-} optical_encoder_to_pid_controller;
+} optical_encoder_output_data;
 
 
 typedef struct {
 	uint32_t timestamp;
 	float force;
-} forcesensor_adc_to_session_controller;
+} forcesensor_output_data;
 
 #ifdef __cplusplus
 extern "C" {

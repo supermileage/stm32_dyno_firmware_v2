@@ -251,7 +251,7 @@ int main(void)
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
   /* creation of forceSensorToSessionController */
-  forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forceSensorToSessionController_attributes);
+  forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(forcesensor_output_data), &forceSensorToSessionController_attributes);
 
   /* creation of sessionControllerToForceSensor */
   sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
@@ -260,7 +260,7 @@ int main(void)
   sessionControllerToPidControllerHandle = osMessageQueueNew (5, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
 
   /* creation of opticalEncoderToPidController */
-  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_to_pid_controller), &opticalEncoderToPidController_attributes);
+  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_output_data), &opticalEncoderToPidController_attributes);
 
   /* creation of pidControllerToBpm */
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
