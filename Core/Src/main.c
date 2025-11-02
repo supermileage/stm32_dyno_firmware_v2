@@ -22,9 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <LCD/LumexLCD.h>
-#include <bpm/bpm.h>
-#include <pid/pid.h>
+#include "pid/pid.h"
+#include "LCD/LumexLCD.h"
+#include "forcesensor/forcesensor_adc.h"
+#include "bpm/bpm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,6 +54,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
@@ -81,6 +83,13 @@ const osThreadAttr_t bpmTask_attributes = {
   .name = "bpmTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for forcesensorTask */
+osThreadId_t forcesensorTaskHandle;
+const osThreadAttr_t forcesensorTask_attributes = {
+  .name = "forcesensorTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -111,8 +120,21 @@ const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
 osMessageQueueId_t pidToBpmHandle;
 const osMessageQueueAttr_t pidToBpm_attributes = {
   .name = "pidToBpm"
+/* Definitions for forceSensorToSessionController */
+osMessageQueueId_t forceSensorToSessionControllerHandle;
+const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
+  .name = "forceSensorToSessionController"
+};
+/* Definitions for sessionControllerToForceSensor */
+osMessageQueueId_t sessionControllerToForceSensorHandle;
+const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
+  .name = "sessionControllerToForceSensor"
 };
 /* USER CODE BEGIN PV */
+ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
+
+TIM_HandleTypeDef* timestampTimer = &htim2;
+
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
 
@@ -136,9 +158,11 @@ static void MX_TIM1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC2_Init(void);
+static void MX_TIM2_Init(void);
 void lcdDisplayTask(void *argument);
 void pidTaskEntry(void *argument);
 void bpmCtrlTask(void *argument);
+void forcesensorCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -195,6 +219,7 @@ int main(void)
   MX_I2C3_Init();
   MX_TIM13_Init();
   MX_ADC2_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -232,6 +257,11 @@ int main(void)
 
   /* creation of pidToBpm */
   pidToBpmHandle = osMessageQueueNew (5, sizeof(float), &pidToBpm_attributes);
+  /* creation of forceSensorToSessionController */
+  forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(float), &forceSensorToSessionController_attributes);
+
+  /* creation of sessionControllerToForceSensor */
+  sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -246,6 +276,9 @@ int main(void)
 
   /* creation of bpmTask */
   bpmTaskHandle = osThreadNew(bpmCtrlTask, NULL, &bpmTask_attributes);
+
+  /* creation of forcesensorTask */
+  forcesensorTaskHandle = osThreadNew(forcesensorCtrlTask, NULL, &forcesensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -641,6 +674,51 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 200-1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief TIM13 Initialization Function
   * @param None
   * @retval None
@@ -1011,6 +1089,13 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
+{
+    if (hadc->Instance == ADC2)
+    {
+        adc_forcesensor_interrupt(hadc, timestampTimer);
+    }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_lcdDisplayTask */
@@ -1053,6 +1138,20 @@ void bpmCtrlTask(void *argument)
   /* USER CODE BEGIN bpmCtrlTask */
 	bpm_main(bpmTimer, sessionControllerToBpmHandle, pidToBpmHandle);
   /* USER CODE END bpmCtrlTask */
+}
+
+/* USER CODE BEGIN Header_forcesensorCtrlTask */
+/**
+* @brief Function implementing the forcesensorTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_forcesensorCtrlTask */
+void forcesensorCtrlTask(void *argument)
+{
+  /* USER CODE BEGIN forcesensorCtrlTask */
+	force_sensor_adc_main(sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle, forceSensorADCHandle);
+  /* USER CODE END forcesensorCtrlTask */
 }
 
  /* MPU Configuration */

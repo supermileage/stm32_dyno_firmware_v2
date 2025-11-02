@@ -51,6 +51,12 @@ typedef struct
 	float rpm;           // Measured RPM from the encoder
 } optical_encoder_to_pid_controller;
 
+
+typedef struct {
+	uint32_t timestamp;
+	float force;
+} forcesensor_adc_to_session_controller;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,5 +67,7 @@ bool GetLatestFromQueue(osMessageQueueId_t queueHandle, void* latestData, size_t
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif /* INC_OSQUEUE_TASK_TO_TASK_H_ */
