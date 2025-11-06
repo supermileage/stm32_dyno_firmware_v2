@@ -47,7 +47,7 @@ typedef struct
 // Message sent from the optical encoder to the PID controller
 typedef struct
 {
-	uint32_t timestamp;  // Timestamp of the reading
+	uint32_t timestamp_os;  // Timestamp of the reading (Changed to differentiate from for
 	float rpm;           // Measured RPM from the encoder
 } optical_encoder_output_data;
 
@@ -56,11 +56,6 @@ typedef struct {
 	uint32_t timestamp;
 	float force;
 } forcesensor_output_data;
-
-typedef struct {
-	uint32_t timestamp_os;
-	float placeholder;
-} optical_sensor_output_data;
 
 #ifdef __cplusplus
 extern "C" {

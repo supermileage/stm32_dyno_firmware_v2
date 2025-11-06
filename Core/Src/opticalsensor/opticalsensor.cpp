@@ -1,7 +1,7 @@
 #include <opticalsensor/opticalsensor.h>
 
 volatile uint32_t timestamp_os = 0;
-volatile uint16_t placeholder = 0;
+volatile float rpm = 0;
 
 class OpticalSensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
 {
@@ -15,7 +15,7 @@ class OpticalSensorADC /* Class definition because we can't use headers for C++ 
 		void Run();
 
 	private:
-		float GetPlaceholder(uint16_t adcValue);
+		float GetRPM(uint16_t adcValue);
 
 		ADC_HandleTypeDef* _adcHandle;
 		osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
@@ -39,7 +39,7 @@ bool OpticalSensorADC::Init()
 void OpticalSensorADC::Run(void)
 {
 	bool enableADC = false;
-	optical_sensor_output_data outputData;
+	optical_encoder_output_data outputData;
 
 	while (1)
 	{
@@ -47,23 +47,23 @@ void OpticalSensorADC::Run(void)
 		if (enableADC) {
 			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
 			outputData.timestamp_os = timestamp_os;
-			outputData.placeholder = GetPlaceholder(placeholder);
+			outputData.rpm = GetRPM(rpm);
 
 			osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
 		}
 	}
 }
 
-float OpticalSensorADC::GetPlaceholder(uint16_t adcValue)
+float OpticalSensorADC::GetRPM(uint16_t adcValue)
 {
-	return 0.00;
+	return rpm; // Current implementation takes in adc_value but doesn't actually use it. Change?
 }
 
 
 extern "C" void optical_sensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer)
 {
 	timestamp_os = __HAL_TIM_GET_COUNTER(timer);
-	placeholder = HAL_ADC_GetValue(hadc);
+	rpm = HAL_ADC_GetValue(hadc);
 }
 
 extern "C" void optical_sensor_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToOpticalSensorADCHandle, osMessageQueueId_t OpticalSensorADCToSessionControllerHandle)
