@@ -57,6 +57,11 @@ typedef struct {
 	float force;
 } forcesensor_output_data;
 
+typedef struct {
+	uint32_t timestamp_os;
+	float placeholder;
+} optical_sensor_output_data;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

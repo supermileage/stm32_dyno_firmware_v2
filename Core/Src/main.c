@@ -26,6 +26,7 @@
 #include "LCD/LumexLCD.h"
 #include "forcesensor/forcesensor_adc.h"
 #include "bpm/bpm.h"
+#include "opticalsensor/opticalsensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,6 +92,13 @@ const osThreadAttr_t pidTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
+/* Definitions for opticalSensorTa */
+osThreadId_t opticalSensorTaHandle;
+const osThreadAttr_t opticalSensorTa_attributes = {
+  .name = "opticalSensorTa",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -131,6 +139,16 @@ osMessageQueueId_t pidControllerToBpmHandle;
 const osMessageQueueAttr_t pidControllerToBpm_attributes = {
   .name = "pidControllerToBpm"
 };
+/* Definitions for opticalSensortoSessionController */
+osMessageQueueId_t opticalSensortoSessionControllerHandle;
+const osMessageQueueAttr_t opticalSensortoSessionController_attributes = {
+  .name = "opticalSensortoSessionController"
+};
+/* Definitions for sessionControllerToOpticalSensor */
+osMessageQueueId_t sessionControllerToOpticalSensorHandle;
+const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
+  .name = "sessionControllerToOpticalSensor"
+};
 /* USER CODE BEGIN PV */
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 
@@ -164,6 +182,7 @@ void lcdDisplay(void *argument);
 void bpmCtrl(void *argument);
 void forceSensor(void *argument);
 void pidController(void *argument);
+void opticalsensor(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -265,6 +284,12 @@ int main(void)
   /* creation of pidControllerToBpm */
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
 
+  /* creation of opticalSensortoSessionController */
+  opticalSensortoSessionControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &opticalSensortoSessionController_attributes);
+
+  /* creation of sessionControllerToOpticalSensor */
+  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -281,6 +306,9 @@ int main(void)
 
   /* creation of pidTask */
   pidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
+
+  /* creation of opticalSensorTa */
+  opticalSensorTaHandle = osThreadNew(opticalsensor, NULL, &opticalSensorTa_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1157,6 +1185,24 @@ void pidController(void *argument)
   /* Infinite loop */
 	pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
   /* USER CODE END pidController */
+}
+
+/* USER CODE BEGIN Header_opticalsensor */
+/**
+* @brief Function implementing the opticalSensorTa thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_opticalsensor */
+void opticalsensor(void *argument)
+{
+  /* USER CODE BEGIN opticalsensor */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END opticalsensor */
 }
 
  /* MPU Configuration */
