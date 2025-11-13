@@ -95,9 +95,7 @@ extern "C" void optical_sensor_interrupt(TIM_HandleTypeDef* htim)
         HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
 
     // Compute time difference (with overflow handling)
-    os->optical.timeDifference =
-        (uint32_t)(os->optical.IC_Value2 - os->optical.IC_Value1)
-        + (os->optical.numOverflows * (htim->Instance->ARR + 1));
+    os->optical.timeDifference = (uint32_t)(os->optical.IC_Value2 - os->optical.IC_Value1) + (os->optical.numOverflows * (htim->Instance->ARR + 1));
 
     os->optical.IC_Value1 = os->optical.IC_Value2;
     os->optical.numOverflows = 0;
