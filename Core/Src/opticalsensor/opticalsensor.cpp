@@ -1,74 +1,111 @@
 #include <opticalsensor/opticalsensor.h>
 
+#define CLK_SPEED 64000000 // Hard coded values for the GetRPM function
+#define NUM_APERTURES 64
+
 volatile uint32_t timestamp_os = 0;
 volatile float rpm = 0;
 
-class OpticalSensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
+class OpticalSensor /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
-		OpticalSensorADC(ADC_HandleTypeDef* adcHandle,
+		OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 				osMessageQueueId_t sessionControllerToOpticalSensorHandle,
 				osMessageQueueId_t opticalSensorToSessionControllerHandle);
-		virtual ~OpticalSensorADC() = default;
+
+		virtual ~OpticalSensor() = default;
 
 		bool Init();
 		void Run();
 
-	private:
-		float GetRPM(uint16_t adcValue);
+		typedef struct
+				{
+					uint8_t numOverflows;
+					uint16_t IC_Value1;
+					uint16_t IC_Value2;
+					uint32_t timeDifference;
 
-		ADC_HandleTypeDef* _adcHandle;
+				} optical_encoder_input_data;
+
+	private:
+		float GetRPM(uint16_t);
+		friend void optical_sensor_interrupt(TIM_HandleTypeDef* htim);
+		friend void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
+
+		TIM_HandleTypeDef* _opticalTimer;
 		osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 		osMessageQueueId_t _opticalSensorToSessionControllerHandle;
 
+		static OpticalSensor* instance;
+		optical_encoder_input_data optical;
+
 };
 
-OpticalSensorADC::OpticalSensorADC(ADC_HandleTypeDef* adcHandle,
+OpticalSensor* OpticalSensor::instance = nullptr; // ISR cannot call members directly, so we need an instance variable
+
+OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 				osMessageQueueId_t sessionControllerToOpticalSensorHandle,
 				osMessageQueueId_t opticalSensorToSessionControllerHandle) : /* Constructor */
-		_adcHandle(adcHandle),
+
+		_opticalTimer(opticalTimer),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle),
 		_opticalSensorToSessionControllerHandle(opticalSensorToSessionControllerHandle)
-{}
+{
+    // Link ISR to this instance
+    instance = this;
 
-bool OpticalSensorADC::Init()
+    // Initialize structure
+    optical.numOverflows = 0;
+    optical.IC_Value1 = 0;
+    optical.IC_Value2 = 0;
+    optical.timeDifference = 0;
+}
+
+bool OpticalSensor::Init()
 {
 	return true;
 }
 
-void OpticalSensorADC::Run(void)
+void OpticalSensor::Run(void)
 {
-	bool enableADC = false;
-	optical_encoder_output_data outputData;
+	optical_encoder_output_data outputData; // Takes in TIMER data, not ADC
 
 	while (1)
 	{
-	    osMessageQueueGet(_sessionControllerToOpticalSensorHandle, &enableADC, NULL, 0);
-		if (enableADC) {
-			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
-			outputData.timestamp_os = timestamp_os;
-			outputData.rpm = GetRPM(rpm);
+		osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
 
-			osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
-		}
 	}
 }
 
-float OpticalSensorADC::GetRPM(uint16_t adcValue)
+float OpticalSensor::GetRPM(uint16_t adcValue)
 {
-	return rpm; // Current implementation takes in adc_value but doesn't actually use it. Change?
+	return (_opticalTimer != 0) ? (float) ((CLK_SPEED / (instance->_opticalTimer->Instance->PSC + 1)) * 60)/(instance->optical.timeDifference*NUM_APERTURES) : 0;
+	// Need to see how to configure timeDifference
 }
 
 
-extern "C" void optical_sensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer)
+extern "C" void optical_sensor_interrupt(TIM_HandleTypeDef* htim)
 {
-	timestamp_os = __HAL_TIM_GET_COUNTER(timer);
-	rpm = HAL_ADC_GetValue(hadc);
+    if (OpticalSensor::instance == nullptr) return;
+
+    OpticalSensor* os = OpticalSensor::instance;
+
+    // Read capture value
+    os->optical.IC_Value2 =
+        HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+
+    // Compute time difference (with overflow handling)
+    os->optical.timeDifference =
+        (uint32_t)(os->optical.IC_Value2 - os->optical.IC_Value1)
+        + (os->optical.numOverflows * (htim->Instance->ARR + 1));
+
+    os->optical.IC_Value1 = os->optical.IC_Value2;
+    os->optical.numOverflows = 0;
 }
 
-extern "C" void optical_sensor_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToOpticalSensorADCHandle, osMessageQueueId_t OpticalSensorADCToSessionControllerHandle)
+extern "C" void optical_sensor_main(TIM_HandleTypeDef* opticalTimer, osMessageQueueId_t sessionControllerToOpticalSensorHandle, osMessageQueueId_t opticalSensorToSessionControllerHandle)
 {
-	OpticalSensorADC opticalsensor = OpticalSensorADC(adcHandle, sessionControllerToOpticalSensorADCHandle, OpticalSensorADCToSessionControllerHandle);
+	OpticalSensor opticalsensor = OpticalSensor(opticalTimer, sessionControllerToOpticalSensorHandle, opticalSensorToSessionControllerHandle);
 
 	if (!opticalsensor.Init())
 	{

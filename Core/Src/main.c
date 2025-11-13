@@ -153,6 +153,7 @@ const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
+TIM_HandleTypeDef* opticalTimer = &htim14;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
@@ -1126,6 +1127,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
         adc_forcesensor_interrupt(hadc, timestampTimer);
     }
 }
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM14) {
+    	optical_sensor_interrupt(&opticalTimer);
+    }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_lcdDisplay */
@@ -1197,11 +1204,7 @@ void pidController(void *argument)
 void opticalsensor(void *argument)
 {
   /* USER CODE BEGIN opticalsensor */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle, opticalSensortoSessionControllerHandle);
   /* USER CODE END opticalsensor */
 }
 

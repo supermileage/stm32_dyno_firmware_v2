@@ -23,11 +23,10 @@ class BPM
 
 BPM::BPM(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
     : _timer(timer),
-	_bpmCtrlEnabled(false),
+	  _bpmCtrlEnabled(false),
 	  _fromSCHandle(sessionControllerToBpmHandle),
 	  _fromPIDHandle(pidToBpmHandle)
 {}
-
 
 
 bool BPM::Init()
@@ -77,13 +76,9 @@ void BPM::Run(void)
 			}
 		}
 
-
-
-
-
-
 	}
 }
+
 
 void BPM::TogglePWM(bool enable)
 {

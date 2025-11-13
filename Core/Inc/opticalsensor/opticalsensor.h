@@ -10,8 +10,8 @@
 extern "C" {
 #endif
 
-void optical_sensor_interrupt(ADC_HandleTypeDef* hadc, TIM_HandleTypeDef* timer);
-void optical_sensor_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle);
+void optical_sensor_interrupt(TIM_HandleTypeDef* timer);
+void optical_sensor_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToForceSensorADCHandle, osMessageQueueId_t forceSensorADCToSessionControllerHandle);
 
 #ifdef __cplusplus
 }
