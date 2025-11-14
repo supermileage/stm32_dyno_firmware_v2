@@ -78,7 +78,7 @@ void PIDController::Run()
         GetLatestFromQueue(_opticalEncoderToPidControllerHandle, &latestOE, sizeof(latestOE), osWaitForever);
 
         // Update current values
-        _curTimestamp = latestOE.timestamp;
+        _curTimestamp = latestOE.timestamp_os;
         _curRpm = latestOE.rpm;
 
         // Compute time delta safely, handling timer overflow
