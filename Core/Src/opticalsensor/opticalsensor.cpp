@@ -29,6 +29,7 @@ class OpticalSensor /* Class definition because we can't use headers for C++ bas
 
 	private:
 		float GetRPM(uint16_t);
+		void ToggleOPS(bool);
 		friend void optical_sensor_interrupt(TIM_HandleTypeDef* htim);
 		friend void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
 
@@ -36,12 +37,13 @@ class OpticalSensor /* Class definition because we can't use headers for C++ bas
 		osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 		osMessageQueueId_t _opticalSensorToSessionControllerHandle;
 
-		static OpticalSensor* instance;
-		optical_encoder_input_data optical;
+		static OpticalSensor* _instance;
+		optical_encoder_input_data _optical;
+		bool _opEcdrEnabled;
 
 };
 
-OpticalSensor* OpticalSensor::instance = nullptr; // ISR cannot call members directly, so we need an instance variable
+OpticalSensor* OpticalSensor::_instance = nullptr; // ISR cannot call members directly, so we need an instance variable
 
 OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 				osMessageQueueId_t sessionControllerToOpticalSensorHandle,
@@ -52,13 +54,13 @@ OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 		_opticalSensorToSessionControllerHandle(opticalSensorToSessionControllerHandle)
 {
     // Link ISR to this instance
-    instance = this;
+    _instance = this;
 
     // Initialize structure
-    optical.numOverflows = 0;
-    optical.IC_Value1 = 0;
-    optical.IC_Value2 = 0;
-    optical.timeDifference = 0;
+    _optical.numOverflows = 0;
+    _optical.IC_Value1 = 0;
+    _optical.IC_Value2 = 0;
+    _optical.timeDifference = 0;
 }
 
 bool OpticalSensor::Init()
@@ -68,37 +70,56 @@ bool OpticalSensor::Init()
 
 void OpticalSensor::Run(void)
 {
+	bool enableOPS = false;
 	optical_encoder_output_data outputData; // Takes in TIMER data, not ADC
 
 	while (1)
 	{
-		osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
+		osMessageQueueGet(_sessionControllerToOpticalSensorHandle, &enableOPS, NULL, 0);
+		if (enableOPS) {
+			osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
+		}
 
 	}
 }
 
+void OpticalSensor::ToggleOPS(bool enable)
+{
+	// if master enables and BPM was previously disabled, then start PWM
+	if (enable && !_opEcdrEnabled)
+	{
+		HAL_TIM_PWM_Start(_opticalTimer, TIM_CHANNEL_1);
+	}
+	// if master enables and BPM was previously enabled, then stop PWM
+	else if (!enable && _opEcdrEnabled)
+	{
+		HAL_TIM_PWM_Stop(_opticalTimer, TIM_CHANNEL_1);
+	}
+
+	_opEcdrEnabled = enable;
+}
+
 float OpticalSensor::GetRPM(uint16_t adcValue)
 {
-	return (_opticalTimer != 0) ? (float) ((CLK_SPEED / (instance->_opticalTimer->Instance->PSC + 1)) * 60)/(instance->optical.timeDifference*NUM_APERTURES) : 0;
+	return (_opticalTimer != 0) ? (float) ((CLK_SPEED / (_instance->_opticalTimer->Instance->PSC + 1)) * 60)/(_instance->_optical.timeDifference*NUM_APERTURES) : 0;
 	// Need to see how to configure timeDifference
 }
 
 
 extern "C" void optical_sensor_interrupt(TIM_HandleTypeDef* htim)
 {
-    if (OpticalSensor::instance == nullptr) return;
+    if (OpticalSensor::_instance == nullptr) return;
 
-    OpticalSensor* os = OpticalSensor::instance;
+    OpticalSensor* os = OpticalSensor::_instance;
 
     // Read capture value
-    os->optical.IC_Value2 =
+    os->_optical.IC_Value2 =
         HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
 
     // Compute time difference (with overflow handling)
-    os->optical.timeDifference = (uint32_t)(os->optical.IC_Value2 - os->optical.IC_Value1) + (os->optical.numOverflows * (htim->Instance->ARR + 1));
-
-    os->optical.IC_Value1 = os->optical.IC_Value2;
-    os->optical.numOverflows = 0;
+    os->_optical.timeDifference = (uint32_t)(os->_optical.IC_Value2 - os->_optical.IC_Value1) + (os->_optical.numOverflows * (htim->Instance->ARR + 1));
+    os->_optical.IC_Value1 = os->_optical.IC_Value2;
+    os->_optical.numOverflows = 0;
 }
 
 extern "C" void optical_sensor_main(TIM_HandleTypeDef* opticalTimer, osMessageQueueId_t sessionControllerToOpticalSensorHandle, osMessageQueueId_t opticalSensorToSessionControllerHandle)
