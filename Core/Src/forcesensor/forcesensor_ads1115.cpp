@@ -1,33 +1,11 @@
-#include <forcesensor/forcesensor_ads1115.h>
+#include <forcesensor/ads1115/forcesensor_ads1115_main.h>
+#include <forcesensor/ads1115/forcesensor_ads1115.hpp>
 
 #define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
 
 // Global interrupts
 volatile bool ads1115_alert_status = false;
-
-class ForcesensorADS1115 /* Class definition because we can't use headers for C++ based on this implementation method */
-{
-	public:
-		ForcesensorADS1115(I2C_HandleTypeDef* i2cHandle,
-                TIM_HandleTypeDef* timestampTimer,
-				osMessageQueueId_t sessionControllerToForceSensorHandle,
-				osMessageQueueId_t forceSensorToSessionControllerHandle);
-		virtual ~ForcesensorADS1115() = default;
-
-		bool Init();
-		void Run();
-
-	private:
-		float GetForce(void);
-
-		I2C_HandleTypeDef* _i2cHandle;
-        TIM_HandleTypeDef* _timer;
-
-		osMessageQueueId_t _sessionControllerToForceSensorHandle;
-		osMessageQueueId_t _forceSensorToSessionControllerHandle;
-
-};
 
 ForcesensorADS1115::ForcesensorADS1115(I2C_HandleTypeDef* i2cHandle,
                 TIM_HandleTypeDef* timestampTimer,

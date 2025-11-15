@@ -22,11 +22,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "pid/pid.h"
-#include "LCD/LumexLCD.h"
-#include "forcesensor/forcesensor_adc.h"
-#include "forcesensor/forcesensor_ads1115.h"
-#include "bpm/bpm.h"
+#include <bpm/bpm_main.h>
+#include <forcesensor/adc/forcesensor_adc_main.h>
+#include <forcesensor/ads1115/forcesensor_ads1115_main.h>
+#include <LCD/LumexLCD_main.h>
+#include <pid/pid_main.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,8 +46,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc2;
+ADC_HandleTypeDef hadc3;
 
-I2C_HandleTypeDef hi2c3;
+I2C_HandleTypeDef hi2c4;
 
 SD_HandleTypeDef hsd1;
 
@@ -137,7 +138,7 @@ const osMessageQueueAttr_t pidControllerToBpm_attributes = {
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 
 // Force sensor ADS1115 I2C Handle
-I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c3;
+I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
 
@@ -161,10 +162,11 @@ static void MX_TIM14_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_ADC3_Init(void);
+static void MX_I2C4_Init(void);
 void lcdDisplay(void *argument);
 void bpmCtrl(void *argument);
 void forceSensor(void *argument);
@@ -222,10 +224,11 @@ int main(void)
   MX_SPI1_Init();
   MX_SPI2_Init();
   MX_TIM1_Init();
-  MX_I2C3_Init();
   MX_TIM13_Init();
   MX_ADC2_Init();
   MX_TIM2_Init();
+  MX_ADC3_Init();
+  MX_I2C4_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -379,8 +382,8 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
   */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_ADC
-                              |RCC_PERIPHCLK_I2C3;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_I2C4
+                              |RCC_PERIPHCLK_ADC;
   PeriphClkInitStruct.PLL3.PLL3M = 2;
   PeriphClkInitStruct.PLL3.PLL3N = 32;
   PeriphClkInitStruct.PLL3.PLL3P = 2;
@@ -389,8 +392,8 @@ void PeriphCommonClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
-  PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_PLL3;
   PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
+  PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PLL3;
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL3;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
@@ -459,50 +462,110 @@ static void MX_ADC2_Init(void)
 }
 
 /**
-  * @brief I2C3 Initialization Function
+  * @brief ADC3 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C3_Init(void)
+static void MX_ADC3_Init(void)
 {
 
-  /* USER CODE BEGIN I2C3_Init 0 */
+  /* USER CODE BEGIN ADC3_Init 0 */
 
-  /* USER CODE END I2C3_Init 0 */
+  /* USER CODE END ADC3_Init 0 */
 
-  /* USER CODE BEGIN I2C3_Init 1 */
+  ADC_ChannelConfTypeDef sConfig = {0};
 
-  /* USER CODE END I2C3_Init 1 */
-  hi2c3.Instance = I2C3;
-  hi2c3.Init.Timing = 0x00C0EAFF;
-  hi2c3.Init.OwnAddress1 = 0;
-  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c3.Init.OwnAddress2 = 0;
-  hi2c3.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
+  /* USER CODE BEGIN ADC3_Init 1 */
+
+  /* USER CODE END ADC3_Init 1 */
+
+  /** Common config
+  */
+  hadc3.Instance = ADC3;
+  hadc3.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV2;
+  hadc3.Init.Resolution = ADC_RESOLUTION_16B;
+  hadc3.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc3.Init.LowPowerAutoWait = DISABLE;
+  hadc3.Init.ContinuousConvMode = DISABLE;
+  hadc3.Init.NbrOfConversion = 1;
+  hadc3.Init.DiscontinuousConvMode = DISABLE;
+  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc3.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+  hadc3.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc3.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+  hadc3.Init.OversamplingMode = DISABLE;
+  hadc3.Init.Oversampling.Ratio = 1;
+  if (HAL_ADC_Init(&hadc3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_3;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  sConfig.OffsetSignedSaturation = DISABLE;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC3_Init 2 */
+
+  /* USER CODE END ADC3_Init 2 */
+
+}
+
+/**
+  * @brief I2C4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C4_Init(void)
+{
+
+  /* USER CODE BEGIN I2C4_Init 0 */
+
+  /* USER CODE END I2C4_Init 0 */
+
+  /* USER CODE BEGIN I2C4_Init 1 */
+
+  /* USER CODE END I2C4_Init 1 */
+  hi2c4.Instance = I2C4;
+  hi2c4.Init.Timing = 0x00401959;
+  hi2c4.Init.OwnAddress1 = 0;
+  hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c4.Init.OwnAddress2 = 0;
+  hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c4) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Analogue filter
   */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c4, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
   */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c3, 0) != HAL_OK)
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c4, 0) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C3_Init 2 */
+  /* USER CODE BEGIN I2C4_Init 2 */
 
-  /* USER CODE END I2C3_Init 2 */
+  /* USER CODE END I2C4_Init 2 */
 
 }
 
@@ -979,16 +1042,16 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI_SD_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, ILI_LCD_DC_Pin|ILI_LCD_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(ILI_SPI1_CS_GPIO_Port, ILI_SPI1_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(ILI_SPI1_LCD_CS_GPIO_Port, ILI_SPI1_LCD_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOI, LED_BRAKE_Pin|LED_SELECT_Pin|LED_BACK_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin BTN_SELECT_Pin */
   GPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin|BTN_SELECT_Pin;
@@ -1002,11 +1065,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(BTN_BACK_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ROT_EN_B_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_B_Pin;
+  /*Configure GPIO pins : ROT_EN_B_Pin ADS1115_ALERT_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_B_Pin|ADS1115_ALERT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ROT_EN_B_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
                            LUMEX_LCD_D4_Pin LUMEX_LCD_D5_Pin LUMEX_LCD_D6_Pin LUMEX_LCD_D7_Pin */
@@ -1024,8 +1087,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ILI_SPI2_TOUCH_CS_Pin ILI_SPI_SD_CS_Pin */
-  GPIO_InitStruct.Pin = ILI_SPI2_TOUCH_CS_Pin|ILI_SPI_SD_CS_Pin;
+  /*Configure GPIO pins : ILI_SPI2_TOUCH_CS_Pin ILI_SPI2_SD_CS_Pin */
+  GPIO_InitStruct.Pin = ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
@@ -1038,12 +1101,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ILI_SPI1_CS_Pin */
-  GPIO_InitStruct.Pin = ILI_SPI1_CS_Pin;
+  /*Configure GPIO pin : ILI_SPI1_LCD_CS_Pin */
+  GPIO_InitStruct.Pin = ILI_SPI1_LCD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(ILI_SPI1_CS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(ILI_SPI1_LCD_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ILI_TOUCH_IRQ_Pin */
   GPIO_InitStruct.Pin = ILI_TOUCH_IRQ_Pin;
@@ -1051,16 +1114,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ILI_TOUCH_IRQ_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ADS1115_ALERT_Pin */
-  GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LED_BRAKE_Pin LED_SELECT_Pin LED_BACK_Pin */
-  GPIO_InitStruct.Pin = LED_BRAKE_Pin|LED_SELECT_Pin|LED_BACK_Pin;
+  /*Configure GPIO pins : LED_BACK_Pin LED_SELECT_Pin LED_BRAKE_Pin */
+  GPIO_InitStruct.Pin = LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
@@ -1086,8 +1143,8 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(BTN_SELECT_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(ILI_TOUCH_IRQ_EXTI_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(ILI_TOUCH_IRQ_EXTI_IRQn);
+  HAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ADS1115_ALERT_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

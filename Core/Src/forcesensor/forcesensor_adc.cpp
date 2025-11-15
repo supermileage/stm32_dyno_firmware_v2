@@ -1,4 +1,5 @@
-#include <forcesensor/forcesensor_adc.h>
+#include <forcesensor/adc/forcesensor_adc_main.h>
+#include <forcesensor/adc/forcesensor_adc.hpp>
 
 #define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
@@ -6,27 +7,6 @@
 // Global interrupts
 volatile uint32_t timestamp = 0;
 volatile uint16_t adc_value = 0;
-
-class ForcesensorADC /* Class definition because we can't use headers for C++ based on this implementation method */
-{
-	public:
-		ForcesensorADC(ADC_HandleTypeDef* adcHandle,
-				osMessageQueueId_t sessionControllerToForceSensorHandle,
-				osMessageQueueId_t forceSensorToSessionControllerHandle);
-		virtual ~ForcesensorADC() = default;
-
-		bool Init();
-		void Run();
-
-	private:
-		float GetForce(uint16_t adcValue);
-
-		ADC_HandleTypeDef* _adcHandle;
-
-		osMessageQueueId_t _sessionControllerToForceSensorHandle;
-		osMessageQueueId_t _forceSensorToSessionControllerHandle;
-
-};
 
 ForcesensorADC::ForcesensorADC(ADC_HandleTypeDef* adcHandle,
 				osMessageQueueId_t sessionControllerToForceSensorHandle,

@@ -4,10 +4,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-#include "osQueue/osqueue_task_to_task.h"
-
-#include "config.h"
-
 
 #ifdef __cplusplus
 extern "C" {
