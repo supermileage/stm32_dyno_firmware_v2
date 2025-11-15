@@ -2,7 +2,7 @@
 #define INC_BPM_BPM_HPP_
 
 #include "main.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 #include "osQueue/osqueue_task_to_task.h"
 

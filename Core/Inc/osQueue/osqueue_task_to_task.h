@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 // Opcodes for controlling the Lumex LCD display from the session controller
 typedef enum
@@ -47,7 +47,7 @@ typedef struct
 // Message sent from the optical encoder to the PID controller
 typedef struct
 {
-	uint32_t timestamp;  // Timestamp of the reading
+	uint32_t timestamp_os;  // Timestamp of the reading (Changed to differentiate from for
 	float rpm;           // Measured RPM from the encoder
 } optical_encoder_output_data;
 

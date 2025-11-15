@@ -27,6 +27,8 @@
 #include <forcesensor/ads1115/forcesensor_ads1115_main.h>
 #include <LCD/LumexLCD_main.h>
 #include <pid/pid_main.h>
+#include "opticalsensor/opticalsensor_main.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,6 +95,13 @@ const osThreadAttr_t pidTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
+/* Definitions for opticalSensorTa */
+osThreadId_t opticalSensorTaHandle;
+const osThreadAttr_t opticalSensorTa_attributes = {
+  .name = "opticalSensorTa",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -133,6 +142,16 @@ osMessageQueueId_t pidControllerToBpmHandle;
 const osMessageQueueAttr_t pidControllerToBpm_attributes = {
   .name = "pidControllerToBpm"
 };
+/* Definitions for opticalSensortoSessionController */
+osMessageQueueId_t opticalSensortoSessionControllerHandle;
+const osMessageQueueAttr_t opticalSensortoSessionController_attributes = {
+  .name = "opticalSensortoSessionController"
+};
+/* Definitions for sessionControllerToOpticalSensor */
+osMessageQueueId_t sessionControllerToOpticalSensorHandle;
+const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
+  .name = "sessionControllerToOpticalSensor"
+};
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
@@ -141,9 +160,11 @@ ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
+TIM_HandleTypeDef* opticalTimer = &htim14;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
+TIM_TypeDef* opticalTimInstance = TIM14;
 
 TIM_HandleTypeDef* bpmTimer = &htim16;
 
@@ -171,6 +192,7 @@ void lcdDisplay(void *argument);
 void bpmCtrl(void *argument);
 void forceSensor(void *argument);
 void pidController(void *argument);
+void opticalsensor(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -273,6 +295,12 @@ int main(void)
   /* creation of pidControllerToBpm */
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
 
+  /* creation of opticalSensortoSessionController */
+  opticalSensortoSessionControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &opticalSensortoSessionController_attributes);
+
+  /* creation of sessionControllerToOpticalSensor */
+  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -289,6 +317,9 @@ int main(void)
 
   /* creation of pidTask */
   pidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
+
+  /* creation of opticalSensorTa */
+  opticalSensorTaHandle = osThreadNew(opticalsensor, NULL, &opticalSensorTa_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1186,6 +1217,12 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
       break;
   }
 }
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == opticalTimInstance) {
+    	optical_sensor_interrupt();
+    }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_lcdDisplay */
@@ -1253,6 +1290,20 @@ void pidController(void *argument)
   /* USER CODE END pidController */
 }
 
+/* USER CODE BEGIN Header_opticalsensor */
+/**
+* @brief Function implementing the opticalSensorTa thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_opticalsensor */
+void opticalsensor(void *argument)
+{
+  /* USER CODE BEGIN opticalsensor */
+	optical_sensor_main(opticalTimer, timestampTimer, sessionControllerToOpticalSensorHandle, opticalSensortoSessionControllerHandle);
+  /* USER CODE END opticalsensor */
+}
+
  /* MPU Configuration */
 
 void MPU_Config(void)
@@ -1304,6 +1355,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
 	  lumex_lcd_timer_interrupt(htim, lumexLcdTimerInterruptHandle);
   }
+  else if (htim->Instance == opticalTimInstance)
+  {
+	  optical_sensor_overflow_interrupt();
+  }
+
   /* USER CODE END Callback 1 */
 }
 

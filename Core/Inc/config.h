@@ -3,6 +3,13 @@
 
 #include "ADS1115.h"
 
+// Task enable/disables
+#define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
+#define FORCE_SENSOR_ADC_TASK_ENABLE 0
+
+// Clock speed for timers, need to find better way to get this
+#define CLK_SPEED 200000000
+
 // Voltage Reference (should be 3V3)
 #define VREF 3.3
 
@@ -18,9 +25,9 @@
 // ADS1115 I2C ADC SAMPLE_SPEED
 #define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
 
-// Task enable/disables
-#define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
-#define FORCE_SENSOR_ADC_TASK_ENABLE 0
+// Optical Encoder Data
+#define OP_OF 3 // Meant to count overflows for optical encoder
+#define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 
 
 #endif /* INC_CONFIG_H_ */
