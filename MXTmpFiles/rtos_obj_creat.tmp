@@ -1,0 +1,73 @@
+#n
+#t/* USER CODE BEGIN RTOS_MUTEX */
+#t/* add mutexes, ... */
+#t/* USER CODE END RTOS_MUTEX */
+#n
+#t/* USER CODE BEGIN RTOS_SEMAPHORES */
+#t/* add semaphores, ... */
+#t/* USER CODE END RTOS_SEMAPHORES */
+#n
+#t/* USER CODE BEGIN RTOS_TIMERS */
+#t/* start timers, add new ones, ... */
+#t/* USER CODE END RTOS_TIMERS */
+#n#t/* Create the queue(s) */
+#t/* creation of sessionControllerToLumexLcd */
+#tsessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
+#n
+#t/* creation of lumexLcdTimerInterrupt */
+#tlumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
+#n
+#t/* creation of sessionControllerToBpm */
+#tsessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
+#n
+#t/* creation of forceSensorToSessionController */
+#tforceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(forcesensor_output_data), &forceSensorToSessionController_attributes);
+#n
+#t/* creation of sessionControllerToForceSensor */
+#tsessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
+#n
+#t/* creation of sessionControllerToPidController */
+#tsessionControllerToPidControllerHandle = osMessageQueueNew (5, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
+#n
+#t/* creation of opticalEncoderToPidController */
+#topticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_output_data), &opticalEncoderToPidController_attributes);
+#n
+#t/* creation of pidControllerToBpm */
+#tpidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
+#n
+#t/* creation of opticalSensortoSessionController */
+#topticalSensortoSessionControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &opticalSensortoSessionController_attributes);
+#n
+#t/* creation of sessionControllerToOpticalSensor */
+#tsessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
+#n
+#n
+#t/* USER CODE BEGIN RTOS_QUEUES */
+#t/* add queues, ... */
+#t/* USER CODE END RTOS_QUEUES */
+#n#t/* Create the thread(s) */
+#t/* creation of lcdTask */
+#tlcdTaskHandle = osThreadNew(lcdDisplay, NULL, &lcdTask_attributes);
+#n
+#t/* creation of bpmTask */
+#tbpmTaskHandle = osThreadNew(bpmCtrl, NULL, &bpmTask_attributes);
+#n
+#t/* creation of forceSensorTask */
+#tforceSensorTaskHandle = osThreadNew(forceSensor, NULL, &forceSensorTask_attributes);
+#n
+#t/* creation of pidTask */
+#tpidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
+#n
+#t/* creation of opticalSensorTa */
+#topticalSensorTaHandle = osThreadNew(opticalsensor, NULL, &opticalSensorTa_attributes);
+#n
+#n
+#t/* USER CODE BEGIN RTOS_THREADS */
+#t/* add threads, ... */
+#t/* USER CODE END RTOS_THREADS */
+#n
+#n
+#t/* USER CODE BEGIN RTOS_EVENTS */
+#t/* add events, ... */
+#t/* USER CODE END RTOS_EVENTS */
+#n

@@ -1,0 +1,85 @@
+/* Definitions for lcdTask */
+osThreadId_t lcdTaskHandle;
+const osThreadAttr_t lcdTask_attributes = {
+#t.name = "lcdTask",
+#t.stack_size = 256 * 4,
+#t.priority = (osPriority_t) osPriorityBelowNormal,
+};
+/* Definitions for bpmTask */
+osThreadId_t bpmTaskHandle;
+const osThreadAttr_t bpmTask_attributes = {
+#t.name = "bpmTask",
+#t.stack_size = 128 * 4,
+#t.priority = (osPriority_t) osPriorityRealtime1,
+};
+/* Definitions for forceSensorTask */
+osThreadId_t forceSensorTaskHandle;
+const osThreadAttr_t forceSensorTask_attributes = {
+#t.name = "forceSensorTask",
+#t.stack_size = 128 * 4,
+#t.priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for pidTask */
+osThreadId_t pidTaskHandle;
+const osThreadAttr_t pidTask_attributes = {
+#t.name = "pidTask",
+#t.stack_size = 256 * 4,
+#t.priority = (osPriority_t) osPriorityRealtime,
+};
+/* Definitions for opticalSensorTa */
+osThreadId_t opticalSensorTaHandle;
+const osThreadAttr_t opticalSensorTa_attributes = {
+#t.name = "opticalSensorTa",
+#t.stack_size = 128 * 4,
+#t.priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for sessionControllerToLumexLcd */
+osMessageQueueId_t sessionControllerToLumexLcdHandle;
+const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
+#t.name = "sessionControllerToLumexLcd"
+};
+/* Definitions for lumexLcdTimerInterrupt */
+osMessageQueueId_t lumexLcdTimerInterruptHandle;
+const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
+#t.name = "lumexLcdTimerInterrupt"
+};
+/* Definitions for sessionControllerToBpm */
+osMessageQueueId_t sessionControllerToBpmHandle;
+const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
+#t.name = "sessionControllerToBpm"
+};
+/* Definitions for forceSensorToSessionController */
+osMessageQueueId_t forceSensorToSessionControllerHandle;
+const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
+#t.name = "forceSensorToSessionController"
+};
+/* Definitions for sessionControllerToForceSensor */
+osMessageQueueId_t sessionControllerToForceSensorHandle;
+const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
+#t.name = "sessionControllerToForceSensor"
+};
+/* Definitions for sessionControllerToPidController */
+osMessageQueueId_t sessionControllerToPidControllerHandle;
+const osMessageQueueAttr_t sessionControllerToPidController_attributes = {
+#t.name = "sessionControllerToPidController"
+};
+/* Definitions for opticalEncoderToPidController */
+osMessageQueueId_t opticalEncoderToPidControllerHandle;
+const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
+#t.name = "opticalEncoderToPidController"
+};
+/* Definitions for pidControllerToBpm */
+osMessageQueueId_t pidControllerToBpmHandle;
+const osMessageQueueAttr_t pidControllerToBpm_attributes = {
+#t.name = "pidControllerToBpm"
+};
+/* Definitions for opticalSensortoSessionController */
+osMessageQueueId_t opticalSensortoSessionControllerHandle;
+const osMessageQueueAttr_t opticalSensortoSessionController_attributes = {
+#t.name = "opticalSensortoSessionController"
+};
+/* Definitions for sessionControllerToOpticalSensor */
+osMessageQueueId_t sessionControllerToOpticalSensorHandle;
+const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
+#t.name = "sessionControllerToOpticalSensor"
+};

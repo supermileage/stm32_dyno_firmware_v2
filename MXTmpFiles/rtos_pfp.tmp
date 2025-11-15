@@ -1,0 +1,5 @@
+void lcdDisplay(void *argument);
+void bpmCtrl(void *argument);
+void forceSensor(void *argument);
+void pidController(void *argument);
+void opticalsensor(void *argument);#n

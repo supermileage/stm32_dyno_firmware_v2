@@ -1,0 +1,113 @@
+
+/**
+#t* @brief GPIO Initialization Function
+#t* @param None
+#t* @retval None
+#t*/
+static void MX_GPIO_Init(void)
+{
+#tGPIO_InitTypeDef GPIO_InitStruct = {0};
+#t/* USER CODE BEGIN MX_GPIO_Init_1 */
+#n
+#t/* USER CODE END MX_GPIO_Init_1 */
+#n#t/* GPIO Ports Clock Enable */
+#t__HAL_RCC_GPIOE_CLK_ENABLE();
+#t__HAL_RCC_GPIOI_CLK_ENABLE();
+#t__HAL_RCC_GPIOC_CLK_ENABLE();
+#t__HAL_RCC_GPIOF_CLK_ENABLE();
+#t__HAL_RCC_GPIOH_CLK_ENABLE();
+#t__HAL_RCC_GPIOA_CLK_ENABLE();
+#t__HAL_RCC_GPIOB_CLK_ENABLE();
+#t__HAL_RCC_GPIOD_CLK_ENABLE();
+#t__HAL_RCC_GPIOG_CLK_ENABLE();
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(GPIOA, LUMEX_LCD_D0_Pin|LUMEX_LCD_D1_Pin|LUMEX_LCD_D2_Pin|LUMEX_LCD_D3_Pin #n#t#t#t#t#t#t#t#t#t#t#t#t#t|LUMEX_LCD_D4_Pin|LUMEX_LCD_D5_Pin|LUMEX_LCD_D6_Pin|LUMEX_LCD_D7_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(GPIOC, LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(GPIOD, ILI_LCD_DC_Pin|ILI_LCD_RST_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(ILI_SPI1_LCD_CS_GPIO_Port, ILI_SPI1_LCD_CS_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pin Output Level */
+#tHAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_RESET);
+#n#t/*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin BTN_SELECT_Pin */
+#tGPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin|BTN_SELECT_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tHAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+#n#t/*Configure GPIO pin : BTN_BACK_Pin */
+#tGPIO_InitStruct.Pin = BTN_BACK_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+#tGPIO_InitStruct.Pull = GPIO_PULLUP;
+#tHAL_GPIO_Init(BTN_BACK_GPIO_Port, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : ROT_EN_B_Pin ADS1115_ALERT_Pin */
+#tGPIO_InitStruct.Pin = ROT_EN_B_Pin|ADS1115_ALERT_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tHAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin #n#t#t#t#t#t#t#t#t#t#t#t#t#t LUMEX_LCD_D4_Pin LUMEX_LCD_D5_Pin LUMEX_LCD_D6_Pin LUMEX_LCD_D7_Pin */
+#tGPIO_InitStruct.Pin = LUMEX_LCD_D0_Pin|LUMEX_LCD_D1_Pin|LUMEX_LCD_D2_Pin|LUMEX_LCD_D3_Pin #n#t#t#t#t#t#t#t#t#t#t#t#t#t|LUMEX_LCD_D4_Pin|LUMEX_LCD_D5_Pin|LUMEX_LCD_D6_Pin|LUMEX_LCD_D7_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_PULLUP;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+#tHAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : LUMEX_LCD_EN_Pin LUMEX_LCD_RS_Pin */
+#tGPIO_InitStruct.Pin = LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_PULLUP;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+#tHAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : ILI_SPI2_TOUCH_CS_Pin ILI_SPI2_SD_CS_Pin */
+#tGPIO_InitStruct.Pin = ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+#tHAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : ILI_LCD_DC_Pin ILI_LCD_RST_Pin */
+#tGPIO_InitStruct.Pin = ILI_LCD_DC_Pin|ILI_LCD_RST_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+#tHAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#n#t/*Configure GPIO pin : ILI_SPI1_LCD_CS_Pin */
+#tGPIO_InitStruct.Pin = ILI_SPI1_LCD_CS_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+#tHAL_GPIO_Init(ILI_SPI1_LCD_CS_GPIO_Port, &GPIO_InitStruct);
+#n#t/*Configure GPIO pin : ILI_TOUCH_IRQ_Pin */
+#tGPIO_InitStruct.Pin = ILI_TOUCH_IRQ_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tHAL_GPIO_Init(ILI_TOUCH_IRQ_GPIO_Port, &GPIO_InitStruct);
+#n#t/*Configure GPIO pins : LED_BACK_Pin LED_SELECT_Pin LED_BRAKE_Pin */
+#tGPIO_InitStruct.Pin = LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tGPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+#tHAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+#n#t/*Configure GPIO pin : BTN_BRAKE_Pin */
+#tGPIO_InitStruct.Pin = BTN_BRAKE_Pin;
+#tGPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+#tGPIO_InitStruct.Pull = GPIO_NOPULL;
+#tHAL_GPIO_Init(BTN_BRAKE_GPIO_Port, &GPIO_InitStruct);
+#n#t/*AnalogSwitch Config */
+#tHAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA0, SYSCFG_SWITCH_PA0_CLOSE);
+#n#t/*AnalogSwitch Config */
+#tHAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
+#n#t/* EXTI interrupt init*/
+#tHAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 5, 0);
+#tHAL_NVIC_EnableIRQ(ROT_EN_A_EXTI_IRQn);#n
+#tHAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 5, 0);
+#tHAL_NVIC_EnableIRQ(ROT_EN_SW_EXTI_IRQn);#n
+#tHAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 5, 0);
+#tHAL_NVIC_EnableIRQ(BTN_SELECT_EXTI_IRQn);#n
+#tHAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 5, 0);
+#tHAL_NVIC_EnableIRQ(ADS1115_ALERT_EXTI_IRQn);#n#n
+#t/* USER CODE BEGIN MX_GPIO_Init_2 */
+#n
+#t/* USER CODE END MX_GPIO_Init_2 */
+}
+#n

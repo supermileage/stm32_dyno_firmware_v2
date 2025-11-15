@@ -1,0 +1,20 @@
+
+#n#n
+/* USER CODE BEGIN Header_lcdDisplay */
+/**
+  * @brief  Function implementing the lcdTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_lcdDisplay */
+void lcdDisplay(void *argument)
+{
+#t/* USER CODE BEGIN 5 */
+#t/* Infinite loop */
+#tfor(;;)
+#t{
+#t#tosDelay(1);
+#t}
+#t/* USER CODE END 5 */
+}
+#n
