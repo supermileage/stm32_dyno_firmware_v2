@@ -17,15 +17,15 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <bpm/bpm_main.h>
+#include <forcesensor/forcesensor_adc_main.h>
 #include "main.h"
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "pid/pid.h"
-#include "LCD/LumexLCD.h"
-#include "forcesensor/forcesensor_adc.h"
-#include "bpm/bpm.h"
+#include <LCD/LumexLCD_main.h>
+#include <pid/pid_main.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

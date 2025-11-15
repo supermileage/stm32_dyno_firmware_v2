@@ -1,40 +1,12 @@
-#include <lcd/lumexLcd.h>
+#include <LCD/LumexLCD.hpp>
+#include <LCD/LumexLCD_main.h>
 
 volatile bool timerCallbackFlag = false;
-
-class LumexLCD
-{
-	public:
-		LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle);
-		virtual ~LumexLCD() = default;
-
-		bool Init();
-		void Run();
-
-
-	private:
-		bool StartTimer(uint8_t microseconds);
-		bool SendByte(uint8_t byte);
-		bool WriteData(uint8_t data);
-		bool WriteCommand(uint8_t command);
-		bool ClearDisplay();
-		bool SetCursor(uint8_t row, uint8_t column);
-		bool DisplayChar(uint8_t row, uint8_t column, uint8_t character);
-		bool DisplayString(uint8_t row, uint8_t column, char* string);
-
-		TIM_HandleTypeDef* _timer;
-		osMessageQueueId_t _fromSCqHandle;
-		osMessageQueueId_t _timqHandle;
-		volatile bool _timerflag;
-
-		session_controller_to_lumex_lcd _msg;
-};
 
 LumexLCD::LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle) :
 		_timer(timer),
 		_fromSCqHandle(lumexLcdToSessionControllerqHandle),
-		_timqHandle(timInterruptCallbackqHandle),
-		_msg{}
+		_timqHandle(timInterruptCallbackqHandle)
 {}
 
 bool LumexLCD::Init()
@@ -92,21 +64,25 @@ bool LumexLCD::Init()
 void LumexLCD::Run(void)
 {
 	osStatus_t status;
+	session_controller_to_lumex_lcd msg;
+	memset(&msg, 0, sizeof(msg));
+
+
 	while(1)
 	{
 
-		status = osMessageQueueGet(_fromSCqHandle, &_msg, 0, 0);
+		status = osMessageQueueGet(_fromSCqHandle, &msg, 0, 0);
 
 		if (status != osOK)
 		 continue;
 
-		switch(_msg.op)
+		switch(msg.op)
 		{
 			case CLEAR_DISPLAY:
 				ClearDisplay();
 				break;
 			case WRITE_TO_DISPLAY:
-				DisplayString(_msg.row, _msg.column, _msg.display_string);
+				DisplayString(msg.row, msg.column, msg.display_string);
 				break;
 			default:
 				break;
