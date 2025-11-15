@@ -17,17 +17,16 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-
 #include "main.h"
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-#include "pid/pid_main.h"
-#include "LCD/LumexLCD_main.h"
-#include "forcesensor/forcesensor_adc_main.h"
-#include "bpm/bpm_main.h"
+#include <bpm/bpm_main.h>
+#include <forcesensor/adc/forcesensor_adc_main.h>
+#include <forcesensor/ads1115/forcesensor_ads1115_main.h>
+#include <LCD/LumexLCD_main.h>
+#include <pid/pid_main.h>
 #include "opticalsensor/opticalsensor_main.h"
 
 /* USER CODE END Includes */
@@ -154,7 +153,11 @@ const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
   .name = "sessionControllerToOpticalSensor"
 };
 /* USER CODE BEGIN PV */
+// Force sensor ADC Handle
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
+
+// Force sensor ADS1115 I2C Handle
+I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
 TIM_HandleTypeDef* opticalTimer = &htim14;
@@ -1189,6 +1192,32 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
     }
 }
 
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
+{
+	switch(GPIO_Pin)
+  {
+    case ADS1115_ALERT_Pin:
+      force_sensor_ads1115_gpio_alert_interrupt();
+      break;
+    case ROT_EN_A_Pin:
+      break;
+    // case ROT_EN_B_Pin:
+    //   break;
+    case ROT_EN_SW_Pin:
+      break;
+    case BTN_BACK_Pin:
+      break;
+    case BTN_SELECT_Pin:
+      break;
+    case BTN_BRAKE_Pin:
+      break;
+    case ILI_TOUCH_IRQ_Pin:
+      break;
+    default:
+      break;
+  }
+}
+
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == opticalTimInstance) {
     	optical_sensor_interrupt();
@@ -1235,8 +1264,14 @@ void bpmCtrl(void *argument)
 void forceSensor(void *argument)
 {
   /* USER CODE BEGIN forceSensor */
-  /* Infinite loop */
-	force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+  // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
+  #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
+      #error "Cannot enable both ADS1115 and ADC tasks at the same time!"
+  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
+	  force_sensor_ads1115_main(forceSensorADS1115Handle, timestampTimer, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+  #elif (FORCE_SENSOR_ADC_TASK_ENABLE == 1) 
+	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+  #endif
   /* USER CODE END forceSensor */
 }
 

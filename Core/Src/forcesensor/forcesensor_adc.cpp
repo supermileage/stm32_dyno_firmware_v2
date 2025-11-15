@@ -1,5 +1,5 @@
-#include <forcesensor/forcesensor_adc_main.h>
-#include <forcesensor/forcesensor_adc.hpp>
+#include <forcesensor/adc/forcesensor_adc_main.h>
+#include <forcesensor/adc/forcesensor_adc.hpp>
 
 #define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
