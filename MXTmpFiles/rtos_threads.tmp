@@ -1,0 +1,72 @@
+/* USER CODE BEGIN Header_bpmCtrl */
+/**
+* @brief Function implementing the bpmTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_bpmCtrl */
+void bpmCtrl(void *argument)
+{
+#t/* USER CODE BEGIN bpmCtrl */
+#t/* Infinite loop */
+#tfor(;;)
+#t{
+#t#tosDelay(1);
+#t}
+#t/* USER CODE END bpmCtrl */
+}
+#n
+/* USER CODE BEGIN Header_forceSensor */
+/**
+* @brief Function implementing the forceSensorTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_forceSensor */
+void forceSensor(void *argument)
+{
+#t/* USER CODE BEGIN forceSensor */
+#t/* Infinite loop */
+#tfor(;;)
+#t{
+#t#tosDelay(1);
+#t}
+#t/* USER CODE END forceSensor */
+}
+#n
+/* USER CODE BEGIN Header_pidController */
+/**
+* @brief Function implementing the pidTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_pidController */
+void pidController(void *argument)
+{
+#t/* USER CODE BEGIN pidController */
+#t/* Infinite loop */
+#tfor(;;)
+#t{
+#t#tosDelay(1);
+#t}
+#t/* USER CODE END pidController */
+}
+#n
+/* USER CODE BEGIN Header_opticalsensor */
+/**
+* @brief Function implementing the opticalSensorTa thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_opticalsensor */
+void opticalsensor(void *argument)
+{
+#t/* USER CODE BEGIN opticalsensor */
+#t/* Infinite loop */
+#tfor(;;)
+#t{
+#t#tosDelay(1);
+#t}
+#t/* USER CODE END opticalsensor */
+}
+#n

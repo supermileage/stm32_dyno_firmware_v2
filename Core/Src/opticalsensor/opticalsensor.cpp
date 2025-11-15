@@ -1,45 +1,5 @@
-#include <opticalsensor/opticalsensor.h>
-
-class OpticalSensor /* Class definition because we can't use headers for C++ based on this implementation method */
-{
-	public:
-		OpticalSensor(TIM_HandleTypeDef* opticalTimer,
-				TIM_HandleTypeDef* timestampTimer,
-				osMessageQueueId_t sessionControllerToOpticalSensorHandle,
-				osMessageQueueId_t opticalSensorToSessionControllerHandle);
-
-		virtual ~OpticalSensor() = default;
-
-		bool Init();
-		void Run();
-
-		typedef struct
-				{
-					volatile uint8_t numOverflows;
-					volatile uint16_t IC_Value1;
-					volatile uint16_t IC_Value2;
-					volatile uint32_t timeDifference;
-					volatile uint32_t timestamp_os = 0;
-
-				} optical_encoder_input_data;
-
-	private:
-		float GetRPM(uint16_t);
-//		uint32_t GetClockSpeed();
-		void ToggleOPS(bool);
-		friend void optical_sensor_interrupt();
-		friend void optical_sensor_overflow_interrupt();
-
-		TIM_HandleTypeDef* _opticalTimer;
-		TIM_HandleTypeDef* _timestampTimer;
-		osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
-		osMessageQueueId_t _opticalSensorToSessionControllerHandle;
-
-		static OpticalSensor* _instance;
-		optical_encoder_input_data _optical;
-		bool _opEcdrEnabled;
-		uint32_t _clock_speed;
-};
+#include <opticalsensor/opticalsensor_main.h>
+#include <opticalsensor/opticalsensor.hpp>
 
 OpticalSensor* OpticalSensor::_instance = nullptr; // ISR cannot call members directly, so we need an instance variable
 
@@ -72,15 +32,22 @@ bool OpticalSensor::Init()
 
 void OpticalSensor::Run(void)
 {
+	// Enable Optical Sensor bool
 	bool enableOPS = false;
-	optical_encoder_output_data outputData; // Takes in TIMER data, not ADC
+
+	// struct with the data which will be sent to the target modules
+	optical_encoder_output_data outputData;
 
 	while (1)
 	{
 		osMessageQueueGet(_sessionControllerToOpticalSensorHandle, &enableOPS, NULL, 0);
 		if (enableOPS) {
+			// Copies are made to prevent interrupts from overwriting data
+			// Does not require a lock since making copies use one clock cycle
+			uint32_t timestampCopy = _optical.timestamp_os;
 			uint32_t timeDifferenceCopy = _optical.timeDifference;
-			volatile uint32_t timestampCopy = _optical.timestamp_os;
+
+			// populates the struct data
 			outputData.timestamp_os = timeDifferenceCopy;
 			outputData.rpm = GetRPM(timestampCopy);
 			osMessageQueuePut(_opticalSensorToSessionControllerHandle, &outputData, 0, 0);
@@ -107,8 +74,8 @@ void OpticalSensor::ToggleOPS(bool enable)
 
 float OpticalSensor::GetRPM(uint16_t timeDifference)
 {
-	return (_opticalTimer != 0) ? (float) ((CLK_SPEED / (_instance->_opticalTimer->Instance->PSC + 1)) * 60)/(timeDifference*NUM_APERTURES) : 0;
-	// Need to see how to configure timeDifference
+	// Calculates the RPM based on the timeDifference between two rising edges
+	return (timeDifference != 0) ? (float) ((CLK_SPEED / (_instance->_opticalTimer->Instance->PSC + 1)) * 60)/(timeDifference*NUM_APERTURES) : 0;
 }
 
 //uint32_t OpticalSensor::GetClockSpeed()
@@ -130,30 +97,34 @@ extern "C" void optical_sensor_interrupt()
 
     OpticalSensor* os = OpticalSensor::_instance;
 
-    // Read capture value
-    os->_optical.IC_Value2 =
-        HAL_TIM_ReadCapturedValue(os->_opticalTimer, TIM_CHANNEL_1);
-    	os->_optical.timestamp_os = __HAL_TIM_GET_COUNTER(os->_timestampTimer);
+    // Read capture value from the optical timer
+    os->_optical.IC_Value2 = HAL_TIM_ReadCapturedValue(os->_opticalTimer, TIM_CHANNEL_1);
+
+    // gets the timestamp value
+	os->_optical.timestamp_os = __HAL_TIM_GET_COUNTER(os->_timestampTimer);
 
     // Compute time difference (with overflow handling)
     os->_optical.timeDifference = (uint32_t)(os->_optical.IC_Value2 - os->_optical.IC_Value1) + (os->_optical.numOverflows * (os->_opticalTimer->Instance->ARR + 1));
     os->_optical.IC_Value1 = os->_optical.IC_Value2;
+
+    // restarting the number of timer overflows. This is used to check whether the optical encoder has stopped spinning
     os->_optical.numOverflows = 0;
 }
 
+// This function gets called once the timer counter overflows.
 extern "C" void optical_sensor_overflow_interrupt()
 {
 	if (OpticalSensor::_instance == nullptr) return;
 
 	OpticalSensor* os = OpticalSensor::_instance;
 
-	uint8_t numOverflowsCopy = os->_optical.numOverflows;
-
-	if (numOverflowsCopy != OP_OF) {
-		numOverflowsCopy++;
+	// Every time the timer overflows, increment the value
+	if (os->_optical.numOverflows != OP_OF) {
+		os->_optical.numOverflows++;
 	}
 	else
 	{
+		// in GetRPM, if timeDifference is 0, then associate that with 0 speed.
 		os->_optical.timeDifference = 0;
 	}
 }

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 // Opcodes for controlling the Lumex LCD display from the session controller
 typedef enum

@@ -28,7 +28,7 @@
 #include "LCD/LumexLCD_main.h"
 #include "forcesensor/forcesensor_adc_main.h"
 #include "bpm/bpm_main.h"
-#include "opticalsensor/opticalsensor.h"
+#include "opticalsensor/opticalsensor_main.h"
 
 /* USER CODE END Includes */
 
@@ -1190,7 +1190,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM14) {
+    if (htim->Instance == opticalTimInstance) {
     	optical_sensor_interrupt();
     }
 }
