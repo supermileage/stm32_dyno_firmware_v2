@@ -73,7 +73,6 @@ void Error_Handler(void);
 #define BTN_BACK_EXTI_IRQn EXTI9_5_IRQn
 #define ROT_EN_B_Pin GPIO_PIN_8
 #define ROT_EN_B_GPIO_Port GPIOI
-#define ROT_EN_B_EXTI_IRQn EXTI9_5_IRQn
 #define ADS1115_ALERT_Pin GPIO_PIN_11
 #define ADS1115_ALERT_GPIO_Port GPIOI
 #define ADS1115_ALERT_EXTI_IRQn EXTI15_10_IRQn

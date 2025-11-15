@@ -8,4 +8,6 @@
 #define K_I 1.0
 #define K_D 1.0
 
+#define INPUT_CIRCULAR_BUFFER_SIZE 50
+
 #endif /* INC_CONFIG_H_ */

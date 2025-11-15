@@ -2,7 +2,7 @@
 #define INC_SESSION_CONTROLLER_SESSION_CONTROLLER_H_
 
 #include "main.h"
-#include "user_inputs.h"
+#include "InputManagerInterrupts.h"
 
 #ifdef __cplusplus
 extern "C" {

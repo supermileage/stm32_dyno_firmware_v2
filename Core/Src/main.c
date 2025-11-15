@@ -1048,23 +1048,29 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin BTN_SELECT_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin|BTN_SELECT_Pin;
+  /*Configure GPIO pin : ROT_EN_A_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_A_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ROT_EN_A_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : ROT_EN_SW_Pin BTN_SELECT_Pin BTN_BACK_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_SW_Pin|BTN_SELECT_Pin|BTN_BACK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : BTN_BACK_Pin */
-  GPIO_InitStruct.Pin = BTN_BACK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(BTN_BACK_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : ROT_EN_B_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ROT_EN_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ROT_EN_B_Pin ADS1115_ALERT_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_B_Pin|ADS1115_ALERT_Pin;
+  /*Configure GPIO pin : ADS1115_ALERT_Pin */
+  GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+  HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
                            LUMEX_LCD_D4_Pin LUMEX_LCD_D5_Pin LUMEX_LCD_D6_Pin LUMEX_LCD_D7_Pin */
@@ -1119,7 +1125,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BTN_BRAKE_Pin */
   GPIO_InitStruct.Pin = BTN_BRAKE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(BTN_BRAKE_GPIO_Port, &GPIO_InitStruct);
 
   /*AnalogSwitch Config */
@@ -1129,16 +1135,16 @@ static void MX_GPIO_Init(void)
   HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(ROT_EN_A_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(ROT_EN_SW_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(BTN_SELECT_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(ADS1115_ALERT_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
