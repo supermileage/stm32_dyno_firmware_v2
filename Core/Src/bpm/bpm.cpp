@@ -9,7 +9,6 @@ BPM::BPM(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHand
 {}
 
 
-
 bool BPM::Init()
 {
 	return true;
@@ -57,9 +56,9 @@ void BPM::Run(void)
 			}
 		}
 
-
 	}
 }
+
 
 void BPM::TogglePWM(bool enable)
 {
