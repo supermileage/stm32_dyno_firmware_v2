@@ -26,6 +26,7 @@
 #include "LCD/LumexLCD.h"
 #include "forcesensor/forcesensor_adc.h"
 #include "bpm/bpm.h"
+#include "SessionController/input_manager_interrupts.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -1054,11 +1055,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ROT_EN_A_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ROT_EN_SW_Pin BTN_SELECT_Pin BTN_BACK_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_SW_Pin|BTN_SELECT_Pin|BTN_BACK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  /*Configure GPIO pins : ROT_EN_SW_Pin BTN_SELECT_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_SW_Pin|BTN_SELECT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BTN_BACK_Pin */
+  GPIO_InitStruct.Pin = BTN_BACK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BTN_BACK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ROT_EN_B_Pin */
   GPIO_InitStruct.Pin = ROT_EN_B_Pin;
@@ -1135,16 +1142,16 @@ static void MX_GPIO_Init(void)
   HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(ROT_EN_A_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ROT_EN_A_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(ROT_EN_SW_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ROT_EN_SW_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(BTN_SELECT_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(BTN_SELECT_EXTI_IRQn);
 
-  HAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(ADS1115_ALERT_EXTI_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ADS1115_ALERT_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -1153,8 +1160,34 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  switch(GPIO_Pin)
+  {
+    case ROT_EN_A_Pin:
+      registerRotaryEncoderInput();
+      break;
+    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
+    case ROT_EN_B_Pin:
+      break;
+    case ROT_EN_SW_Pin:
+      registerRotaryEncoderSwInput();
+      break;
+    case BTN_BACK_Pin:
+      registerButtonBackInput();
+      break;
+    case BTN_SELECT_Pin:
+      registerButtonSelectInput();
+      break;
+    case BTN_BRAKE_Pin:
+      registerButtonBrakeInput();
+      break;
+    default:
+      break;
+  }
+}
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     if (hadc->Instance == ADC2)
     {

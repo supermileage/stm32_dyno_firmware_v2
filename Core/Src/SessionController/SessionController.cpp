@@ -1,24 +1,5 @@
 #include <SessionController/SessionController.h>
 
-class SessionController
-{
-    public:
-        SessionController();
-        ~SessionController() = default;
-
-        bool Init(void);
-        void Run(void);
-
-    private:
-        void HandleUserInputs(void);
-        void HandleRotaryEncoderInput();
-        void HandleRotaryEncoderSwInput();
-        void HandleButtonBackInput();
-        void HandleButtonSelectInput();
-        void HandleButtonBrakeInput();
-
-};
-
 SessionController::SessionController(){}
 
 bool SessionController::Init(void)
@@ -59,11 +40,6 @@ void SessionController::HandleUserInputs(void)
 void SessionController::HandleRotaryEncoderInput(void)
 {
     
-    // if the session controller state of the rotary encoder ticks is the same as the interrupt copy, the encoder has not been touched
-    if (_sc_input_states.encoder_ticks != encoder_ticks_copy)
-    {
-        return;
-    }
 
 }
 void SessionController::HandleRotaryEncoderSwInput(void)
