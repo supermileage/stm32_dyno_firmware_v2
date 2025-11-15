@@ -5,6 +5,8 @@
 
 #include "cmsis_os.h"
 
+#include <stdbool.h>
+
 
 #ifdef __cplusplus
 extern "C" {
