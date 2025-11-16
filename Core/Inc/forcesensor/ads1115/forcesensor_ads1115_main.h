@@ -6,8 +6,6 @@
 
 #include "config.h"
 
-#include "ADS1115.h"
-
 #include "osQueue/osqueue_task_to_task.h"
 
 #ifdef __cplusplus
