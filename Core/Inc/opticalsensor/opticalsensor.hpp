@@ -1,6 +1,8 @@
 #ifndef INC_OPTICALSENSOR_HPP_
 #define INC_OPTICALSENSOR_HPP_
 
+#include "CircularBufferWriter.hpp"
+
 class OpticalSensor /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
