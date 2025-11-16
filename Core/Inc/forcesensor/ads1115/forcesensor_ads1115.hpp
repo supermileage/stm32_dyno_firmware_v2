@@ -4,6 +4,9 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+#include "ADS1115.hpp"
+#include "ADS1115_main.h"
+
 class ForcesensorADS1115 /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
@@ -24,6 +27,8 @@ class ForcesensorADS1115 /* Class definition because we can't use headers for C+
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
+
+		ADS1115 _ads1115;
 
 };
 
