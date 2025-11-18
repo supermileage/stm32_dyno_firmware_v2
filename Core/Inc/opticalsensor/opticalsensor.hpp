@@ -1,6 +1,8 @@
 #ifndef INC_OPTICALSENSOR_HPP_
 #define INC_OPTICALSENSOR_HPP_
 
+#include <string.h>
+
 class OpticalSensor /* Class definition because we can't use headers for C++ based on this implementation method */
 {
 	public:
@@ -15,30 +17,37 @@ class OpticalSensor /* Class definition because we can't use headers for C++ bas
 		void Run();
 
 		typedef struct
-				{
-					volatile uint32_t numOverflows;
-					volatile uint16_t IC_Value1;
-					volatile uint16_t IC_Value2;
-					volatile uint32_t timeDifference;
-					volatile uint32_t timestamp_os = 0;
+		{
+			uint32_t numOverflows;
+			uint32_t numInterruptCbs;
+			uint16_t IC_Value1;
+			uint16_t IC_Value2;
+			uint32_t timeDifference;
+			uint32_t timestamp_os = 0;
 
-				} optical_encoder_input_data;
+		} optical_encoder_input_data;
+
+		TIM_HandleTypeDef* _opticalTimer;
+		TIM_HandleTypeDef* _timestampTimer;
+		
+		volatile static optical_encoder_input_data _optical;
+		static OpticalSensor* _instance;
 
 	private:
 		float GetRPM(uint16_t);
 //		uint32_t GetClockSpeed();
 		void ToggleOPS(bool);
-		friend void optical_sensor_interrupt();
-		friend void optical_sensor_overflow_interrupt();
 
-		TIM_HandleTypeDef* _opticalTimer;
-		TIM_HandleTypeDef* _timestampTimer;
+		
 		osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 		osMessageQueueId_t _opticalSensorToSessionControllerHandle;
 
-		static OpticalSensor* _instance;
-		optical_encoder_input_data _optical;
 		bool _opEcdrEnabled;
+		uint32_t _localNumInterruptCbs;
+
+		
+		
+		
 //		const uint32_t _clock_speed;
 };
 

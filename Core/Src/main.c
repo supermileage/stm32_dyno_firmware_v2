@@ -1220,7 +1220,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == opticalTimInstance) {
-    	optical_sensor_interrupt();
+    	optical_sensor_output_interrupt();
     }
 }
 /* USER CODE END 4 */
