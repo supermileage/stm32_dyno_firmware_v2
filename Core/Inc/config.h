@@ -13,21 +13,24 @@
 // Voltage Reference (should be 3V3)
 #define VREF 3.3
 
-// BPM MIN and MAX duty cycle percentages from 0 - 1
-#define MIN_DUTY_CYCLE_PERCENT 0.0
-#define MAX_DUTY_CYCLE_PERCENT 0.95
-
 // Main PID controller K_P, K_I and K_D
 #define K_P 1.0
 #define K_I 1.0
 #define K_D 1.0
 
-// ADS1115 I2C ADC SAMPLE_SPEED
-#define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
+// BPM Config
+#define MIN_DUTY_CYCLE_PERCENT 0.0
+#define MAX_DUTY_CYCLE_PERCENT 0.95
+#define BPM_CIRCULAR_BUFFER_SIZE 50
 
-// Optical Encoder Data
+// ADS1115 I2C Config
+#define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
+#define FORCESENSOR_CIRCULAR_BUFFER_SIZE 50
+
+// Optical Encoder Config
 #define OP_OF 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
+#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50
 
 
 #endif /* INC_CONFIG_H_ */

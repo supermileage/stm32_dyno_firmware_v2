@@ -1,0 +1,5 @@
+#include "messagePassing/circular_buffers.h"
+
+optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE];
+forcesensor_output_data forcesensor_circular_buffer[FORCESENSOR_CIRCULAR_BUFFER_SIZE];
+bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
