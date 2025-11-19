@@ -3,14 +3,13 @@
 
 #include <stdint.h>
 
-// Templated circular buffer reader for embedded systems.
-// Does NOT own the memory. Reads from external buffer.
+#include "MessagePassing/circular_buffers.h"
 
 template <typename T>
 class CircularBufferReader
 {
 public:
-    CircularBufferReader(T* buffer, uint32_t size);
+    CircularBufferReader(T* buffer, circular_buffer_config* cfg);
 
     // Index management
     uint32_t GetIndex() const;
@@ -18,55 +17,64 @@ public:
 
     // Element access
     T GetElement(uint32_t index) const;
-    T GetElement() const;
-    T GetElementAndIncrementIndex();
+    T GetElement(T& out) const;
+    T GetElementAndIncrementIndex(T& out);
 
 private:
     T* _buffer;           // external buffer memory
-    uint32_t _size;       // number of elements
-    uint32_t _index;      // current read index
+    circular_buffer_config* _cfg;
+    
 };
 
-// =======================
-// Template Implementation
-// =======================
-
 template <typename T>
-inline CircularBufferReader<T>::CircularBufferReader(T* buffer, uint32_t size)
-    : _buffer(buffer), _size(size), _index(0)
+inline CircularBufferReader<T>::CircularBufferReader(T* buffer, circular_buffer_config* cfg)
+    : _buffer(buffer), _cfg(cfg)
 {
 }
 
 template <typename T>
 inline uint32_t CircularBufferReader<T>::GetIndex() const
 {
-    return _index;
+    return _cfg->readerIndex;
 }
 
 template <typename T>
 inline void CircularBufferReader<T>::SetIndex(uint32_t index)
 {
-    _index = index % _size;
+    _cfg->readerIndex = index % _cfg->size;
 }
 
 template <typename T>
 inline T CircularBufferReader<T>::GetElement(uint32_t index) const
 {
-    return _buffer[index % _size];
+    return _buffer[index % _cfg->size];
 }
 
 template <typename T>
-inline T CircularBufferReader<T>::GetElement() const
+inline bool CircularBufferReader<T>::GetElement(T& out) const
 {
-    return _buffer[_index];
+    // empty: nothing new to read
+    if (_cfg->readerIndex == _cfg->writerIndex)
+        return false;
+
+    out = _buffer[_cfg->readerIndex];
+    return true;
 }
 
 template <typename T>
-inline T CircularBufferReader<T>::GetElementAndIncrementIndex()
+inline bool CircularBufferReader<T>::GetElementAndIncrementIndex(T& out)
 {
-    T value = _buffer[_index];
-    _index = (_index + 1) % _size;
-    return value;
+    // empty: nothing new to read
+    if (_cfg->readerIndex == _cfg->writerIndex)
+        return false;
+
+    out = _buffer[_cfg->readerIndex];
+
+    // advance read index
+    _cfg->readerIndex = (_cfg->readerIndex + 1) % _cfg->size;
+
+    return true;
 }
+
 
 #endif /* CIRCULARBUFFER_INC_CIRCULARBUFFERREADER_HPP_ */

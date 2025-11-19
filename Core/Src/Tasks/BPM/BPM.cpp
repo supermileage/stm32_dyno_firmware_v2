@@ -2,8 +2,9 @@
 #include "Tasks/BPM/BPM.hpp"
 
 BPM::BPM(TIM_HandleTypeDef* bpmTimer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
-    : _buffer_writer(bpm_circular_buffer, BPM_CIRCULAR_BUFFER_SIZE),
-		_bpmTimer(bpmTimer),
+    : // this comes directly from circular_buffers.h
+	_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_config),
+	_bpmTimer(bpmTimer),
 	  _bpmCtrlEnabled(false),
 	  _fromSCHandle(sessionControllerToBpmHandle),
 	  _fromPIDHandle(pidToBpmHandle)

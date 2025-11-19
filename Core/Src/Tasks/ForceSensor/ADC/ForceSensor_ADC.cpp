@@ -10,7 +10,8 @@ volatile uint16_t adc_value = 0;
 
 ForceSensorADC::ForceSensorADC(ADC_HandleTypeDef* adcHandle,
 				osMessageQueueId_t sessionControllerToForceSensorHandle) : /* Constructor */
-		_buffer_writer(forcesensor_circular_buffer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+		// this comes directly from circular_buffers.h
+		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_config),
 		_adcHandle(adcHandle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
 {}

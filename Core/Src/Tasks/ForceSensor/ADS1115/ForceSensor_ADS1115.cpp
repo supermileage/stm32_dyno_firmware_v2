@@ -9,7 +9,8 @@ volatile bool ads1115_alert_status = false;
 
 ForceSensorADS1115::ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
 				osMessageQueueId_t sessionControllerToForceSensorHandle) : 
-        _buffer_writer(forcesensor_circular_buffer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+        // this comes directly from circular_buffers.h
+		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_config),
 		_i2cHandle(i2cHandle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
 {}

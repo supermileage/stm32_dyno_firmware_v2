@@ -5,7 +5,8 @@ OpticalSensor* OpticalSensor::_instance = nullptr; // ISR cannot call members di
 
 OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 				osMessageQueueId_t sessionControllerToOpticalSensorHandle) : /* Constructor */
-		_buffer_writer(optical_encoder_circular_buffer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
+		// this comes directly from circular_buffers.h
+		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_config),
 		_opticalTimer(opticalTimer),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle)
 {
@@ -40,11 +41,11 @@ void OpticalSensor::Run(void)
 			// Copies are made to prevent interrupts from overwriting data
 			// Does not require a lock since making copies use one clock cycle
 			uint32_t timestampCopy = _optical.timestamp;
-			uint32_t timeDifferenceCopy = _optical.timeDifference;
+			uint16_t timeDifferenceCopy = _optical.timeDifference;
 
 			// populates the struct data
-			outputData.timestamp = timeDifferenceCopy;
-			outputData.rpm = GetRPM(timestampCopy);
+			outputData.timestamp = timestampCopy;
+			outputData.rpm = GetRPM(timeDifferenceCopy);
 			_buffer_writer.WriteElementAndIncrementIndex(outputData);
 		}
 
@@ -117,9 +118,9 @@ extern "C" void optical_sensor_overflow_interrupt()
     if (OpticalSensor::_instance) OpticalSensor::_instance->HandleOverflowInterrupt();
 }
 
-extern "C" void optical_sensor_main(TIM_HandleTypeDef* opticalTimer, osMessageQueueId_t sessionControllerToOpticalSensorHandle, osMessageQueueId_t opticalSensorToSessionControllerHandle)
+extern "C" void optical_sensor_main(TIM_HandleTypeDef* opticalTimer, osMessageQueueId_t sessionControllerToOpticalSensorHandle)
 {
-	OpticalSensor opticalsensor = OpticalSensor(opticalTimer, sessionControllerToOpticalSensorHandle, opticalSensorToSessionControllerHandle);
+	OpticalSensor opticalsensor = OpticalSensor(opticalTimer, sessionControllerToOpticalSensorHandle);
 
 	if (!opticalsensor.Init())
 	{

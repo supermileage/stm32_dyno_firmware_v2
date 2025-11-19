@@ -3,19 +3,13 @@
 
 #include <stdint.h>
 
-/*
- * CircularBufferWriter
- * ---------------------
- * Writes into an externally allocated buffer.
- * Does NOT own the memory.
- * Fully embedded-safe (no STL).
- */
+#include "MessagePassing/circular_buffers.h"
 
 template <typename T>
 class CircularBufferWriter
 {
 public:
-    CircularBufferWriter(T* buffer, uint32_t size);
+    CircularBufferWriter(T* buffer, circular_buffer_config* cfg);
 
     // Index management
     uint32_t GetIndex() const;
@@ -28,49 +22,44 @@ public:
 
 private:
     T* _buffer;        // external buffer memory
-    uint32_t _size;    // number of elements
-    uint32_t _index;   // current write index
+    circular_buffer_config* _cfg;
 };
 
-// =======================
-// Template Implementation
-// =======================
-
 template <typename T>
-inline CircularBufferWriter<T>::CircularBufferWriter(T* buffer, uint32_t size)
-    : _buffer(buffer), _size(size), _index(0)
+inline CircularBufferWriter<T>::CircularBufferWriter(T* buffer, circular_buffer_config* cfg)
+    : _buffer(buffer), _cfg(cfg)
 {
 }
 
 template <typename T>
 inline uint32_t CircularBufferWriter<T>::GetIndex() const
 {
-    return _index;
+    return _cfg->writerIndex;
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::SetIndex(uint32_t index)
 {
-    _index = index % _size;
+    _cfg->writerIndex = index % _cfg->size;
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElement(const T& value)
 {
-    _buffer[_index] = value;
+    _buffer[_cfg->writerIndex] = value;
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElement(uint32_t index, const T& value)
 {
-    _buffer[index % _size] = value;
+    _buffer[index % _cfg->size] = value;
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElementAndIncrementIndex(const T& value)
 {
-    _buffer[_index] = value;
-    _index = (_index + 1) % _size;
+    _buffer[_cfg->writerIndex] = value;
+    _cfg->writerIndex = (_cfg->writerIndex + 1) % _cfg->size;
 }
 
 #endif /* CIRCULARBUFFER_INC_CIRCULARBUFFERWRITER_HPP_ */
