@@ -34,8 +34,8 @@ THE SOFTWARE.
 ===============================================
 */
 
-#ifndef _H_
-#define _H_
+#ifndef ADS1115_ADS1115_HPP_
+#define ADS1115_ADS1115_HPP_
 
 #ifdef __cplusplus
 extern "C" {
@@ -128,4 +128,4 @@ private:
         
 
 
-#endif /* _H_ */
+#endif /* ADS1115_ADS1115_HPP_ */

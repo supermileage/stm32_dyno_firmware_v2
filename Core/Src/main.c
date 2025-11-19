@@ -22,12 +22,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <bpm/bpm_main.h>
-#include <forcesensor/adc/forcesensor_adc_main.h>
-#include <forcesensor/ads1115/forcesensor_ads1115_main.h>
-#include <LCD/LumexLCD_main.h>
-#include <pid/pid_main.h>
-#include "opticalsensor/opticalsensor_main.h"
+#include <Tasks/BPM/bpm_main.h>
+#include <Tasks/ForceSensor/ADC/forcesensor_adc_main.h>
+#include <Tasks/ForceSensor/ADS1115/forcesensor_ads1115_main.h>
+#include <Tasks/LCD/lumexlcd_main.h>
+#include <Tasks/PID/pid_main.h>
+#include <Tasks/OpticalSensor/opticalsensor_main.h>
+
+#include <TimeKeeping/timestamps.h>
+#include <MessagePassing/messages.h>
 
 /* USER CODE END Includes */
 
@@ -117,11 +120,6 @@ osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
   .name = "sessionControllerToBpm"
 };
-/* Definitions for forceSensorToSessionController */
-osMessageQueueId_t forceSensorToSessionControllerHandle;
-const osMessageQueueAttr_t forceSensorToSessionController_attributes = {
-  .name = "forceSensorToSessionController"
-};
 /* Definitions for sessionControllerToForceSensor */
 osMessageQueueId_t sessionControllerToForceSensorHandle;
 const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
@@ -141,11 +139,6 @@ const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
 osMessageQueueId_t pidControllerToBpmHandle;
 const osMessageQueueAttr_t pidControllerToBpm_attributes = {
   .name = "pidControllerToBpm"
-};
-/* Definitions for opticalSensortoSessionController */
-osMessageQueueId_t opticalSensortoSessionControllerHandle;
-const osMessageQueueAttr_t opticalSensortoSessionController_attributes = {
-  .name = "opticalSensortoSessionController"
 };
 /* Definitions for sessionControllerToOpticalSensor */
 osMessageQueueId_t sessionControllerToOpticalSensorHandle;
@@ -280,9 +273,6 @@ int main(void)
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
-  /* creation of forceSensorToSessionController */
-  forceSensorToSessionControllerHandle = osMessageQueueNew (16, sizeof(forcesensor_output_data), &forceSensorToSessionController_attributes);
-
   /* creation of sessionControllerToForceSensor */
   sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
 
@@ -294,9 +284,6 @@ int main(void)
 
   /* creation of pidControllerToBpm */
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
-
-  /* creation of opticalSensortoSessionController */
-  opticalSensortoSessionControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &opticalSensortoSessionController_attributes);
 
   /* creation of sessionControllerToOpticalSensor */
   sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
@@ -868,11 +855,11 @@ static void MX_TIM14_Init(void)
 
   /* USER CODE END TIM14_Init 1 */
   htim14.Instance = TIM14;
-  htim14.Init.Prescaler = 0;
+  htim14.Init.Prescaler = 200-1;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim14.Init.Period = 65535;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
   {
     Error_Handler();
@@ -1188,7 +1175,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // Seeing if this works
 {
     if (hadc->Instance == ADC2)
     {
-        adc_forcesensor_interrupt(hadc, timestampTimer);
+        adc_forcesensor_interrupt(hadc);
     }
 }
 
@@ -1268,9 +1255,9 @@ void forceSensor(void *argument)
   #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
       #error "Cannot enable both ADS1115 and ADC tasks at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
-	  force_sensor_ads1115_main(forceSensorADS1115Handle, timestampTimer, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+	  force_sensor_ads1115_main(forceSensorADS1115Handle, sessionControllerToForceSensorHandle);
   #elif (FORCE_SENSOR_ADC_TASK_ENABLE == 1) 
-	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle, forceSensorToSessionControllerHandle);
+	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle);
   #endif
   /* USER CODE END forceSensor */
 }
@@ -1300,7 +1287,7 @@ void pidController(void *argument)
 void opticalsensor(void *argument)
 {
   /* USER CODE BEGIN opticalsensor */
-	optical_sensor_main(opticalTimer, timestampTimer, sessionControllerToOpticalSensorHandle, opticalSensortoSessionControllerHandle);
+	optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
   /* USER CODE END opticalsensor */
 }
 
