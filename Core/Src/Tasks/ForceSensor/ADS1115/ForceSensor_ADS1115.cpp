@@ -12,23 +12,24 @@ ForceSensorADS1115::ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
         // this comes directly from circular_buffers.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_config),
 		_i2cHandle(i2cHandle),
-		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
+		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle),
+        _ads1115(_i2cHandle)
 {}
 
 bool ForceSensorADS1115::Init()
 {
-	ADS1115_initialize(_i2cHandle, ADS1115_DEFAULT_ADDRESS);
+	_ads1115.initialize();
 
     // Set device mode to single-shot
-    ADS1115_setMode(ADS1115_MODE_SINGLESHOT);
+	_ads1115.setMode(ADS1115_MODE_SINGLESHOT);
 
     // Set data rate (slow for demonstration or high depending on application)
-    ADS1115_setRate(ADS1115_SAMPLE_SPEED);
+	_ads1115.setRate(ADS1115_SAMPLE_SPEED);
 
     // Set PGA (programmable gain amplifier)
-    ADS1115_setGain(ADS1115_PGA_6P144);
+	_ads1115.setGain(ADS1115_PGA_6P144);
 
-    ADS1115_setConversionReadyPinMode();
+	_ads1115.setConversionReadyPinMode();
     
     return true;
 }
@@ -46,7 +47,7 @@ void ForceSensorADS1115::Run(void)
         if (enableADS1115)
         {
             // Trigger conversion
-            ADS1115_triggerConversion();
+        	_ads1115.triggerConversion();
 
             // Wait for alert GPIO to indicate conversion complete
             while (!ads1115_alert_status)
@@ -73,7 +74,7 @@ void ForceSensorADS1115::Run(void)
 float ForceSensorADS1115::GetForce(void)
 {
     // Do not poll, we will explicitly trigger the conversion
-    uint16_t adcValue = ADS1115_getConversion(false);
+    uint16_t adcValue = _ads1115.getConversion(false);
     return static_cast<float>(adcValue) / UINT16_MAX * MAX_FORCE_LBF * LBF_TO_NEWTON;
 }
 

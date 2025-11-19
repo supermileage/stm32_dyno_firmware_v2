@@ -33,14 +33,9 @@ THE SOFTWARE.
 ===============================================
 */
 
-#include "ADS1115.h"
+#include "ADS1115.hpp"
 
-I2C_HandleTypeDef* _i2cHandle;
-uint8_t _devAddr;
-uint8_t  _buffer[2];
-bool    _devMode;
-uint8_t _muxMode;
-uint8_t _pgaMode;
+ADS1115::ADS1115(I2C_HandleTypeDef* i2cHandle, uint8_t address) : _i2cHandle(i2cHandle), _devAddr(address) {}
 
 /** Power on and prepare for general usage.
  * This device is ready to use automatically upon power-up. It defaults to
@@ -48,24 +43,22 @@ uint8_t _pgaMode;
  * comparator with hysterysis, active-low polarity, non-latching comparator,
  * and comparater-disabled operation.
  */
-void ADS1115_initialize(I2C_HandleTypeDef* i2cHandle, uint8_t address) {
-  _i2cHandle = i2cHandle;
-  _devAddr = address;
-  ADS1115_setMultiplexer(ADS1115_MUX_P0_N1);
-  ADS1115_setGain(ADS1115_PGA_2P048);
-  ADS1115_setMode(ADS1115_MODE_SINGLESHOT);
-  ADS1115_setRate(ADS1115_RATE_128);
-  ADS1115_setComparatorMode(ADS1115_COMP_MODE_HYSTERESIS);
-  ADS1115_setComparatorPolarity(ADS1115_COMP_POL_ACTIVE_LOW);
-  ADS1115_setComparatorLatchEnabled(ADS1115_COMP_LAT_NON_LATCHING);
-  ADS1115_setComparatorQueueMode(ADS1115_COMP_QUE_DISABLE);
+void ADS1115::initialize() {
+  setMultiplexer(ADS1115_MUX_P0_N1);
+  setGain(ADS1115_PGA_2P048);
+  setMode(ADS1115_MODE_SINGLESHOT);
+  setRate(ADS1115_RATE_128);
+  setComparatorMode(ADS1115_COMP_MODE_HYSTERESIS);
+  setComparatorPolarity(ADS1115_COMP_POL_ACTIVE_LOW);
+  setComparatorLatchEnabled(ADS1115_COMP_LAT_NON_LATCHING);
+  setComparatorQueueMode(ADS1115_COMP_QUE_DISABLE);
 }
 
 /** Verify the I2C connection.
  * Make sure the device is connected and responds as expected.
  * @return True if connection is valid, false otherwise
  */
-bool ADS1115_testConnection() {
+bool ADS1115::testConnection() {
     // Register we want to read (Conversion register)
     uint8_t reg = ADS1115_RA_CONVERSION;
 
@@ -90,9 +83,9 @@ bool ADS1115_testConnection() {
  * @see ADS1115_CFG_OS_BIT
  * @return True if data is available, false otherwise
  */
-bool ADS1115_pollConversion(uint16_t max_retries) {
+bool ADS1115::pollConversion(uint16_t max_retries) {
   for(uint16_t i = 0; i < max_retries; i++) {
-    if (ADS1115_isConversionReady()) return true;
+    if (isConversionReady()) return true;
   }
   return false;
 }
@@ -134,10 +127,10 @@ bool ADS1115_pollConversion(uint16_t max_retries) {
  * @see ADS1115_MUX_P2_NG
  * @see ADS1115_MUX_P3_NG
  */
-int16_t ADS1115_getConversion(bool triggerAndPoll) {
+int16_t ADS1115::getConversion(bool triggerAndPoll) {
     if (triggerAndPoll && _devMode == ADS1115_MODE_SINGLESHOT) {
-        ADS1115_triggerConversion();
-        ADS1115_pollConversion(ADS1115_POLL_MAX_RETRIES);
+        triggerConversion();
+        pollConversion(ADS1115_POLL_MAX_RETRIES);
     }
 
     // Read 2 bytes from the conversion register
@@ -159,9 +152,9 @@ int16_t ADS1115_getConversion(bool triggerAndPoll) {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP0N1() {
-    if (_muxMode != ADS1115_MUX_P0_N1) ADS1115_setMultiplexer(ADS1115_MUX_P0_N1);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP0N1() {
+    if (_muxMode != ADS1115_MUX_P0_N1) setMultiplexer(ADS1115_MUX_P0_N1);
+    return getConversion(true);
 }
 
 /** Get AIN0/N3 differential.
@@ -171,9 +164,9 @@ int16_t ADS1115_getConversionP0N1() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP0N3() {
-    if (_muxMode != ADS1115_MUX_P0_N3) ADS1115_setMultiplexer(ADS1115_MUX_P0_N3);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP0N3() {
+    if (_muxMode != ADS1115_MUX_P0_N3) setMultiplexer(ADS1115_MUX_P0_N3);
+    return getConversion(true);
 }
 
 /** Get AIN1/N3 differential.
@@ -183,9 +176,9 @@ int16_t ADS1115_getConversionP0N3() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP1N3() {
-    if (_muxMode != ADS1115_MUX_P1_N3) ADS1115_setMultiplexer(ADS1115_MUX_P1_N3);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP1N3() {
+    if (_muxMode != ADS1115_MUX_P1_N3) setMultiplexer(ADS1115_MUX_P1_N3);
+    return getConversion(true);
 }
 
 /** Get AIN2/N3 differential.
@@ -195,9 +188,9 @@ int16_t ADS1115_getConversionP1N3() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP2N3() {
-    if (_muxMode != ADS1115_MUX_P2_N3) ADS1115_setMultiplexer(ADS1115_MUX_P2_N3);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP2N3() {
+    if (_muxMode != ADS1115_MUX_P2_N3) setMultiplexer(ADS1115_MUX_P2_N3);
+    return getConversion(true);
 }
 
 /** Get AIN0/GND differential.
@@ -207,9 +200,9 @@ int16_t ADS1115_getConversionP2N3() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP0GND() {
-    if (_muxMode != ADS1115_MUX_P0_NG) ADS1115_setMultiplexer(ADS1115_MUX_P0_NG);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP0GND() {
+    if (_muxMode != ADS1115_MUX_P0_NG) setMultiplexer(ADS1115_MUX_P0_NG);
+    return getConversion(true);
 }
 /** Get AIN1/GND differential.
  * This changes the MUX setting to AIN1/GND if necessary, triggers a new
@@ -218,9 +211,9 @@ int16_t ADS1115_getConversionP0GND() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP1GND() {
-    if (_muxMode != ADS1115_MUX_P1_NG) ADS1115_setMultiplexer(ADS1115_MUX_P1_NG);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP1GND() {
+    if (_muxMode != ADS1115_MUX_P1_NG) setMultiplexer(ADS1115_MUX_P1_NG);
+    return getConversion(true);
 }
 /** Get AIN2/GND differential.
  * This changes the MUX setting to AIN2/GND if necessary, triggers a new
@@ -229,9 +222,9 @@ int16_t ADS1115_getConversionP1GND() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP2GND() {
-    if (_muxMode != ADS1115_MUX_P2_NG) ADS1115_setMultiplexer(ADS1115_MUX_P2_NG);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP2GND() {
+    if (_muxMode != ADS1115_MUX_P2_NG) setMultiplexer(ADS1115_MUX_P2_NG);
+    return getConversion(true);
 }
 /** Get AIN3/GND differential.
  * This changes the MUX setting to AIN3/GND if necessary, triggers a new
@@ -240,9 +233,9 @@ int16_t ADS1115_getConversionP2GND() {
  * @return 16-bit signed differential value
  * @see getConversion()
  */
-int16_t ADS1115_getConversionP3GND() {
-    if (_muxMode != ADS1115_MUX_P3_NG) ADS1115_setMultiplexer(ADS1115_MUX_P3_NG);
-    return ADS1115_getConversion(true);
+int16_t ADS1115::getConversionP3GND() {
+    if (_muxMode != ADS1115_MUX_P3_NG) setMultiplexer(ADS1115_MUX_P3_NG);
+    return getConversion(true);
 }
 
 /** Get the current voltage reading
@@ -252,27 +245,27 @@ int16_t ADS1115_getConversionP3GND() {
  * @param triggerAndPoll If true (and only in singleshot mode) the conversion trigger
  *        will be executed and the conversion results will be polled.
  */
-float ADS1115_getMilliVolts(bool triggerAndPoll) {
+float ADS1115::getMilliVolts(bool triggerAndPoll) {
   switch (_pgaMode) {
     case ADS1115_PGA_6P144:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_6P144);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_6P144);
       break;
     case ADS1115_PGA_4P096:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_4P096);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_4P096);
       break;
     case ADS1115_PGA_2P048:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_2P048);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_2P048);
       break;
     case ADS1115_PGA_1P024:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_1P024);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_1P024);
       break;
     case ADS1115_PGA_0P512:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_0P512);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_0P512);
       break;
     case ADS1115_PGA_0P256:
     case ADS1115_PGA_0P256B:
     case ADS1115_PGA_0P256C:
-      return (ADS1115_getConversion(triggerAndPoll) * ADS1115_MV_0P256);
+      return (getConversion(triggerAndPoll) * ADS1115_MV_0P256);
       break;
     default:
     	return 0.0;
@@ -292,7 +285,7 @@ float ADS1115_getMilliVolts(bool triggerAndPoll) {
  *
  */
 
-float ADS1115_getMvPerCount() {
+float ADS1115::getMvPerCount() {
   switch (_pgaMode) {
     case ADS1115_PGA_6P144:
       return ADS1115_MV_6P144;
@@ -326,7 +319,7 @@ float ADS1115_getMvPerCount() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_OS_BIT
  */
-bool ADS1115_isConversionReady() {
+bool ADS1115::isConversionReady() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -346,7 +339,7 @@ bool ADS1115_isConversionReady() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_OS_BIT
  */
-void ADS1115_triggerConversion() {
+void ADS1115::triggerConversion() {
     // Read current config
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -374,7 +367,7 @@ void ADS1115_triggerConversion() {
  * @see ADS1115_CFG_MUX_BIT
  * @see ADS1115_CFG_MUX_LENGTH
  */
-uint8_t ADS1115_getMultiplexer() {
+uint8_t ADS1115::getMultiplexer() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -407,7 +400,7 @@ uint8_t ADS1115_getMultiplexer() {
  * @see ADS1115_CFG_MUX_BIT
  * @see ADS1115_CFG_MUX_LENGTH
  */
-void ADS1115_setMultiplexer(uint8_t mux) {
+void ADS1115::setMultiplexer(uint8_t mux) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -438,9 +431,9 @@ void ADS1115_setMultiplexer(uint8_t mux) {
 
     // If in continuous mode, force a stop/start to reset conversion
     if (_devMode == ADS1115_MODE_CONTINUOUS) {
-        ADS1115_setMode(ADS1115_MODE_SINGLESHOT);
-        ADS1115_getConversion(true);  // perform one conversion to reset
-        ADS1115_setMode(ADS1115_MODE_CONTINUOUS);
+        setMode(ADS1115_MODE_SINGLESHOT);
+        getConversion(true);  // perform one conversion to reset
+        setMode(ADS1115_MODE_CONTINUOUS);
     }
 }
 
@@ -450,7 +443,7 @@ void ADS1115_setMultiplexer(uint8_t mux) {
  * @see ADS1115_CFG_PGA_BIT
  * @see ADS1115_CFG_PGA_LENGTH
  */
-uint8_t ADS1115_getGain() {
+uint8_t ADS1115::getGain() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -473,7 +466,7 @@ uint8_t ADS1115_getGain() {
  * is done to reset the values.
  * @param gain New programmable gain amplifier level
  */
-void ADS1115_setGain(uint8_t gain) {
+void ADS1115::setGain(uint8_t gain) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -504,9 +497,9 @@ void ADS1115_setGain(uint8_t gain) {
 
     // If in continuous mode, force a stop/start to reset conversion
     if (_devMode == ADS1115_MODE_CONTINUOUS) {
-        ADS1115_setMode(ADS1115_MODE_SINGLESHOT);
-        ADS1115_getConversion(true);  // perform one conversion to reset
-        ADS1115_setMode(ADS1115_MODE_CONTINUOUS);
+        setMode(ADS1115_MODE_SINGLESHOT);
+        getConversion(true);  // perform one conversion to reset
+        setMode(ADS1115_MODE_CONTINUOUS);
     }
 }
 
@@ -517,7 +510,7 @@ void ADS1115_setGain(uint8_t gain) {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_MODE_BIT
  */
-bool ADS1115_getMode() {
+bool ADS1115::getMode() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -540,7 +533,7 @@ bool ADS1115_getMode() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_MODE_BIT
  */
-void ADS1115_setMode(bool mode) {
+void ADS1115::setMode(bool mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -576,7 +569,7 @@ void ADS1115_setMode(bool mode) {
  * @see ADS1115_CFG_DR_BIT
  * @see ADS1115_CFG_DR_LENGTH
  */
-uint8_t ADS1115_getRate() {
+uint8_t ADS1115::getRate() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -607,7 +600,7 @@ uint8_t ADS1115_getRate() {
  * @see ADS1115_CFG_DR_BIT
  * @see ADS1115_CFG_DR_LENGTH
  */
-void ADS1115_setRate(uint8_t rate) {
+void ADS1115::setRate(uint8_t rate) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -639,7 +632,7 @@ void ADS1115_setRate(uint8_t rate) {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_MODE_BIT
  */
-bool ADS1115_getComparatorMode() {
+bool ADS1115::getComparatorMode() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -661,7 +654,7 @@ bool ADS1115_getComparatorMode() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_MODE_BIT
  */
-void ADS1115_setComparatorMode(bool mode) {
+void ADS1115::setComparatorMode(bool mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -694,7 +687,7 @@ void ADS1115_setComparatorMode(bool mode) {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_POL_BIT
  */
-bool ADS1115_getComparatorPolarity() {
+bool ADS1115::getComparatorPolarity() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -716,7 +709,7 @@ bool ADS1115_getComparatorPolarity() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_POL_BIT
  */
-void ADS1115_setComparatorPolarity(bool polarity) {
+void ADS1115::setComparatorPolarity(bool polarity) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -749,7 +742,7 @@ void ADS1115_setComparatorPolarity(bool polarity) {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_LAT_BIT
  */
-bool ADS1115_getComparatorLatchEnabled() {
+bool ADS1115::getComparatorLatchEnabled() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -771,7 +764,7 @@ bool ADS1115_getComparatorLatchEnabled() {
  * @see ADS1115_RA_CONFIG
  * @see ADS1115_CFG_COMP_LAT_BIT
  */
-void ADS1115_setComparatorLatchEnabled(bool enabled) {
+void ADS1115::setComparatorLatchEnabled(bool enabled) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -806,7 +799,7 @@ void ADS1115_setComparatorLatchEnabled(bool enabled) {
  * @see ADS1115_CFG_COMP_QUE_BIT
  * @see ADS1115_CFG_COMP_QUE_LENGTH
  */
-uint8_t ADS1115_getComparatorQueueMode() {
+uint8_t ADS1115::getComparatorQueueMode() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -831,7 +824,7 @@ uint8_t ADS1115_getComparatorQueueMode() {
  * @see ADS1115_CFG_COMP_QUE_BIT
  * @see ADS1115_CFG_COMP_QUE_LENGTH
  */
-void ADS1115_setComparatorQueueMode(uint8_t mode) {
+void ADS1115::setComparatorQueueMode(uint8_t mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -863,7 +856,7 @@ void ADS1115_setComparatorQueueMode(uint8_t mode) {
  * @return Current low threshold value
  * @see ADS1115_RA_LO_THRESH
  */
-int16_t ADS1115_getLowThreshold() {
+int16_t ADS1115::getLowThreshold() {
     // Read 2 bytes from LO_THRESH register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_LO_THRESH,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -880,7 +873,7 @@ int16_t ADS1115_getLowThreshold() {
  * @param threshold New low threshold value
  * @see ADS1115_RA_LO_THRESH
  */
-void ADS1115_setLowThreshold(int16_t threshold) {
+void ADS1115::setLowThreshold(int16_t threshold) {
     // Split 16-bit threshold into MSB and LSB
     _buffer[0] = (threshold >> 8) & 0xFF;
     _buffer[1] = threshold & 0xFF;
@@ -894,7 +887,7 @@ void ADS1115_setLowThreshold(int16_t threshold) {
  * @return Current high threshold value
  * @see ADS1115_RA_HI_THRESH
  */
-int16_t ADS1115_getHighThreshold() {
+int16_t ADS1115::getHighThreshold() {
     // Read 2 bytes from HI_THRESH register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_HI_THRESH,
                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, HAL_MAX_DELAY) != HAL_OK) {
@@ -912,7 +905,7 @@ int16_t ADS1115_getHighThreshold() {
  * @param threshold New high threshold value
  * @see ADS1115_RA_HI_THRESH
  */
-void ADS1115_setHighThreshold(int16_t threshold) {
+void ADS1115::setHighThreshold(int16_t threshold) {
     // Split 16-bit threshold into MSB and LSB
     _buffer[0] = (threshold >> 8) & 0xFF;
     _buffer[1] = threshold & 0xFF;
@@ -928,9 +921,9 @@ void ADS1115_setHighThreshold(int16_t threshold) {
  *  of the low threshold register to '0'. COMP_POL and COMP_QUE bits will be set to '0'.
  *  Note: ALERT/RDY pin requires a pull-up resistor.
  */
-void ADS1115_setConversionReadyPinMode() {
-    int16_t hi = ADS1115_getHighThreshold();   // Read current HI_THRESH
-    int16_t lo = ADS1115_getLowThreshold();    // Read current LO_THRESH
+void ADS1115::setConversionReadyPinMode() {
+    int16_t hi = getHighThreshold();   // Read current HI_THRESH
+    int16_t lo = getLowThreshold();    // Read current LO_THRESH
 
     // Set MSB of HI_THRESH to 1
     hi |= 0x8000;
@@ -938,12 +931,12 @@ void ADS1115_setConversionReadyPinMode() {
     lo &= ~0x8000;
 
     // Write updated thresholds
-    ADS1115_setHighThreshold(hi);
-    ADS1115_setLowThreshold(lo);
+    setHighThreshold(hi);
+    setLowThreshold(lo);
 
     // Set comparator polarity and queue bits using HAL-native methods
-    ADS1115_setComparatorPolarity(false);     // COMP_POL = 0
-    ADS1115_setComparatorQueueMode(0);        // COMP_QUE = 0
+    setComparatorPolarity(false);     // COMP_POL = 0
+    setComparatorQueueMode(0);        // COMP_QUE = 0
 }
 
 // Create a mask between two bits

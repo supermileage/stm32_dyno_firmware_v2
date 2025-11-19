@@ -9,7 +9,10 @@
 #include "MessagePassing/circular_buffers.h"
 #include "CircularBufferWriter.hpp"
 
-class ForceSensorADS1115 /* Class definition because we can't use headers for C++ based on this implementation method */
+#include "ADS1115.hpp"
+#include "ADS1115_main.h"
+
+class ForcesensorADS1115 
 {
 	public:
 		ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
@@ -29,6 +32,8 @@ class ForceSensorADS1115 /* Class definition because we can't use headers for C+
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
+
+		ADS1115 _ads1115;
 
 };
 

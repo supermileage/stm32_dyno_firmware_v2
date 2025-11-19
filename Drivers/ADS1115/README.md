@@ -2,7 +2,7 @@
 Arduino library for the ADS1115 Analog-to-Digital Converter
 
 ## Original Repository:
-From https://github.com/jrowberg/i2cdevlib
+From https://github.com/addicore/ADS1115
 
 ## Examples 
 https://github.com/addicore/ADS1115/blob/master/examples/ADS1115_differential/ADS1115_differential.ino

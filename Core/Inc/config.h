@@ -1,7 +1,7 @@
 #ifndef INC_CONFIG_H_
 #define INC_CONFIG_H_
 
-#include "ADS1115.h"
+#include "ADS1115_main.h"
 
 // Task enable/disables
 #define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
