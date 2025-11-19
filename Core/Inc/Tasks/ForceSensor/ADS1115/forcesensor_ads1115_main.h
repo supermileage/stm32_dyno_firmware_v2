@@ -6,9 +6,7 @@
 
 #include "config.h"
 
-#include "ADS1115.h"
-
-#include "messagePassing/osqueue_helpers.h"
+#include "MessagePassing/osqueue_helpers.h"
 
 #ifdef __cplusplus
 extern "C" {

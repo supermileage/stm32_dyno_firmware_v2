@@ -11,10 +11,9 @@ ForceSensorADS1115::ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
 				osMessageQueueId_t sessionControllerToForceSensorHandle) : 
         // this comes directly from circular_buffers.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_config),
+        _ads1115(i2cHandle),
 		_i2cHandle(i2cHandle),
-		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle),
-        _ads1115(_i2cHandle)
-{}
+		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle) {}
 
 bool ForceSensorADS1115::Init()
 {

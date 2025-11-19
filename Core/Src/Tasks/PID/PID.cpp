@@ -1,5 +1,5 @@
 #include <Tasks/PID/pid_main.h>
-#include <Tasks/PID/PIDController.hpp>
+#include <Tasks/PID/PID.hpp>
 
 PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
 			_pidToSessionControllerHandle(sessionControllerToPidControllerHandle),

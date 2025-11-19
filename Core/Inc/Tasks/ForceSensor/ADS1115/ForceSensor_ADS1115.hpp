@@ -10,9 +10,8 @@
 #include "CircularBufferWriter.hpp"
 
 #include "ADS1115.hpp"
-#include "ADS1115_main.h"
 
-class ForcesensorADS1115 
+class ForceSensorADS1115 
 {
 	public:
 		ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
@@ -28,12 +27,14 @@ class ForcesensorADS1115
 		// Circular Buffer for ForceSensor with template bpm_output_data
 		CircularBufferWriter<forcesensor_output_data> _buffer_writer;
 
+		ADS1115 _ads1115;
+
 		I2C_HandleTypeDef* _i2cHandle;
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
 
-		ADS1115 _ads1115;
+		
 
 };
 
