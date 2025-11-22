@@ -31,6 +31,7 @@
 #define OP_OF 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 #define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50
+#define USB_CDC_TX_BUFFER_SIZE 256 // Need to evaluate maximum possible size from STM32
 
 
 #endif /* INC_CONFIG_H_ */

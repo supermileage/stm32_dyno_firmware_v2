@@ -21,8 +21,8 @@ public:
     T GetElementAndIncrementIndex(T& out);
 
 private:
-    T* _buffer;           // external buffer memory
-    circular_buffer_config* _cfg;
+    T* _buffer;           // external buffer memory that we're reading from
+    circular_buffer_config* _cfg; // what data type we associate with current read
     
 };
 
