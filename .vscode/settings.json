@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "compare": "c",
         "forcesensor_adc_main.h": "c",
         "stdlib.h": "c",
         "osqueue_helpers.h": "c",

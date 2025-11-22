@@ -18,6 +18,9 @@
 #define K_I 1.0
 #define K_D 1.0
 
+// User Input Config (like buttons)
+#define USER_INPUT_CIRCULAR_BUFFER_SIZE 50
+
 // BPM Config
 #define MIN_DUTY_CYCLE_PERCENT 0.0
 #define MAX_DUTY_CYCLE_PERCENT 0.95
