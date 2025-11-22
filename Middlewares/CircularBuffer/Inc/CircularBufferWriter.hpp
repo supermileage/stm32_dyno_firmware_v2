@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "MessagePassing/circular_buffers.h"
-
 template <typename T>
 class CircularBufferWriter
 {
