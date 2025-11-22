@@ -19,6 +19,7 @@ OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
     _optical.IC_Value2 = 0;
     _optical.timeDifference = 0;
     _optical.timestamp = 0;
+	_optical.rawValue = 0;
 }
 
 bool OpticalSensor::Init()
@@ -42,10 +43,12 @@ void OpticalSensor::Run(void)
 			// Does not require a lock since making copies use one clock cycle
 			uint32_t timestampCopy = _optical.timestamp;
 			uint16_t timeDifferenceCopy = _optical.timeDifference;
+			uint32_t rawValueCopy = _optical.rawValue;
 
 			// populates the struct data
 			outputData.timestamp = timestampCopy;
 			outputData.rpm = GetRPM(timeDifferenceCopy);
+			outputData.raw_value = rawValueCopy;
 			_buffer_writer.WriteElementAndIncrementIndex(outputData);
 		}
 

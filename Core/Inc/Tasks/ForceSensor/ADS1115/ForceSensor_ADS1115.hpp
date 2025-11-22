@@ -22,7 +22,7 @@ class ForceSensorADS1115
 		void Run();
 
 	private:
-		float GetForce(void);
+		float GetForce(uint16_t rawValue);
 
 		// Circular Buffer for ForceSensor with template bpm_output_data
 		CircularBufferWriter<forcesensor_output_data> _buffer_writer;
