@@ -29,6 +29,8 @@
 #include <Tasks/PID/pid_main.h>
 #include <Tasks/OpticalSensor/opticalsensor_main.h>
 
+#include <Tasks/SessionController/input_manager_interrupts.h>
+
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
 
@@ -1182,33 +1184,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  switch(GPIO_Pin)
-  {
-    case ROT_EN_A_Pin:
-      registerRotaryEncoderInput();
-      break;
-    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
-    case ROT_EN_B_Pin:
-      break;
-    case ROT_EN_SW_Pin:
-      registerRotaryEncoderSwInput();
-      break;
-    case BTN_BACK_Pin:
-      registerButtonBackInput();
-      break;
-    case BTN_SELECT_Pin:
-      registerButtonSelectInput();
-      break;
-    case BTN_BRAKE_Pin:
-      registerButtonBrakeInput();
-      break;
-    default:
-      break;
-  }
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     if (hadc->Instance == ADC2)
@@ -1225,18 +1200,51 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
       force_sensor_ads1115_gpio_alert_interrupt();
       break;
     case ROT_EN_A_Pin:
+      register_rotary_encoder_input();
       break;
-    // case ROT_EN_B_Pin:
-    //   break;
+    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
+    case ROT_EN_B_Pin:
+      break;
     case ROT_EN_SW_Pin:
+      register_rotary_encoder_sw_input();
       break;
     case BTN_BACK_Pin:
+      register_button_back_input();
       break;
     case BTN_SELECT_Pin:
+      register_button_select_input();
       break;
     case BTN_BRAKE_Pin:
+      register_button_brake_input();
       break;
     case ILI_TOUCH_IRQ_Pin:
+      break;
+    default:
+      break;
+  }
+}
+
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
+{
+	switch(GPIO_Pin)
+  {
+    case ROT_EN_A_Pin:
+      register_rotary_encoder_input();
+      break;
+    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
+    case ROT_EN_B_Pin:
+      break;
+    case ROT_EN_SW_Pin:
+      register_rotary_encoder_sw_input();
+      break;
+    case BTN_BACK_Pin:
+      register_button_back_input();
+      break;
+    case BTN_SELECT_Pin:
+      register_button_select_input();
+      break;
+    case BTN_BRAKE_Pin:
+      register_button_brake_input();
       break;
     default:
       break;

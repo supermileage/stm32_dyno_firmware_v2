@@ -15,11 +15,13 @@ class SessionController
 
     private:
         void HandleUserInputs();
-        void HandleRotaryEncoderInput();
+        void HandleRotaryEncoderInput(bool positiveTick);
         void HandleRotaryEncoderSwInput();
         void HandleButtonBackInput();
         void HandleButtonSelectInput();
-        void HandleButtonBrakeInput();
+        void HandleButtonBrakeInput(bool isEnabled);
+
+        uint32_t _session_controller_input_data_index;
 
 };
 
