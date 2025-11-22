@@ -1,6 +1,13 @@
 {
     "files.associations": {
         "compare": "c",
-        "forcesensor_adc.h": "c"
+        "forcesensor_adc_main.h": "c",
+        "stdlib.h": "c",
+        "osqueue_helpers.h": "c",
+        "opticalsensor_main.h": "c",
+        "bpm_main.h": "c",
+        "forcesensor_ads1115_main.h": "c",
+        "lumexlcd_main.h": "c",
+        "pid_main.h": "c"
     }
 }
