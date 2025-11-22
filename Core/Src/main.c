@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -70,8 +71,6 @@ TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
-
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* Definitions for lcdTask */
 osThreadId_t lcdTaskHandle;
@@ -181,7 +180,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM14_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
@@ -245,7 +243,6 @@ int main(void)
   MX_TIM16_Init();
   MX_SDMMC1_SD_Init();
   MX_USART1_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
   MX_TIM14_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
@@ -1008,42 +1005,6 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 9;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -1285,6 +1246,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 /* USER CODE END Header_lcdDisplay */
 void lcdDisplay(void *argument)
 {
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
   #if LUMEX_LCD_TASK_ENABLE == 0
     osThreadSuspend(NULL);

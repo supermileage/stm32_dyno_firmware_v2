@@ -7,6 +7,7 @@
 // Global interrupts
 volatile uint32_t timestamp = 0;
 volatile uint16_t adc_value = 0;
+volatile bool timerflag = 0;
 
 ForceSensorADC::ForceSensorADC(ADC_HandleTypeDef* adcHandle,
 				osMessageQueueId_t sessionControllerToForceSensorHandle) : /* Constructor */
@@ -30,10 +31,19 @@ void ForceSensorADC::Run(void)
 	{
 	    osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADC, NULL, 0);
 		if (enableADC) {
+
+			timerflag = 0;
+			
 			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
+
+			while (!timerflag) // Interrupt causes exit while-loop, not called again until next HAL_ADC_Start_IT
+			{
+				osDelay(1);
+			}
 
 			outputData.timestamp = timestamp;
 			outputData.force = GetForce(adc_value);
+			outputData.raw_value = adc_value;
 
 			// Add to circular buffer
             _buffer_writer.WriteElementAndIncrementIndex(outputData);
@@ -52,6 +62,7 @@ float ForceSensorADC::GetForce(uint16_t adcValue)
 
 extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc)
 {
+	timerflag = 1;
 	timestamp = get_timestamp();
 	adc_value = HAL_ADC_GetValue(hadc);
 }

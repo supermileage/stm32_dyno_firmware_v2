@@ -33,6 +33,7 @@ private:
         volatile uint16_t IC_Value1;
         volatile uint16_t IC_Value2;
         volatile uint16_t timeDifference;
+        volatile uint32_t rawValue;
     } optical_encoder_input_data;
 
     CircularBufferWriter<optical_encoder_output_data> _buffer_writer;
