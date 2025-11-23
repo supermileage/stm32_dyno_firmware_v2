@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-// Allows the Session Controller to know what button was pressed
+// Allows the Finite State Machine to know what button was pressed
 typedef enum
 {
     ROT_EN_TICKS,
