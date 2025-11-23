@@ -9,55 +9,57 @@ template <typename T>
 class CircularBufferReader
 {
 public:
-    CircularBufferReader(T* buffer, circular_buffer_config* cfg);
+    CircularBufferReader(T* buffer, uint32_t* writerIndex, uint32_t size);
 
     // Index management
     uint32_t GetIndex() const;
-    void SetIndex(uint32_t index);
+	void SetIndex(uint32_t index);
 
-    // Element access
-    T GetElement(uint32_t index) const;
-    T GetElement(T& out) const;
-    T GetElementAndIncrementIndex(T& out);
+	T GetElement(uint32_t index) const;
+	bool GetElement(T& out) const;
+	bool GetElementAndIncrementIndex(T& out);
 
 private:
     T* _buffer;           // external buffer memory
-    circular_buffer_config* _cfg;
+    uint32_t* _writerIndex;
+    uint32_t _size;
     
+    uint32_t _readerIndex;
+
 };
 
 template <typename T>
-inline CircularBufferReader<T>::CircularBufferReader(T* buffer, circular_buffer_config* cfg)
-    : _buffer(buffer), _cfg(cfg)
+inline CircularBufferReader<T>::CircularBufferReader(T* buffer, uint32_t* writerIndex, uint32_t size)
+    : _buffer(buffer), _writerIndex(writerIndex), _size(size), _readerIndex(0)
 {
 }
 
 template <typename T>
 inline uint32_t CircularBufferReader<T>::GetIndex() const
 {
-    return _cfg->readerIndex;
+    return _readerIndex;
 }
 
 template <typename T>
 inline void CircularBufferReader<T>::SetIndex(uint32_t index)
 {
-    _cfg->readerIndex = index % _cfg->size;
+	_readerIndex = index % _size;
 }
 
 template <typename T>
 inline T CircularBufferReader<T>::GetElement(uint32_t index) const
 {
-    return _buffer[index % _cfg->size];
+    return _buffer[index % _size];
 }
 
 template <typename T>
 inline bool CircularBufferReader<T>::GetElement(T& out) const
 {
     // empty: nothing new to read
-    if (_cfg->readerIndex == _cfg->writerIndex)
+    if (_readerIndex == *_writerIndex)
         return false;
 
-    out = _buffer[_cfg->readerIndex];
+    out = _buffer[_readerIndex];
     return true;
 }
 
@@ -65,13 +67,13 @@ template <typename T>
 inline bool CircularBufferReader<T>::GetElementAndIncrementIndex(T& out)
 {
     // empty: nothing new to read
-    if (_cfg->readerIndex == _cfg->writerIndex)
+    if (_readerIndex == *_writerIndex)
         return false;
 
-    out = _buffer[_cfg->readerIndex];
+    out = _buffer[_readerIndex];
 
     // advance read index
-    _cfg->readerIndex = (_cfg->readerIndex + 1) % _cfg->size;
+    _readerIndex = (_readerIndex + 1) % _size;
 
     return true;
 }

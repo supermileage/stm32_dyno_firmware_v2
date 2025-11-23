@@ -5,8 +5,8 @@ OpticalSensor* OpticalSensor::_instance = nullptr; // ISR cannot call members di
 
 OpticalSensor::OpticalSensor(TIM_HandleTypeDef* opticalTimer,
 				osMessageQueueId_t sessionControllerToOpticalSensorHandle) : /* Constructor */
-		// this comes directly from circular_buffers.h
-		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_config),
+		// this comes directly from circular_buffers.h and config.h
+		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
 		_opticalTimer(opticalTimer),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle)
 {
