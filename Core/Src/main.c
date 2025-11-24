@@ -30,6 +30,7 @@
 #include <Tasks/OpticalSensor/opticalsensor_main.h>
 
 #include <Tasks/SessionController/input_manager_interrupts.h>
+#include <Tasks/SessionController/sessioncontroller_main.h>
 
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
@@ -106,6 +107,13 @@ const osThreadAttr_t opticalSensorTa_attributes = {
   .name = "opticalSensorTa",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for sessionTask */
+osThreadId_t sessionTaskHandle;
+const osThreadAttr_t sessionTask_attributes = {
+  .name = "sessionTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -188,6 +196,7 @@ void bpmCtrl(void *argument);
 void forceSensor(void *argument);
 void pidController(void *argument);
 void opticalsensor(void *argument);
+void sessionControllerTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -309,6 +318,9 @@ int main(void)
 
   /* creation of opticalSensorTa */
   opticalSensorTaHandle = osThreadNew(opticalsensor, NULL, &opticalSensorTa_attributes);
+
+  /* creation of sessionTask */
+  sessionTaskHandle = osThreadNew(sessionControllerTask, NULL, &sessionTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1335,6 +1347,21 @@ void opticalsensor(void *argument)
   /* USER CODE BEGIN opticalsensor */
 	optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
   /* USER CODE END opticalsensor */
+}
+
+/* USER CODE BEGIN Header_sessionControllerTask */
+/**
+* @brief Function implementing the sessionTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_sessionControllerTask */
+void sessionControllerTask(void *argument)
+{
+  /* USER CODE BEGIN sessionControllerTask */
+  /* Infinite loop */
+  sessioncontroller_main(sessionControllerToLumexLcdHandle);
+  /* USER CODE END sessionControllerTask */
 }
 
  /* MPU Configuration */

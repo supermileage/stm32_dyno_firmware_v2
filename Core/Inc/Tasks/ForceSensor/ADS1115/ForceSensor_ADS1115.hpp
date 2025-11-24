@@ -11,6 +11,10 @@
 
 #include "ADS1115.hpp"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 class ForceSensorADS1115 
 {
 	public:
@@ -37,6 +41,12 @@ class ForceSensorADS1115
 		
 
 };
+
+#ifdef __cplusplus
+}
+#endif
+
+
 
 
 #endif /* INC_FORCESENSOR_ADS1115_FORCESENSOR_ADS1115_HPP_ */

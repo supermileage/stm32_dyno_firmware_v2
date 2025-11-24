@@ -1,10 +1,16 @@
 #ifndef INC_SESSION_CONTROLLER_FSM_H_
 #define INC_SESSION_CONTROLLER_FSM_H_
 
-#include <cstdint.h>
+#include <cstdint>
 #include "cmsis_os2.h"
 
+#include "MessagePassing/messages.h"
+
 #include "input_manager_interrupts.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // struct with info for the state
 struct State
@@ -36,24 +42,56 @@ class FSM
 public:
     FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle);
     void HandleUserInputs();
-private:
 
+    // Display related methods
+    void ClearDisplay();
+    void AddToLumexLCDMessageQueue(session_controller_to_lumex_lcd_opcode opcode, const char* display_string, uint8_t row, uint8_t column);
     
+    // Getters
+    State GetState() const;
+    bool GetUSBLoggingEnabledStatus() const;
+    bool GetSDLoggingEnabledStatus() const;
+    bool GetPIDEnabledStatus() const;
+    bool GetInSessionStatus() const;
+
+private:
+    // Methods which are called when a state change is done
+    void IdleState();
+    void USBLoggingOptionDisplayedSettingsState(); 
+    void USBLoggingOptionEditSettingsState();
+    void SDLoggingOptionDisplayedSettingsState();
+    void SDLoggingOptionEditSettingsState();   
+    void PIDOptionDisplayedSettingsState();
+    void PIDOptionEditSettingsState();
+    void InSessionState();
+    
+    // user input handlers
     void HandleRotaryEncoderInput(bool positiveTick);
     void HandleRotaryEncoderSwInput();
     void HandleButtonBackInput();
     void HandleButtonSelectInput();
     void HandleButtonBrakeInput(bool isEnabled);
 
-    State GetState() const;
-
     osMessageQueueId_t _sessionControllerToLumexLcdHandle;
 
     State _state;
+    
+    
     bool _usbLoggingEnabled;
     bool _sdLoggingEnabled;
+    bool _pidEnabled;
+    bool _inSession;
     uint32_t _fsmInputDataIndex;
+};
+
+
+#ifdef __cplusplus
 }
+#endif
+
+
+
+
 
 #endif // INC_SESSION_CONTROLLER_FSM_H_
 

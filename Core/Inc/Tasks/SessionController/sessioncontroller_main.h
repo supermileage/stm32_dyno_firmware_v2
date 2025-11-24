@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-
+void sessioncontroller_main(osMessageQueueId_t sessionControllerToLumexLcdHandle);
 
 #ifdef __cplusplus
 }
