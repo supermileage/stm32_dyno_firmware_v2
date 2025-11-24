@@ -21,7 +21,7 @@ typedef struct {
 	session_controller_to_lumex_lcd_opcode op;  // Operation to perform on the display
     uint8_t row;                                // Row number on the LCD
     uint8_t column;                             // Column number on the LCD
-    char* display_string;                       // String to write (if WRITE_TO_DISPLAY)
+    const char* display_string;                       // String to write (if WRITE_TO_DISPLAY)
 } session_controller_to_lumex_lcd;
 
 // Opcodes for controlling the BPM (Pulse Width Modulation) module from the session controller

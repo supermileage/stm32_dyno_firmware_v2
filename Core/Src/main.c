@@ -30,6 +30,7 @@
 #include <Tasks/OpticalSensor/opticalsensor_main.h>
 
 #include <Tasks/SessionController/input_manager_interrupts.h>
+#include <Tasks/SessionController/sessioncontroller_main.h>
 
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
@@ -98,14 +99,21 @@ osThreadId_t pidTaskHandle;
 const osThreadAttr_t pidTask_attributes = {
   .name = "pidTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,
+  .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for opticalSensorTa */
-osThreadId_t opticalSensorTaHandle;
-const osThreadAttr_t opticalSensorTa_attributes = {
-  .name = "opticalSensorTa",
+/* Definitions for opticalSensorTask */
+osThreadId_t opticalSensorTaskHandle;
+const osThreadAttr_t opticalSensorTask_attributes = {
+  .name = "opticalSensorTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for sessionControllerTask */
+osThreadId_t sessionControllerTaskHandle;
+const osThreadAttr_t sessionControllerTask_attributes = {
+  .name = "sessionControllerTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -187,7 +195,8 @@ void lcdDisplay(void *argument);
 void bpmCtrl(void *argument);
 void forceSensor(void *argument);
 void pidController(void *argument);
-void opticalsensor(void *argument);
+void opticalSensor(void *argument);
+void sessionController(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -307,8 +316,11 @@ int main(void)
   /* creation of pidTask */
   pidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
 
-  /* creation of opticalSensorTa */
-  opticalSensorTaHandle = osThreadNew(opticalsensor, NULL, &opticalSensorTa_attributes);
+  /* creation of opticalSensorTask */
+  opticalSensorTaskHandle = osThreadNew(opticalSensor, NULL, &opticalSensorTask_attributes);
+
+  /* creation of sessionControllerTask */
+  sessionControllerTaskHandle = osThreadNew(sessionController, NULL, &sessionControllerTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1323,18 +1335,34 @@ void pidController(void *argument)
   /* USER CODE END pidController */
 }
 
-/* USER CODE BEGIN Header_opticalsensor */
+/* USER CODE BEGIN Header_opticalSensor */
 /**
-* @brief Function implementing the opticalSensorTa thread.
+* @brief Function implementing the opticalSensorTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_opticalsensor */
-void opticalsensor(void *argument)
+/* USER CODE END Header_opticalSensor */
+void opticalSensor(void *argument)
 {
-  /* USER CODE BEGIN opticalsensor */
+  /* USER CODE BEGIN opticalSensor */
+  /* Infinite loop */
 	optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
-  /* USER CODE END opticalsensor */
+  /* USER CODE END opticalSensor */
+}
+
+/* USER CODE BEGIN Header_sessionController */
+/**
+* @brief Function implementing the sessionControllerTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_sessionController */
+void sessionController(void *argument)
+{
+  /* USER CODE BEGIN sessionController */
+  /* Infinite loop */
+  sessioncontroller_main(sessionControllerToLumexLcdHandle);
+  /* USER CODE END sessionController */
 }
 
  /* MPU Configuration */

@@ -202,7 +202,7 @@ bool LumexLCD::DisplayChar(uint8_t row, uint8_t column, uint8_t character)
 	return true;
 }
 
-bool LumexLCD::DisplayString(uint8_t row, uint8_t column, char* string)
+bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string)
 {
 	for (uint8_t i = 0; i < strlen(string); i++)
 	{
