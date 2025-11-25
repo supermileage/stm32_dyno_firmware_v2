@@ -1198,19 +1198,23 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+  #if FORCE_SENSOR_ADC_TASK_ENABLE == 1  
     if (hadc->Instance == ADC2)
     {
-        adc_forcesensor_interrupt(hadc);
+      adc_forcesensor_interrupt(hadc);
     }
+  #endif
 }
 
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 {
 	switch(GPIO_Pin)
   {
+    #if FORCE_SENSOR_ADS1115_TASK_ENABLE == 1
     case ADS1115_ALERT_Pin:
       force_sensor_ads1115_gpio_alert_interrupt();
       break;
+    #endif
     case ROT_EN_A_Pin:
       register_rotary_encoder_input();
       break;
@@ -1264,9 +1268,11 @@ void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == opticalTimInstance) {
-    	optical_sensor_output_interrupt();
-    }
+    #if OPTICAL_ENCODER_TASK_ENABLE == 1
+      if (htim->Instance == opticalTimInstance) {
+        optical_sensor_output_interrupt();
+      }
+    #endif
 }
 /* USER CODE END 4 */
 
@@ -1280,7 +1286,11 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 void lcdDisplay(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
+  #if LUMEX_LCD_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+	  lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
+  #endif
   /* USER CODE END 5 */
 }
 
@@ -1295,7 +1305,11 @@ void bpmCtrl(void *argument)
 {
   /* USER CODE BEGIN bpmCtrl */
   /* Infinite loop */
-	bpm_main(bpmTimer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+  #if BPM_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+	  bpm_main(bpmTimer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+  #endif
   /* USER CODE END bpmCtrl */
 }
 
@@ -1311,10 +1325,12 @@ void forceSensor(void *argument)
   /* USER CODE BEGIN forceSensor */
   // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
   #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
-      #error "Cannot enable both ADS1115 and ADC tasks at the same time!"
+    #error "Cannot enable both ADS1115 and ADC tasks at the same time!"
+  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
+    osThreadSuspend(NULL);
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
 	  force_sensor_ads1115_main(forceSensorADS1115Handle, sessionControllerToForceSensorHandle);
-  #elif (FORCE_SENSOR_ADC_TASK_ENABLE == 1) 
+  #else
 	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle);
   #endif
   /* USER CODE END forceSensor */
@@ -1330,8 +1346,11 @@ void forceSensor(void *argument)
 void pidController(void *argument)
 {
   /* USER CODE BEGIN pidController */
-  /* Infinite loop */
-	pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
+  #if PID_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+	  pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
+  #endif
   /* USER CODE END pidController */
 }
 
@@ -1345,8 +1364,11 @@ void pidController(void *argument)
 void opticalSensor(void *argument)
 {
   /* USER CODE BEGIN opticalSensor */
-  /* Infinite loop */
-	optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
+  #if OPTICAL_ENCODER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+	  optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
+  #endif
   /* USER CODE END opticalSensor */
 }
 
@@ -1360,8 +1382,11 @@ void opticalSensor(void *argument)
 void sessionController(void *argument)
 {
   /* USER CODE BEGIN sessionController */
-  /* Infinite loop */
-  sessioncontroller_main(sessionControllerToLumexLcdHandle);
+  #if SESSION_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else 
+    sessioncontroller_main(sessionControllerToLumexLcdHandle);
+  #endif
   /* USER CODE END sessionController */
 }
 
@@ -1393,7 +1418,6 @@ void MPU_Config(void)
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
 }
-
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM17 interrupt took place, inside
