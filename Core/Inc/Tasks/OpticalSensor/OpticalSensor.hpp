@@ -28,11 +28,12 @@ private:
 	void ToggleOPS(bool enable);
 
     typedef struct {
-        volatile uint32_t numOverflows;
+        volatile uint32_t numOverflows; // Test
         volatile uint32_t timestamp;
         volatile uint16_t IC_Value1;
         volatile uint16_t IC_Value2;
         volatile uint16_t timeDifference;
+        volatile uint32_t rawValue;
     } optical_encoder_input_data;
 
     CircularBufferWriter<optical_encoder_output_data> _buffer_writer;

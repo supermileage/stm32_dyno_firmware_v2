@@ -56,10 +56,13 @@ void ForceSensorADS1115::Run(void)
             ads1115_alert_status = false;
 
             // Read the conversion
-            outputData.force = GetForce();
+            uint16_t rawVal = _ads1115.getConversion(false);
+            outputData.force = GetForce(rawVal);
 
             // Capture timestamp once value is received
             outputData.timestamp = get_timestamp();
+
+            outputData.raw_value = rawVal;
 
             // Add to circular buffer
             _buffer_writer.WriteElementAndIncrementIndex(outputData);
@@ -70,11 +73,10 @@ void ForceSensorADS1115::Run(void)
 
 
 
-float ForceSensorADS1115::GetForce(void)
+float ForceSensorADS1115::GetForce(uint16_t raw_value)
 {
     // Do not poll, we will explicitly trigger the conversion
-    uint16_t adcValue = _ads1115.getConversion(false);
-    return static_cast<float>(adcValue) / UINT16_MAX * MAX_FORCE_LBF * LBF_TO_NEWTON;
+    return static_cast<float>(raw_value) / UINT16_MAX * MAX_FORCE_LBF * LBF_TO_NEWTON;
 }
 
 
