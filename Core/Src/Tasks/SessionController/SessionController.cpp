@@ -1,11 +1,12 @@
 #include <Tasks/SessionController/SessionController.hpp>
 
-SessionController::SessionController(osMessageQueueId_t sessionControllerToLumexLcdHandle) : 
-                _fsm(sessionControllerToLumexLcdHandle),
-                _sessionControllerToLumexLcdHandle(sessionControllerToLumexLcdHandle),
+SessionController::SessionController(session_controller_os_tasks* task_queues) : 
+                _fsm(task_queues->lumex_lcd),
+                _task_queues(task_queues),
                 _prevUSBLoggingEnabled(false),
                 _prevSDLoggingEnabled(false),
-                _prevPIDEnabled(false)
+                _prevPIDEnabled(false),
+                _prevInSession(false)
             {}
 
 bool SessionController::Init(void)
@@ -21,7 +22,7 @@ void SessionController::Run()
         // First Handle Any User Inputs
         _fsm.HandleUserInputs();
 
-        // Get USB Enabled Status
+        // Get USB Enabled Status and enable USB Controller
         bool usbLoggingEnabled = _fsm.GetUSBLoggingEnabledStatus();
         if (usbLoggingEnabled && !_prevUSBLoggingEnabled)
         {
@@ -32,7 +33,7 @@ void SessionController::Run()
             _prevUSBLoggingEnabled = usbLoggingEnabled;
         }
 
-        // Get SD Card Enabled Status
+        // Get SD Card Enabled Status and enable SD Card Controller
         bool SDLoggingEnabled = _fsm.GetSDLoggingEnabledStatus();
         if (SDLoggingEnabled && !_prevSDLoggingEnabled)
         {
@@ -43,27 +44,38 @@ void SessionController::Run()
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
 
-        // Get PID enabled status
-        bool PIDEnabled = _fsm.GetPIDEnabledStatus();
-        if (PIDEnabled && !_prevPIDEnabled)
-        {
-            _prevPIDEnabled = PIDEnabled;
-        }
-        else if (!PIDEnabled && _prevSDLoggingEnabled)
-        {
-            _prevPIDEnabled = PIDEnabled;
-        }
+        bool InSessionStatus = _fsm.GetInSessionStatus();
 
-        if (_fsm.GetInSessionStatus())
+        
+        // InSession looping forever
+        if (InSessionStatus)
         {
+            // only run this code if the 'InSession' status has changed
+            if (InSessionStatus != _prevInSession)
+            {
+                // Get PID enabled status and enable PID Controller
+                bool PIDEnabled = _fsm.GetPIDEnabledStatus();
+                if (PIDEnabled && !_prevPIDEnabled)
+                {
+                    _prevPIDEnabled = PIDEnabled;
+                }
+                else if (!PIDEnabled && _prevSDLoggingEnabled)
+                {
+                    _prevPIDEnabled = PIDEnabled;
+                }
+
+
+            }
+            
+
             
         }
     }
 }
 
-extern "C" void sessioncontroller_main(osMessageQueueId_t sessionControllerToLumexLcdHandle)
+extern "C" void sessioncontroller_main(session_controller_os_tasks* task_queues)
 {
-    SessionController controller = SessionController(sessionControllerToLumexLcdHandle);
+    SessionController controller = SessionController(task_queues);
 
 	if (!controller.Init())
 	{
