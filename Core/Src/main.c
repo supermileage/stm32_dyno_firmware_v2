@@ -91,7 +91,7 @@ const osThreadAttr_t bpmTask_attributes = {
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
   .name = "forceSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
@@ -1418,6 +1418,7 @@ void MPU_Config(void)
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
 }
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM17 interrupt took place, inside
