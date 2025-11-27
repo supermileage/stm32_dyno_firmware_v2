@@ -15,6 +15,17 @@ bool SessionController::Init(void)
     return true;
 }
 
+typedef struct 
+{
+    osMessageQueueId_t usb_controller;
+    osMessageQueueId_t sd_controller;
+    osMessageQueueId_t force_sensor;
+    osMessageQueueId_t optical_sensor;
+    osMessageQueueId_t bpm_controller;
+    osMessageQueueId_t pid_controller;
+    osMessageQueueId_t lumex_lcd;
+} session_controller_os_tasks;
+
 void SessionController::Run()
 {
     while(1)
@@ -24,52 +35,69 @@ void SessionController::Run()
 
         // Get USB Enabled Status and enable USB Controller
         bool usbLoggingEnabled = _fsm.GetUSBLoggingEnabledStatus();
-        if (usbLoggingEnabled && !_prevUSBLoggingEnabled)
+        // Only if the status has changed
+        if (usbLoggingEnabled ^ _prevUSBLoggingEnabled)
         {
-            _prevUSBLoggingEnabled = usbLoggingEnabled;
-        }
-        else if (!usbLoggingEnabled && _prevUSBLoggingEnabled)
-        {
+            osMessageQueuePut(task_queues->usb_controller, &usbLoggingEnabled, 0, 0);
             _prevUSBLoggingEnabled = usbLoggingEnabled;
         }
 
         // Get SD Card Enabled Status and enable SD Card Controller
         bool SDLoggingEnabled = _fsm.GetSDLoggingEnabledStatus();
-        if (SDLoggingEnabled && !_prevSDLoggingEnabled)
+        // Only if the status has changed
+        if (SDLoggingEnabled ^ _prevSDLoggingEnabled)
         {
-            _prevSDLoggingEnabled = SDLoggingEnabled;
-        }
-        else if (!SDLoggingEnabled && _prevSDLoggingEnabled)
-        {
+            osMessageQueuePut(task_queues->sd_controller, &usbLoggingEnabled, 0, 0);
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
 
         bool InSessionStatus = _fsm.GetInSessionStatus();
 
-        
-        // InSession looping forever
-        if (InSessionStatus)
-        {
-            // only run this code if the 'InSession' status has changed
-            if (InSessionStatus != _prevInSession)
-            {
-                // Get PID enabled status and enable PID Controller
-                bool PIDEnabled = _fsm.GetPIDEnabledStatus();
-                if (PIDEnabled && !_prevPIDEnabled)
-                {
-                    _prevPIDEnabled = PIDEnabled;
-                }
-                else if (!PIDEnabled && _prevSDLoggingEnabled)
-                {
-                    _prevPIDEnabled = PIDEnabled;
-                }
+        bool InSessionRisingEdge = InSessionStatus && !_prevInSession
+ 
 
+        // only run this code if the 'InSession' status has changed
+        if (InSessionStatus != _prevInSession)
+        {
+            // Get PID enabled status and enable PID Controller
+            bool PIDEnabled = _fsm.GetPIDEnabledStatus();
+            // Only if the status has changed
+            if (PIDEnabled && !_prevPIDEnabled)
+            {
+                _prevPIDEnabled = PIDEnabled;
+            }
+            else if (!PIDEnabled && _prevSDLoggingEnabled)
+            {
+                _prevPIDEnabled = PIDEnabled;
+            }
+
+            // enable things
+            if (InSessionStatus && !_prevInSession)
+            {
 
             }
             
+            // disable things
+            else if (!InSessionStatus && _prevInSession)
+            {
+
+            }
+
+
+
+
+
+        }
+
+        // Things that need to occur every pass of the loop
+        if (InSessionStatus)
+        {
+
+        }
+            
 
             
-        }
+
     }
 }
 
