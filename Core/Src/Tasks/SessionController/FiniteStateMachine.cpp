@@ -349,3 +349,8 @@ bool FSM::GetInSessionStatus() const
 {
     return _state.mainState == State::MainDynoState::IN_SESSION;
 }
+
+float FSM::GetDesiredRpm() const
+{
+    return _desiredRpm;
+}

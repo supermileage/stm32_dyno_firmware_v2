@@ -81,6 +81,7 @@ private:
     bool _sdLoggingEnabled;
     bool _pidEnabled;
     bool _inSession;
+    float _desiredRpm;
     uint32_t _fsmInputDataIndex;
 };
 

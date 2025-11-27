@@ -47,41 +47,53 @@ void SessionController::Run()
         // Only if the status has changed
         if (SDLoggingEnabled ^ _prevSDLoggingEnabled)
         {
-            osMessageQueuePut(task_queues->sd_controller, &usbLoggingEnabled, 0, 0);
+            osMessageQueuePut(task_queues->sd_controller, &SDLoggingEnabled, 0, 0);
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
 
         bool InSessionStatus = _fsm.GetInSessionStatus();
 
-        bool InSessionRisingEdge = InSessionStatus && !_prevInSession
+        bool InSessionRisingEdge = InSessionStatus && !_prevInSession;
+        bool InSessionFallingEdge = !InSessionStatus && _prevInSession;
  
 
         // only run this code if the 'InSession' status has changed
-        if (InSessionStatus != _prevInSession)
+        if (InSessionRisingEdge || InSessionFallingEdge)
         {
+            session_controller_to_pid_controller pid_msg;
+            
             // Get PID enabled status and enable PID Controller
             bool PIDEnabled = _fsm.GetPIDEnabledStatus();
             // Only if the status has changed
-            if (PIDEnabled && !_prevPIDEnabled)
+            if (PIDEnabled ^ _prevPIDEnabled)
             {
+                pid_msg.enable_status = PIDEnabled;
+                pid_msg.desired_rpm = _fsm.GetDesiredRpm();
+                osMessageQueuePut(task_queues->pid_controller, &pid_msg, 0, 0);
                 _prevPIDEnabled = PIDEnabled;
             }
-            else if (!PIDEnabled && _prevSDLoggingEnabled)
-            {
-                _prevPIDEnabled = PIDEnabled;
-            }
+
+            bool opticalEncoderEnable;
+            bool forceSensorEnable;
+            bool bpmEnable;
 
             // enable things
-            if (InSessionStatus && !_prevInSession)
+            if (InSessionRisingEdge)
             {
-
+                opticalEncoderEnable = true;
+                forceSensorEnable = true;
+                bpmEnable = true;
             }
             
             // disable things
-            else if (!InSessionStatus && _prevInSession)
+            else if (InSessionFallingEdge)
             {
-
+                opticalEncoderEnable = false;
+                forceSensorEnable = false;
+                bpmEnable = false;
             }
+
+            _prevInSession = InSessionStatus;
 
 
 
