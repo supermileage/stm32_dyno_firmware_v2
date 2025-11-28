@@ -1,6 +1,7 @@
 #include "cmsis_os2.h"
 #include "TimeKeeping/timestamps.h"
-#include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/messages.h"
+#include "config.h"
 #include "CircularBufferReader.hpp"
 
 class USBController
@@ -17,9 +18,9 @@ class USBController
         CircularBufferReader<forcesensor_output_data> _buffer_reader_fs;
         CircularBufferReader<bpm_output_data> _buffer_reader_bpm;
 
-        optical_encoder_output_data oe_output; // Pointers to each of these structs
-        forcesensor_output_data fs_output;
-        bpm_output_data bpm_output;
+        optical_encoder_output_data _oe_output; // Structs containing each output type
+        forcesensor_output_data _fs_output;
+        bpm_output_data _bpm_output;
 
         uint8_t _txBuffer[USB_CDC_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;

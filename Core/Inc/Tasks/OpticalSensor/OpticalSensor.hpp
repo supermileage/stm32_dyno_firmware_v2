@@ -5,7 +5,7 @@
 
 #include "TimeKeeping/timestamps.h"
 
-#include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/messages.h"
 
 #include "CircularBufferWriter.hpp"
 

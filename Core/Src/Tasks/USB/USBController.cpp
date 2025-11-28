@@ -3,6 +3,11 @@
 
 #include <CircularBufferReader.hpp>
 
+USBController::USBController() :
+	
+
+
+
 bool USBController::Init()
 {
 	return true;
@@ -13,17 +18,17 @@ void USBController::Run()
 
 	while(1)
 	{
-		if (_buffer_reader_oe.GetElementAndIncrementIndex(oe_output)) { // Takes in struct but only passes in address
-			memcpy(_txBuffer + _txBufferIndex, &oe_output, sizeof(oe_output));
-			USBController::SafeIncrement(sizeof(oe_output));
+		while (_buffer_reader_oe.GetElementAndIncrementIndex(oe_output)) { // Takes in struct but only passes in address
+			memcpy(_txBuffer + _txBufferIndex, &oe_output, sizeof(oe_output)); // Pointer arithmetic
+			USBController::SafeIncrement(sizeof(oe_output)); // Will fill as many bytes as are in the struct going into _txBuffer
 		}
 		
-		if (_buffer_reader_fs.GetElementAndIncrementIndex(fs_output)) {
+		while (_buffer_reader_fs.GetElementAndIncrementIndex(fs_output)) {
 			memcpy(_txBuffer + _txBufferIndex, &fs_output, sizeof(fs_output));
 			USBController::SafeIncrement(sizeof(fs_output));
 		}
 
-		if (_buffer_reader_bpm.GetElementAndIncrementIndex(bpm_output)) {
+		while (_buffer_reader_bpm.GetElementAndIncrementIndex(bpm_output)) {
 			memcpy(_txBuffer + _txBufferIndex, &bpm_output, sizeof(bpm_output));
 			USBController::SafeIncrement(sizeof(bpm_output));
 		}
@@ -32,13 +37,13 @@ void USBController::Run()
 
 }
 
-void USBController::SafeIncrement(size_t addSize) {
+void USBController::SafeIncrement(size_t addSize) { // takes in size that it's meant to progress length of _txBuffer by
 	if (_txBufferIndex + sizeof(oe_output) >= USB_CDC_TX_BUFFER_SIZE) {
 		// Transmit to USB when safe
-		while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+		while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) { // This line writes to USB device once the flag returns false
 			osDelay(1);
 		}
-		_txBufferIndex = 0;
+		_txBufferIndex = 0; // Reset buffer index (actual buffer not cleared, just freed for overwriting)
 	} else {
 		_txBufferIndex = _txBufferIndex + sizeof(oe_output);
 		// Must progress through txBuffer to account for its indices' size being smaller than that of each struct it contains
