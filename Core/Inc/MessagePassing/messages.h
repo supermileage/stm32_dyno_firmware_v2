@@ -49,7 +49,7 @@ typedef struct
 typedef enum {
 	OPTICAL_ENCODER = 0,
 	FORCESENSOR, 
-	BPM
+	BRAKE_PWM
 } send_usb_output_data;
 
 // Message sent from the optical encoder to the PID controller

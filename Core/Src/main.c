@@ -33,7 +33,6 @@
 #include <Tasks/SessionController/input_manager_interrupts.h>
 #include <Tasks/SessionController/sessioncontroller_main.h>
 
-#include <Tasks/USB/USBController.hpp>
 #include <Tasks/USB/usb_main.h>
 
 #include <TimeKeeping/timestamps.h>

@@ -27,7 +27,7 @@ void USBController::Run()
 
 	send_usb_output_data opEcdr = OPTICAL_ENCODER;
 	send_usb_output_data fcSnsr = FORCESENSOR;
-	send_usb_output_data bkPowm = BPM;
+	send_usb_output_data bkPowm = BRAKE_PWM;
 
 	while(1)
 	{
