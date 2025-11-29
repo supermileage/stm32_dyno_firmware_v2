@@ -1,10 +1,9 @@
 #include "Tasks/BPM/bpm_main.h"
 #include "Tasks/BPM/BPM.hpp"
 
-BPM::BPM(TIM_HandleTypeDef* bpmTimer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
+BPM::BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
     : // this comes directly from circular_buffers.h and config.h
 	_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
-	_bpmTimer(bpmTimer),
 	  _bpmCtrlEnabled(false),
 	  _fromSCHandle(sessionControllerToBpmHandle),
 	  _fromPIDHandle(pidToBpmHandle)
@@ -71,12 +70,12 @@ void BPM::TogglePWM(bool enable)
 	// if master enables and BPM was previously disabled, then start PWM
 	if (enable && !_bpmCtrlEnabled)
 	{
-		HAL_TIM_PWM_Start(_bpmTimer, TIM_CHANNEL_1);
+		HAL_TIM_PWM_Start(bpmTimer, TIM_CHANNEL_1);
 	}
 	// if master enables and BPM was previously enabled, then stop PWM
 	else if (!enable && _bpmCtrlEnabled)
 	{
-		HAL_TIM_PWM_Stop(_bpmTimer, TIM_CHANNEL_1);
+		HAL_TIM_PWM_Stop(bpmTimer, TIM_CHANNEL_1);
 	}
 
 	_bpmCtrlEnabled = enable;
@@ -91,15 +90,15 @@ void BPM::SetDutyCycle(float new_duty_cycle_percent)
 	else if (new_duty_cycle_percent > MAX_DUTY_CYCLE_PERCENT)
 		new_duty_cycle_percent = MAX_DUTY_CYCLE_PERCENT;
 
-	uint16_t new_duty_cycle = MAX_DUTY_CYCLE_PERCENT * __HAL_TIM_GET_AUTORELOAD(_bpmTimer);
+	uint16_t new_duty_cycle = MAX_DUTY_CYCLE_PERCENT * __HAL_TIM_GET_AUTORELOAD(bpmTimer);
 
-	__HAL_TIM_SET_COMPARE(_bpmTimer, TIM_CHANNEL_1, new_duty_cycle);
+	__HAL_TIM_SET_COMPARE(bpmTimer, TIM_CHANNEL_1, new_duty_cycle);
 }
 
 
-extern "C" void bpm_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidControllerToBpmHandle)
+extern "C" void bpm_main(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidControllerToBpmHandle)
 {
-	BPM bpm = BPM(timer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+	BPM bpm = BPM(sessionControllerToBpmHandle, pidControllerToBpmHandle);
 
 	if (!bpm.Init())
 	{

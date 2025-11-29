@@ -4,6 +4,8 @@
 #include "main.h"
 #include "cmsis_os2.h"
 
+#include "Config/hal_instances.h"
+
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/osqueue_helpers.h"
@@ -21,7 +23,7 @@ extern "C" {
 class BPM
 {
 	public:
-		BPM(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle);
+		BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle);
 		virtual ~BPM() = default;
 		bool Init();
 		void Run();
@@ -32,7 +34,6 @@ class BPM
 
 		CircularBufferWriter<bpm_output_data> _buffer_writer;
 
-		TIM_HandleTypeDef* _bpmTimer;
 		bool _bpmCtrlEnabled;
 
 		osMessageQueueId_t _fromSCHandle;

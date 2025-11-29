@@ -1,10 +1,9 @@
 #include <Tasks/LCD/LumexLCD.hpp>
 #include <Tasks/LCD/lumexlcd_main.h>
 
-volatile bool timerCallbackFlag = false;
+static volatile bool timerCallbackFlag = false;
 
-LumexLCD::LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToLumexLcdHandle) :
-		_timer(timer),
+LumexLCD::LumexLCD(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
 		_fromSCqHandle(sessionControllerToLumexLcdHandle)
 {}
 
@@ -94,9 +93,9 @@ void LumexLCD::Run(void)
 
 bool LumexLCD::StartTimer(uint8_t microseconds)
 {
-	__HAL_TIM_SET_COUNTER(_timer, 0);
-	__HAL_TIM_SET_AUTORELOAD(_timer, microseconds);
-	if (HAL_TIM_Base_Start_IT(_timer) != HAL_OK)
+	__HAL_TIM_SET_COUNTER(lumexLcdTimer, 0);
+	__HAL_TIM_SET_AUTORELOAD(lumexLcdTimer, microseconds);
+	if (HAL_TIM_Base_Start_IT(lumexLcdTimer) != HAL_OK)
 	{
 		return false;
 	}
@@ -224,17 +223,17 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string)
 
 }
 
-extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer)
+extern "C" void lumex_lcd_timer_interrupt()
 {
-	HAL_TIM_Base_Stop_IT(timer);
+	HAL_TIM_Base_Stop_IT(lumexLcdTimer);
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
 	timerCallbackFlag = true;
 
 }
 
-extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToLumexLcdHandle)
+extern "C" void lumex_lcd_main(osMessageQueueId_t sessionControllerToLumexLcdHandle)
 {
-	LumexLCD lcd = LumexLCD(timer, sessionControllerToLumexLcdHandle);
+	LumexLCD lcd = LumexLCD(sessionControllerToLumexLcdHandle);
 
 	if (!lcd.Init())
 	{

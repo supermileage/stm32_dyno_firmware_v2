@@ -1193,7 +1193,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
   #if FORCE_SENSOR_ADC_TASK_ENABLE == 1  
     if (hadc->Instance == ADC2)
     {
-      adc_forcesensor_interrupt(hadc);
+      forcesensor_adc_interrupt();
     }
   #endif
 }
@@ -1204,7 +1204,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
   {
     #if FORCE_SENSOR_ADS1115_TASK_ENABLE == 1
     case ADS1115_ALERT_Pin:
-      force_sensor_ads1115_gpio_alert_interrupt();
+      forcesensor_ads1115_gpio_alert_interrupt();
       break;
     #endif
     case ROT_EN_A_Pin:
@@ -1262,7 +1262,7 @@ void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     #if OPTICAL_ENCODER_TASK_ENABLE == 1
       if (htim->Instance == opticalTimInstance) {
-        optical_sensor_output_interrupt();
+        opticalsensor_output_interrupt();
       }
     #endif
 }
@@ -1281,7 +1281,7 @@ void lcdDisplay(void *argument)
   #if LUMEX_LCD_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle);
+	  lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
   /* USER CODE END 5 */
 }
@@ -1300,7 +1300,7 @@ void bpmCtrl(void *argument)
   #if BPM_CONTROLLER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  bpm_main(bpmTimer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+	  bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
   /* USER CODE END bpmCtrl */
 }
@@ -1321,9 +1321,9 @@ void forceSensor(void *argument)
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
     osThreadSuspend(NULL);
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
-	  force_sensor_ads1115_main(forceSensorADS1115Handle, sessionControllerToForceSensorHandle);
+	  forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
   #else
-	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle);
+	  forcesensor_adc_main(sessionControllerToForceSensorHandle);
   #endif
   /* USER CODE END forceSensor */
 }
@@ -1359,7 +1359,7 @@ void opticalSensor(void *argument)
   #if OPTICAL_ENCODER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
+	  opticalsensor_main(sessionControllerToOpticalSensorHandle);
   #endif
   /* USER CODE END opticalSensor */
 }
@@ -1435,7 +1435,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   else if (htim->Instance == opticalTimInstance)
   {
-	  optical_sensor_overflow_interrupt();
+	  opticalsensor_overflow_interrupt();
   }
 
   /* USER CODE END Callback 1 */

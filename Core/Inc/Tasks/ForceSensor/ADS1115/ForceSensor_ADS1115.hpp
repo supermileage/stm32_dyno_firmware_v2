@@ -4,7 +4,9 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-#include "timekeeping/timestamps.h"
+#include "Config/hal_instances.h"
+
+#include "Timekeeping/timestamps.h"
 
 #include "MessagePassing/circular_buffers.h"
 #include "CircularBufferWriter.hpp"
@@ -18,8 +20,7 @@ extern "C" {
 class ForceSensorADS1115 
 {
 	public:
-		ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
-				osMessageQueueId_t sessionControllerToForceSensorHandle);
+		ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle);
 		virtual ~ForceSensorADS1115() = default;
 
 		bool Init();
@@ -32,8 +33,6 @@ class ForceSensorADS1115
 		CircularBufferWriter<forcesensor_output_data> _buffer_writer;
 
 		ADS1115 _ads1115;
-
-		I2C_HandleTypeDef* _i2cHandle;
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;
