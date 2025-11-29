@@ -33,6 +33,9 @@
 #include <Tasks/SessionController/input_manager_interrupts.h>
 #include <Tasks/SessionController/sessioncontroller_main.h>
 
+#include <Tasks/USB/USBController.hpp>
+#include <Tasks/USB/usb_main.h>
+
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
 
@@ -114,12 +117,12 @@ const osThreadAttr_t sessionControllerTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for usbTaskEnable */
-osThreadId_t usbTaskEnableHandle;
-const osThreadAttr_t usbTaskEnable_attributes = {
-  .name = "usbTaskEnable",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+/* Definitions for usbTask */
+osThreadId_t usbTaskHandle;
+const osThreadAttr_t usbTask_attributes = {
+  .name = "usbTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -161,10 +164,10 @@ osMessageQueueId_t sessionControllerToOpticalSensorHandle;
 const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
   .name = "sessionControllerToOpticalSensor"
 };
-/* Definitions for usbQueueEnable */
-osMessageQueueId_t usbQueueEnableHandle;
-const osMessageQueueAttr_t usbQueueEnable_attributes = {
-  .name = "usbQueueEnable"
+/* Definitions for sessionControllertoUsbController */
+osMessageQueueId_t sessionControllertoUsbControllerHandle;
+const osMessageQueueAttr_t sessionControllertoUsbController_attributes = {
+  .name = "sessionControllertoUsbController"
 };
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
@@ -207,7 +210,7 @@ void forceSensor(void *argument);
 void pidController(void *argument);
 void opticalSensor(void *argument);
 void sessionController(void *argument);
-void StartTask07(void *argument);
+void startUsbTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -309,8 +312,8 @@ int main(void)
   /* creation of sessionControllerToOpticalSensor */
   sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
 
-  /* creation of usbQueueEnable */
-  usbQueueEnableHandle = osMessageQueueNew (16, sizeof(uint16_t), &usbQueueEnable_attributes);
+  /* creation of sessionControllertoUsbController */
+  sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -335,8 +338,8 @@ int main(void)
   /* creation of sessionControllerTask */
   sessionControllerTaskHandle = osThreadNew(sessionController, NULL, &sessionControllerTask_attributes);
 
-  /* creation of usbTaskEnable */
-  usbTaskEnableHandle = osThreadNew(StartTask07, NULL, &usbTaskEnable_attributes);
+  /* creation of usbTask */
+  usbTaskHandle = osThreadNew(startUsbTask, NULL, &usbTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1372,22 +1375,22 @@ void sessionController(void *argument)
   /* USER CODE END sessionController */
 }
 
-/* USER CODE BEGIN Header_StartTask07 */
+/* USER CODE BEGIN Header_startUsbTask */
 /**
-* @brief Function implementing the usbTaskEnable thread.
+* @brief Function implementing the usbTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask07 */
-void StartTask07(void *argument)
+/* USER CODE END Header_startUsbTask */
+void startUsbTask(void *argument)
 {
-  /* USER CODE BEGIN StartTask07 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartTask07 */
+  /* USER CODE BEGIN startUsbTask */
+  #if SESSION_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+    usb_main(sessionControllertoUsbControllerHandle);
+  #endif
+  /* USER CODE END startUsbTask */
 }
 
  /* MPU Configuration */

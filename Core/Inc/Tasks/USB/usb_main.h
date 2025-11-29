@@ -2,6 +2,7 @@
 #define INC_USB_USB_H_
 
 #include <stdint.h>
+#include "cmsis_os2.h"
 
 #include "main.h"
 
@@ -11,7 +12,7 @@
 extern "C" {
 #endif
 
-void usb_main();
+void usb_main(osMessageQueueId_t sessionControllerToBpmHandle);
 
 #ifdef __cplusplus
 }
