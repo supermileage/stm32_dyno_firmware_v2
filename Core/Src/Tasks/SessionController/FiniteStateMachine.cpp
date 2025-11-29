@@ -8,8 +8,11 @@ FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
           },
         _usbLoggingEnabled(false),
         _sdLoggingEnabled(false),
-        _pidEnabled(false),
+        _pidOptionToggleableEnabled(false),
         _inSession(false),
+        _desiredBpmDutyCycle(0),
+        _desiredRpm(5000),
+        _desiredRpmIncrement(0),
         _fsmInputDataIndex(0)
         {
             ClearDisplay();
@@ -22,6 +25,15 @@ FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
             }
 
         }
+
+template<typename T>
+static inline T clamp(T x, T minVal, T maxVal)
+{
+    if (x < minVal) return minVal;
+    if (x > maxVal) return maxVal;
+    return x;
+}
+
 
 void FSM::HandleUserInputs(void)
 {
@@ -78,17 +90,34 @@ void FSM::HandleRotaryEncoderInput(bool positiveTick)
                     SDLoggingOptionEditSettingsState();
                     break; 
                 case State::SettingsState::PID_ENABLE_DISPLAYED:
-                    USBLoggingOptionDisplayedSettingsState();
+                    PIDDesiredRPMOptionDisplayedSettingsState();
                     break;
                 case State::SettingsState::PID_ENABLE_EDIT:
-                    _pidEnabled = positiveTick;
+                    _pidOptionToggleableEnabled = positiveTick;
                     PIDOptionEditSettingsState();
+                    break;
+                case State::SettingsState::PID_DESIRED_RPM_DISPLAYED:
+                    USBLoggingOptionDisplayedSettingsState();
+                    break;
+                case State::SettingsState::PID_DESIRED_RPM_EDIT:
+                    ConvertUserInputIntoDesiredRpm(positiveTick);
+                    PIDDesiredRPMOptionEditSettingsState(false);
                     break;
                 default:
                     break;
             }
             break;
         case State::MainDynoState::IN_SESSION:
+            if (_pidOptionToggleableEnabled)
+            {
+                float increment = 0.01f;
+                if (positiveTick)
+                {
+                    increment *= -1;
+                }
+
+                _desiredBpmDutyCycle = clamp(_desiredBpmDutyCycle + increment, 0.0f, 1.0f);
+            }
             break;
     }
 
@@ -100,6 +129,15 @@ void FSM::HandleRotaryEncoderSwInput(void)
         case State::MainDynoState::IDLE:
             break;
         case State::MainDynoState::SETTINGS_MENU:
+            switch(_state.settingsState)
+            {
+                case State::SettingsState::PID_DESIRED_RPM_EDIT:
+                    _desiredRpmIncrement++;
+                    _desiredRpmIncrement %= 5;
+                    break;
+                default:
+                    break;
+            }
             break;
         case State::MainDynoState::IN_SESSION:
             break;
@@ -135,6 +173,13 @@ void FSM::HandleButtonBackInput(void)
                     break;
                 case State::SettingsState::PID_ENABLE_EDIT:
                     PIDOptionDisplayedSettingsState();
+                    break;
+                case State::SettingsState::PID_DESIRED_RPM_DISPLAYED:
+                    _inSession = false;
+                    IdleState();
+                    break;
+                case State::SettingsState::PID_DESIRED_RPM_EDIT:
+                    PIDDesiredRPMOptionDisplayedSettingsState();
                     break;
                 default:
                     break;
@@ -175,11 +220,18 @@ void FSM::HandleButtonSelectInput(void)
                 case State::SettingsState::PID_ENABLE_EDIT:
                     PIDOptionDisplayedSettingsState();
                     break;
+                case State::SettingsState::PID_DESIRED_RPM_DISPLAYED:
+                    PIDDesiredRPMOptionEditSettingsState(true);
+                    break;
+                case State::SettingsState::PID_DESIRED_RPM_EDIT:
+                    PIDDesiredRPMOptionDisplayedSettingsState();
+                    break;
                 default:
                     break;
             }
             break;
         case State::MainDynoState::IN_SESSION:
+            _pidEnabled = (_pidOptionToggleableEnabled) ? !_pidEnabled : _pidEnabled;
             break;
     }
 }
@@ -212,6 +264,40 @@ void FSM::HandleButtonBrakeInput(bool isEnabled)
     
 }
 
+void FSM::ConvertUserInputIntoDesiredRpm(bool positiveTick)
+{
+    int increment = 0;
+    switch (_desiredRpmIncrement)
+    {
+        case 0:
+            increment = 10000;
+            break;
+        case 1:
+            increment = 1000;
+            break;
+        case 2:
+            increment = 100;
+            break;
+        case 3:
+            increment = 10;
+            break;
+        case 4:
+            increment = 1;
+            break;
+        default:
+            break;
+    }
+
+    if (!positiveTick)
+    {
+        increment *= -1;
+    }
+
+
+    _desiredRpm = std::max(0, _desiredRpm + increment);
+
+}
+
 void FSM::ClearDisplay()
 {
 
@@ -222,6 +308,8 @@ void FSM::ClearDisplay()
 void FSM::IdleState()
 {
     _state.mainState = State::MainDynoState::IDLE;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "DYNO" , 0, 6);
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PRESS SELECT", 1, 2);
@@ -231,6 +319,8 @@ void FSM::USBLoggingOptionDisplayedSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::USB_LOGGING_OPTION_DISPLAYED;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "USB LOGGING", 0, 2);
 
@@ -244,6 +334,8 @@ void FSM::USBLoggingOptionEditSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::USB_LOGGING_OPTION_EDIT;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "USB LOGGING", 0, 2);
 
@@ -258,6 +350,8 @@ void FSM::SDLoggingOptionDisplayedSettingsState()
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::SD_LOGGING_OPTION_DISPLAYED;
 
+    ClearDisplay();
+
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "SD LOGGING", 0, 3);
     
     if (_sdLoggingEnabled)
@@ -270,6 +364,8 @@ void FSM::SDLoggingOptionEditSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::SD_LOGGING_OPTION_EDIT;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "SD LOGGING", 0, 3);
 
@@ -283,10 +379,12 @@ void FSM::PIDOptionDisplayedSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::PID_ENABLE_DISPLAYED;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID LOGGING", 0, 2);
 
-    if (_pidEnabled)
+    if (_pidOptionToggleableEnabled)
         AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "ENABLED" , 1, 4);
     else
         AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "DISABLED" , 1, 4);
@@ -296,14 +394,44 @@ void FSM::PIDOptionEditSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::PID_ENABLE_EDIT;
+
+    ClearDisplay();
     
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID LOGGING", 0, 2);
 
-    if (_pidEnabled)
+    if (_pidOptionToggleableEnabled)
         AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "ENABLED" , 1, 4);
     else
         AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "DISABLED" , 1, 4);
 }
+
+void FSM::PIDDesiredRPMOptionDisplayedSettingsState()
+{
+    _state.mainState = State::MainDynoState::SETTINGS_MENU;
+    _state.settingsState = State::SettingsState::PID_DESIRED_RPM_EDIT;
+
+    ClearDisplay();
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID DES RPM", 0, 2);
+
+}
+
+void FSM::PIDDesiredRPMOptionEditSettingsState(bool clearDisplay)
+{
+    _state.mainState = State::MainDynoState::SETTINGS_MENU;
+    _state.settingsState = State::SettingsState::PID_DESIRED_RPM_EDIT;
+
+    if (clearDisplay) ClearDisplay();
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID DES RPM", 0, 2);
+
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%5d", _desiredRpm);
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buffer, 1, 5);
+}
+
+
 
 void FSM::InSessionState()
 {
@@ -345,12 +473,18 @@ bool FSM::GetPIDEnabledStatus() const
     return _pidEnabled;
 }
 
+
 bool FSM::GetInSessionStatus() const
 {
     return _state.mainState == State::MainDynoState::IN_SESSION;
 }
 
-float FSM::GetDesiredRpm() const
+float FSM::GetDesiredBpmDutyCycle() const
+{
+    return _pidOptionToggleableEnabled ? _desiredBpmDutyCycle : -1;
+}
+
+int FSM::GetDesiredRpm() const
 {
     return _desiredRpm;
 }

@@ -15,17 +15,6 @@ bool SessionController::Init(void)
     return true;
 }
 
-typedef struct 
-{
-    osMessageQueueId_t usb_controller;
-    osMessageQueueId_t sd_controller;
-    osMessageQueueId_t force_sensor;
-    osMessageQueueId_t optical_sensor;
-    osMessageQueueId_t bpm_controller;
-    osMessageQueueId_t pid_controller;
-    osMessageQueueId_t lumex_lcd;
-} session_controller_os_tasks;
-
 void SessionController::Run()
 {
     while(1)
@@ -38,7 +27,7 @@ void SessionController::Run()
         // Only if the status has changed
         if (usbLoggingEnabled ^ _prevUSBLoggingEnabled)
         {
-            osMessageQueuePut(task_queues->usb_controller, &usbLoggingEnabled, 0, 0);
+            osMessageQueuePut(_task_queues->usb_controller, &usbLoggingEnabled, 0, 0);
             _prevUSBLoggingEnabled = usbLoggingEnabled;
         }
 
@@ -47,7 +36,7 @@ void SessionController::Run()
         // Only if the status has changed
         if (SDLoggingEnabled ^ _prevSDLoggingEnabled)
         {
-            osMessageQueuePut(task_queues->sd_controller, &SDLoggingEnabled, 0, 0);
+            osMessageQueuePut(_task_queues->sd_controller, &SDLoggingEnabled, 0, 0);
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
 
@@ -60,43 +49,38 @@ void SessionController::Run()
         // only run this code if the 'InSession' status has changed
         if (InSessionRisingEdge || InSessionFallingEdge)
         {
-            session_controller_to_pid_controller pid_msg;
-            
-            // Get PID enabled status and enable PID Controller
-            bool PIDEnabled = _fsm.GetPIDEnabledStatus();
-            // Only if the status has changed
-            if (PIDEnabled ^ _prevPIDEnabled)
-            {
-                pid_msg.enable_status = PIDEnabled;
-                pid_msg.desired_rpm = _fsm.GetDesiredRpm();
-                osMessageQueuePut(task_queues->pid_controller, &pid_msg, 0, 0);
-                _prevPIDEnabled = PIDEnabled;
-            }
-
             bool opticalEncoderEnable;
             bool forceSensorEnable;
-            bool bpmEnable;
 
             // enable things
             if (InSessionRisingEdge)
             {
                 opticalEncoderEnable = true;
                 forceSensorEnable = true;
-                bpmEnable = true;
+
             }
             
             // disable things
             else if (InSessionFallingEdge)
             {
+                session_controller_to_bpm bpmSettings;
+
                 opticalEncoderEnable = false;
                 forceSensorEnable = false;
-                bpmEnable = false;
+
+                bpmSettings.op = STOP_PWM;
+                bpmSettings.new_duty_cycle_percent = static_cast<float>(0);
+
+                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                
             }
 
+            // Send enable or disable messages
+            osMessageQueuePut(_task_queues->optical_sensor, &opticalEncoderEnable, 0, osWaitForever);
+            osMessageQueuePut(_task_queues->force_sensor, &forceSensorEnable, 0, osWaitForever);
+            
+
             _prevInSession = InSessionStatus;
-
-
-
 
 
         }
@@ -104,6 +88,31 @@ void SessionController::Run()
         // Things that need to occur every pass of the loop
         if (InSessionStatus)
         {
+            // Get PID enabled status and enable PID Controller
+            bool PIDEnabled = _fsm.GetPIDEnabledStatus();
+
+            // Only if the status has changed
+            if (PIDEnabled ^ _prevPIDEnabled)
+            {
+                session_controller_to_pid_controller pid_msg;
+                pid_msg.enable_status = PIDEnabled;
+                pid_msg.desired_rpm = _fsm.GetDesiredRpm();
+                osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, 0);
+                _prevPIDEnabled = PIDEnabled;
+            }
+            
+            // Always run since the PID controller could be turned off while in-session
+            float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
+            if (newDutyCycle != static_cast<float>(-1))
+            {
+                session_controller_to_bpm bpmSettings;
+                
+                bpmSettings.op = START_PWM;
+                bpmSettings.new_duty_cycle_percent =  newDutyCycle;
+
+                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+            }
+
 
         }
             

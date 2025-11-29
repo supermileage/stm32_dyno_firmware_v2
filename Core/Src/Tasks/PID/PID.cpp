@@ -51,7 +51,7 @@ void PIDController::Run()
         timeDelta = GetTimeDelta();
 
         // PID error calculation
-        _error = _desiredRpm - _curRpm;
+        _error = static_cast<float>(_desiredRpm) - _curRpm;
 
         derivative = (_error - _prevError) / (float)timeDelta;
         integral += _error * (float)timeDelta;

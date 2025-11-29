@@ -1,7 +1,11 @@
 #ifndef INC_SESSION_CONTROLLER_FSM_H_
 #define INC_SESSION_CONTROLLER_FSM_H_
 
+#include <algorithm>
+
 #include <cstdint>
+#include <cstdio>
+
 #include "cmsis_os2.h"
 
 #include "MessagePassing/messages.h"
@@ -30,6 +34,8 @@ struct State
         SD_LOGGING_OPTION_EDIT,
         PID_ENABLE_DISPLAYED,
         PID_ENABLE_EDIT,
+        PID_DESIRED_RPM_DISPLAYED,
+        PID_DESIRED_RPM_EDIT
     };
 
     MainDynoState mainState;
@@ -54,6 +60,10 @@ public:
     bool GetPIDEnabledStatus() const;
     bool GetInSessionStatus() const;
 
+    float GetDesiredBpmDutyCycle() const;
+
+    int GetDesiredRpm() const;
+
 private:
     // Methods which are called when a state change is done
     void IdleState();
@@ -63,6 +73,8 @@ private:
     void SDLoggingOptionEditSettingsState();   
     void PIDOptionDisplayedSettingsState();
     void PIDOptionEditSettingsState();
+    void PIDDesiredRPMOptionDisplayedSettingsState();
+    void PIDDesiredRPMOptionEditSettingsState(bool clearDisplay);
     void InSessionState();
     
     // user input handlers
@@ -72,6 +84,8 @@ private:
     void HandleButtonSelectInput();
     void HandleButtonBrakeInput(bool isEnabled);
 
+    void ConvertUserInputIntoDesiredRpm(bool positiveTick);
+
     osMessageQueueId_t _sessionControllerToLumexLcdHandle;
 
     State _state;
@@ -79,9 +93,12 @@ private:
     
     bool _usbLoggingEnabled;
     bool _sdLoggingEnabled;
+    bool _pidOptionToggleableEnabled;
     bool _pidEnabled;
     bool _inSession;
-    float _desiredRpm;
+    float _desiredBpmDutyCycle;
+    int _desiredRpm;
+    int _desiredRpmIncrement;
     uint32_t _fsmInputDataIndex;
 };
 
