@@ -91,7 +91,7 @@ const osThreadAttr_t bpmTask_attributes = {
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
   .name = "forceSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
