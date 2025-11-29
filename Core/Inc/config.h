@@ -44,5 +44,8 @@
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 #define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50
 
+// PID config
+#define PID_INITIAL_STATUS false
+
 
 #endif /* INC_CONFIG_H_ */

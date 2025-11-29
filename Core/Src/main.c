@@ -1341,7 +1341,7 @@ void pidController(void *argument)
   #if PID_CONTROLLER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
+	  pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
   #endif
   /* USER CODE END pidController */
 }

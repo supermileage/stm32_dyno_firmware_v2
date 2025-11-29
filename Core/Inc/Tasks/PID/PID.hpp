@@ -6,7 +6,10 @@
 #include "cmsis_os2.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "messagePassing/messages.h"
+#include "MessagePassing/messages.h"
+#include "MessagePassing/circular_buffers.h"
+
+#include "CircularBufferReader.hpp"
 
 #include "config.h"
 
@@ -15,15 +18,16 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
 
 		virtual ~PIDController() = default;
 
 		bool Init();
 		void Run();
 	private:
-		osMessageQueueId_t _pidToSessionControllerHandle;
-		osMessageQueueId_t _opticalEncoderToPidControllerHandle;
+		CircularBufferReader<optical_encoder_output_data> _buffer_reader;
+
+		osMessageQueueId_t _sessionControllerToPidHandle;
 		osMessageQueueId_t _pidToBpmHandle;
 		bool _enabled;
 
