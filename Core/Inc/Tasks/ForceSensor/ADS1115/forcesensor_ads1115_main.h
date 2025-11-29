@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-void force_sensor_ads1115_gpio_alert_interrupt(void);
-void force_sensor_ads1115_main(I2C_HandleTypeDef* i2cHandle, osMessageQueueId_t sessionControllerToForcesensorADS1115Handle);
+void forcesensor_ads1115_gpio_alert_interrupt(void);
+void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToForcesensorADS1115Handle);
 
 #ifdef __cplusplus
 }

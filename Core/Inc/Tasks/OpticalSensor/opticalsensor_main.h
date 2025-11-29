@@ -11,9 +11,9 @@
 extern "C" {
 #endif
 
-void optical_sensor_output_interrupt();
-void optical_sensor_overflow_interrupt();
-void optical_sensor_main(TIM_HandleTypeDef* opticalTimer, osMessageQueueId_t sessionControllerToForceSensorADCHandle);
+void opticalsensor_output_interrupt();
+void opticalsensor_overflow_interrupt();
+void opticalsensor_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle);
 
 #ifdef __cplusplus
 }
