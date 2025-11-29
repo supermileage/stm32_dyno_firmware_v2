@@ -17,7 +17,7 @@ extern "C" {
 class LumexLCD
 {
 	public:
-		LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle);
+		LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle);
 		virtual ~LumexLCD() = default;
 
 		bool Init();

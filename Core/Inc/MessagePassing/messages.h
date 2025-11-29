@@ -43,7 +43,7 @@ typedef struct {
 typedef struct
 {
 	bool enable_status;   // Enable or disable the PID controller
-	float desired_rpm;    // Desired motor RPM setpoint
+	int desired_rpm;    // Desired motor RPM setpoint
 } session_controller_to_pid_controller;
 
 // Message sent from the optical encoder to the PID controller

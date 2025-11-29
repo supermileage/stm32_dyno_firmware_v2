@@ -120,11 +120,6 @@ osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
   .name = "sessionControllerToLumexLcd"
 };
-/* Definitions for lumexLcdTimerInterrupt */
-osMessageQueueId_t lumexLcdTimerInterruptHandle;
-const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
-  .name = "lumexLcdTimerInterrupt"
-};
 /* Definitions for sessionControllerToBpm */
 osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
@@ -278,9 +273,6 @@ int main(void)
   /* creation of sessionControllerToLumexLcd */
   sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
-  /* creation of lumexLcdTimerInterrupt */
-  lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
-
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
@@ -297,7 +289,7 @@ int main(void)
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
 
   /* creation of sessionControllerToOpticalSensor */
-  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
+  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToOpticalSensor_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
@@ -1289,7 +1281,7 @@ void lcdDisplay(void *argument)
   #if LUMEX_LCD_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
+	  lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle);
   #endif
   /* USER CODE END 5 */
 }
@@ -1439,7 +1431,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   else if (htim->Instance == lumexLcdTimInstance)
   {
-	  lumex_lcd_timer_interrupt(htim, lumexLcdTimerInterruptHandle);
+	  lumex_lcd_timer_interrupt(htim);
   }
   else if (htim->Instance == opticalTimInstance)
   {

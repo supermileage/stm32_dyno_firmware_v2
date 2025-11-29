@@ -3,10 +3,9 @@
 
 volatile bool timerCallbackFlag = false;
 
-LumexLCD::LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle) :
+LumexLCD::LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToLumexLcdHandle) :
 		_timer(timer),
-		_fromSCqHandle(lumexLcdToSessionControllerqHandle),
-		_timqHandle(timInterruptCallbackqHandle)
+		_fromSCqHandle(sessionControllerToLumexLcdHandle)
 {}
 
 bool LumexLCD::Init()
@@ -225,7 +224,7 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string)
 
 }
 
-extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQueueId_t timInterruptCallbackqHandle)
+extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer)
 {
 	HAL_TIM_Base_Stop_IT(timer);
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
@@ -233,9 +232,9 @@ extern "C" void lumex_lcd_timer_interrupt(TIM_HandleTypeDef* timer, osMessageQue
 
 }
 
-extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle)
+extern "C" void lumex_lcd_main(TIM_HandleTypeDef* timer, osMessageQueueId_t sessionControllerToLumexLcdHandle)
 {
-	LumexLCD lcd = LumexLCD(timer, lumexLcdToSessionControllerqHandle, timInterruptCallbackqHandle);
+	LumexLCD lcd = LumexLCD(timer, sessionControllerToLumexLcdHandle);
 
 	if (!lcd.Init())
 	{
