@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <MessagePassing/circular_buffers.h>
 
 #ifdef __cplusplus
 extern "C" {

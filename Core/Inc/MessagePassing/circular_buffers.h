@@ -9,12 +9,6 @@
 extern "C" {
 #endif
 
-typedef struct  {
-    uint32_t writerIndex;
-    uint32_t readerIndex;
-    const uint32_t size;
-} circular_buffer_config;
-
 extern uint32_t optical_encoder_circular_buffer_index_writer;
 extern uint32_t forcesensor_circular_buffer_index_writer;
 extern uint32_t bpm_circular_buffer_index_writer;
