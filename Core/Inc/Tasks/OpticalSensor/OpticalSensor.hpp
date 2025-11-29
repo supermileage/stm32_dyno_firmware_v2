@@ -20,7 +20,7 @@ public:
     void Run();
     
 private:
-    float GetRPM(uint16_t timeDifference);
+    float GetRPM(uint32_t timeDifference);
 
 	void ToggleOPS(bool enable);
 
