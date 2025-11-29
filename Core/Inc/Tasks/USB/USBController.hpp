@@ -22,6 +22,6 @@ class USBController
         forcesensor_output_data _fs_output;
         bpm_output_data _bpm_output;
 
-        uint8_t _txBuffer[USB_CDC_TX_BUFFER_SIZE];
+        uint8_t _txBuffer[APP_RX_DATA_SIZE];
         int _txBufferIndex = 0;
 };

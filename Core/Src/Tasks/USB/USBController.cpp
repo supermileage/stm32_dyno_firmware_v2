@@ -1,12 +1,21 @@
 #include <Tasks/USB/usb_main.h>
 #include <Tasks/USB/USBController.hpp>
+#include <MessagePassing/messages.h>
 
 #include <CircularBufferReader.hpp>
 
-USBController::USBController() :
+USBController::USBController()
+    : _buffer_reader_oe(optical_encoder_circular_buffer, APP_TX_DATA_SIZE, optical_encoder_circular_buffer_index_writer),
+      _buffer_reader_fs(forcesensor_circular_buffer, APP_TX_DATA_SIZE, forcesensor_circular_buffer_index_writer),
+      _buffer_reader_bpm(bpm_circular_buffer, APP_TX_DATA_SIZE, bpm_circular_buffer_index_writer),
+      _oe_output{0},
+      _fs_output{0},
+      _bpm_output{0},
+      _txBuffer{0},
+      _txBufferIndex(0)
+{}
+
 	
-
-
 
 bool USBController::Init()
 {
@@ -32,13 +41,18 @@ void USBController::Run()
 			memcpy(_txBuffer + _txBufferIndex, &bpm_output, sizeof(bpm_output));
 			USBController::SafeIncrement(sizeof(bpm_output));
 		}
-		osDelay(1);
+
+		if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+			osDelay(1);
+			continue;
+		}
+		_txBufferIndex = 0;
 	}
 
 }
 
 void USBController::SafeIncrement(size_t addSize) { // takes in size that it's meant to progress length of _txBuffer by
-	if (_txBufferIndex + sizeof(oe_output) >= USB_CDC_TX_BUFFER_SIZE) {
+	if (_txBufferIndex + sizeof(oe_output) >= APP_RX_DATA_SIZE) {
 		// Transmit to USB when safe
 		while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) { // This line writes to USB device once the flag returns false
 			osDelay(1);

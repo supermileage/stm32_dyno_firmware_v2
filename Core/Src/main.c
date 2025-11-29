@@ -114,6 +114,13 @@ const osThreadAttr_t sessionControllerTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for usbTaskEnable */
+osThreadId_t usbTaskEnableHandle;
+const osThreadAttr_t usbTaskEnable_attributes = {
+  .name = "usbTaskEnable",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -153,6 +160,11 @@ const osMessageQueueAttr_t pidControllerToBpm_attributes = {
 osMessageQueueId_t sessionControllerToOpticalSensorHandle;
 const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
   .name = "sessionControllerToOpticalSensor"
+};
+/* Definitions for usbQueueEnable */
+osMessageQueueId_t usbQueueEnableHandle;
+const osMessageQueueAttr_t usbQueueEnable_attributes = {
+  .name = "usbQueueEnable"
 };
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
@@ -195,6 +207,7 @@ void forceSensor(void *argument);
 void pidController(void *argument);
 void opticalSensor(void *argument);
 void sessionController(void *argument);
+void StartTask07(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -296,6 +309,9 @@ int main(void)
   /* creation of sessionControllerToOpticalSensor */
   sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
 
+  /* creation of usbQueueEnable */
+  usbQueueEnableHandle = osMessageQueueNew (16, sizeof(uint16_t), &usbQueueEnable_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -318,6 +334,9 @@ int main(void)
 
   /* creation of sessionControllerTask */
   sessionControllerTaskHandle = osThreadNew(sessionController, NULL, &sessionControllerTask_attributes);
+
+  /* creation of usbTaskEnable */
+  usbTaskEnableHandle = osThreadNew(StartTask07, NULL, &usbTaskEnable_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1353,6 +1372,24 @@ void sessionController(void *argument)
   /* USER CODE END sessionController */
 }
 
+/* USER CODE BEGIN Header_StartTask07 */
+/**
+* @brief Function implementing the usbTaskEnable thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask07 */
+void StartTask07(void *argument)
+{
+  /* USER CODE BEGIN StartTask07 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTask07 */
+}
+
  /* MPU Configuration */
 
 void MPU_Config(void)
@@ -1381,6 +1418,7 @@ void MPU_Config(void)
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
 }
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM17 interrupt took place, inside

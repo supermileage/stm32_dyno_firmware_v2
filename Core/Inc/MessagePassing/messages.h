@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <MessagePassing/circular_buffers.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +46,12 @@ typedef struct
 	bool enable_status;   // Enable or disable the PID controller
 	float desired_rpm;    // Desired motor RPM setpoint
 } session_controller_to_pid_controller;
+
+typedef enum {
+	OPTICAL_ENCODER = 0,
+	FORCESENSOR, 
+	BRAKE_PWM
+} send_usb_output_data;
 
 // Message sent from the optical encoder to the PID controller
 typedef struct
