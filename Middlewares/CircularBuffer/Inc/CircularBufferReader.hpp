@@ -23,8 +23,7 @@ public:
 private:
     T* _buffer;           // external buffer memory
     uint32_t* _writerIndex;
-    uint32_t _size;
-    
+    uint32_t _size; 
     uint32_t _readerIndex;
 
 };

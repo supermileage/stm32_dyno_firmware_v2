@@ -1,9 +1,9 @@
 #include <Tasks/PID/pid_main.h>
 #include <Tasks/PID/PID.hpp>
 
-PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
-			_pidToSessionControllerHandle(sessionControllerToPidControllerHandle),
-			_opticalEncoderToPidControllerHandle(opticalEncoderToPidControllerHandle),
+PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
+			_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
+			_sessionControllerToPidHandle(sessionControllerToPidControllerHandle),
 			_pidToBpmHandle(pidToBpmHandle),
 			_enabled(initialState),
 			_curTimestamp(0),
@@ -26,7 +26,7 @@ void PIDController::Run()
     float integral = 0;
     float derivative = 0;
     uint32_t timeDelta;
-    optical_encoder_output_data latestOE;
+	optical_encoder_output_data latestOpticalEncoderData;
 
     while (true)
     {
@@ -40,12 +40,18 @@ void PIDController::Run()
             continue; // skip PID processing
         }
 
-        // BLOCKING: wait forever for the latest optical encoder message
-        GetLatestFromQueue(_opticalEncoderToPidControllerHandle, &latestOE, sizeof(latestOE), osWaitForever);
+		// Try to get the first new element
+		if (!_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData)) {
+			// Nothing new, go back to top of loop
+			continue;
+		}
+
+		// There is at least one element, keep fetching until the last one
+		while (_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
 
         // Update current values
-        _curTimestamp = latestOE.timestamp;
-        _curRpm = latestOE.rpm;
+        _curTimestamp = latestOpticalEncoderData.timestamp;
+        _curRpm = latestOpticalEncoderData.rpm;
 
         // Compute time delta safely, handling timer overflow
         timeDelta = GetTimeDelta();
@@ -112,7 +118,7 @@ void PIDController::ReceiveInstruction()
 
 	session_controller_to_pid_controller msg;
 
-	status = osMessageQueueGet(_pidToSessionControllerHandle, &msg, NULL, 0);
+	status = osMessageQueueGet(_sessionControllerToPidHandle, &msg, NULL, 0);
 
 	if (status != osOK)
 	{
@@ -138,9 +144,9 @@ void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 
 }
 
-extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t opticalEncoderToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) 
+extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) 
 {
-	PIDController controller = PIDController(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidToBpmHandle, initialState);
+	PIDController controller = PIDController(sessionControllerToPidControllerHandle, pidToBpmHandle, initialState);
 
 	if (!controller.Init())
 	{
