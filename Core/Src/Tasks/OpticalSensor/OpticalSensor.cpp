@@ -6,8 +6,9 @@ static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;
 static volatile uint16_t IC_Value2 = 0;
-// timerCountDifference is the delta of the timer counter between IC_Value2 and IC_Value1
-static volatile uint32_t timerCountDifference = 0;
+// timerCounterDifference is the delta of the timer counter between IC_Value2 and IC_Value1
+static volatile uint32_t timerCounterDifference = 0;
+static volatile uint32_t prevTimerCounterDifference = 0;
 
 OpticalSensor::OpticalSensor(osMessageQueueId_t sessionControllerToOpticalSensorHandle) : 
 		// this comes directly from circular_buffers.h and config.h
@@ -34,18 +35,18 @@ void OpticalSensor::Run(void)
 			// Copies are made to prevent interrupts from overwriting data
 			// Does not require a lock since making copies use one clock cycle
 			uint32_t timestampCopy = timestamp;
-			uint16_t timerCountDifferenceCopy = timerCountDifference;
+			uint16_t timerCounterDifferenceCopy = timerCounterDifference;
 
 			// populates the struct data
 			outputData.timestamp = timestampCopy;
-			outputData.rpm = GetRPM(timerCountDifferenceCopy);
+			outputData.rpm = GetRPM(timerCounterDifferenceCopy);
 			_buffer_writer.WriteElementAndIncrementIndex(outputData);
 		}
 
 	}
 }
 
-void OpticalSensor::ToggleOPS(bool enable)
+void OpticalSensor::ToggleOpticalEncoder(bool enable)
 {
 	// if master enables and BPM was previously disabled, then start PWM
 	if (enable && !_opticalEncoderEnabled)
@@ -61,38 +62,38 @@ void OpticalSensor::ToggleOPS(bool enable)
 	_opticalEncoderEnabled = enable;
 }
 
-float OpticalSensor::GetAngularAcceleration(uint16_t timerCountDifference, uint16_t prevTimeDifference)
+float OpticalSensor::GetAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference)
 {
-    if (timerCountDifference == 0 || prevTimeDifference == 0) return 0;
+    if (timerCounterDifference == 0 || prevTimerCounterDifference == 0) return 0;
 
-    float omega_curr = GetAngularVelocity(timerCountDifference);
-    float omega_prev = GetAngularVelocity(prevTimeDifference);
+    float omega_curr = GetAngularVelocity(timerCounterDifference);
+    float omega_prev = GetAngularVelocity(prevTimerCounterDifference);
 
     // Δt in seconds between these two measurements
-    float dt_avg = ((float)timerCountDifference + (float)prevTimeDifference) / 2.0f / (CLK_SPEED / (opticalTimer->Instance->PSC + 1));
+    float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (CLK_SPEED / (opticalTimer->Instance->PSC + 1));
 
     float alpha = (omega_curr - omega_prev) / dt_avg;
     return alpha; // rad/s²
 }
 
 
-float OpticalSensor::GetAngularVelocity(uint32_t timerCountDifference)
+float OpticalSensor::GetAngularVelocity(uint32_t timerCounterDifference)
 {
-    if (timerCountDifference == 0) return 0;
+    if (timerCounterDifference == 0) return 0;
 
     // dt is timer ticks, convert to seconds
     float timerFreq = CLK_SPEED / (opticalTimer->Instance->PSC + 1);
     
-	float omega = (2.0f * M_PI / NUM_APERTURES) * (timerFreq / timerCountDifference); // radians/sec
+	float omega = (2.0f * M_PI / NUM_APERTURES) * (timerFreq / timerCounterDifference); // radians/sec
     
 	return omega;
 }
 
 
-float OpticalSensor::GetRPM(uint32_t timerCountDifference)
+float OpticalSensor::GetRPM(uint32_t timerCounterDifference)
 {
     // Return 0 immediately if no pulse was detected
-    if (timerCountDifference == 0) {
+    if (timerCounterDifference == 0) {
         return 0.0f;
     }
 
@@ -100,7 +101,7 @@ float OpticalSensor::GetRPM(uint32_t timerCountDifference)
     float timerFreq = CLK_SPEED / (opticalTimer->Instance->PSC + 1);
 
     // Time between pulses in seconds
-    float deltaTimeSec = (float)timerCountDifference / timerFreq;
+    float deltaTimeSec = (float)timerCounterDifference / timerFreq;
 
     // RPM = revolutions per minute
     float rpm = ((1.0f / NUM_APERTURES) / deltaTimeSec) * 60.0f;
@@ -125,9 +126,11 @@ extern "C" void opticalsensor_output_interrupt()
 {
     IC_Value2 = HAL_TIM_ReadCapturedValue(opticalTimer, TIM_CHANNEL_1);
     timestamp = get_timestamp();
-    timerCountDifference = (uint32_t)(IC_Value2 - IC_Value1) +
+    timerCounterDifference = (uint32_t)(IC_Value2 - IC_Value1) +
                               (numOverflows * (opticalTimer->Instance->ARR + 1));
     IC_Value1 = IC_Value2;
+
+	prevTimerCounterDifference = timerCounterDifference;
     numOverflows = 0;
 }
 
@@ -136,7 +139,7 @@ extern "C" void opticalsensor_overflow_interrupt()
     if (numOverflows != OP_OF) {
         numOverflows++;
     } else {
-        timerCountDifference = 0;
+        timerCounterDifference = 0;
     }
 }
 
