@@ -10,8 +10,8 @@
 extern "C" {
 #endif
 
-void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc);
-void force_sensor_adc_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToForceSensorADCHandle);
+void forcesensor_adc_interrupt();
+void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle);
 
 #ifdef __cplusplus
 }

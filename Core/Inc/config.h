@@ -33,6 +33,9 @@
 #define MAX_DUTY_CYCLE_PERCENT 0.95
 #define BPM_CIRCULAR_BUFFER_SIZE 50
 
+// FORCE SENSOR Config
+#define MAX_FORCE_LBF 25
+
 // ADS1115 I2C Config
 #define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
 #define FORCESENSOR_CIRCULAR_BUFFER_SIZE 50
@@ -41,6 +44,9 @@
 #define OP_OF 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 #define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50// Need to evaluate maximum possible size from STM32
+
+// PID config
+#define PID_INITIAL_STATUS false
 
 #define TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 

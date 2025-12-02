@@ -7,6 +7,8 @@
 
 #include "string.h"
 
+#include "Config/hal_instances.h"
+
 #include "MessagePassing/messages.h"
 #include "MessagePassing/osqueue_helpers.h"
 
@@ -17,7 +19,7 @@ extern "C" {
 class LumexLCD
 {
 	public:
-		LumexLCD(TIM_HandleTypeDef* timer, osMessageQueueId_t lumexLcdToSessionControllerqHandle, osMessageQueueId_t timInterruptCallbackqHandle);
+		LumexLCD(osMessageQueueId_t lumexLcdToSessionControllerqHandle);
 		virtual ~LumexLCD() = default;
 
 		bool Init();
@@ -34,10 +36,8 @@ class LumexLCD
 		bool DisplayChar(uint8_t row, uint8_t column, uint8_t character);
 		bool DisplayString(uint8_t row, uint8_t column, const char* string);
 
-		TIM_HandleTypeDef* _timer;
 		osMessageQueueId_t _fromSCqHandle;
 		osMessageQueueId_t _timqHandle;
-		volatile bool _timerflag;
 };
 
 

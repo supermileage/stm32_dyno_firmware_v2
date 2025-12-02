@@ -92,7 +92,7 @@ const osThreadAttr_t bpmTask_attributes = {
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
   .name = "forceSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
@@ -127,11 +127,6 @@ const osThreadAttr_t usbTask_attributes = {
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
   .name = "sessionControllerToLumexLcd"
-};
-/* Definitions for lumexLcdTimerInterrupt */
-osMessageQueueId_t lumexLcdTimerInterruptHandle;
-const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
-  .name = "lumexLcdTimerInterrupt"
 };
 /* Definitions for sessionControllerToBpm */
 osMessageQueueId_t sessionControllerToBpmHandle;
@@ -290,9 +285,6 @@ int main(void)
   /* creation of sessionControllerToLumexLcd */
   sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
-  /* creation of lumexLcdTimerInterrupt */
-  lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), &lumexLcdTimerInterrupt_attributes);
-
   /* creation of sessionControllerToBpm */
   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
 
@@ -309,7 +301,7 @@ int main(void)
   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
 
   /* creation of sessionControllerToOpticalSensor */
-  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllerToOpticalSensor_attributes);
+  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToOpticalSensor_attributes);
 
   /* creation of sessionControllertoUsbController */
   sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
@@ -1183,7 +1175,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
   #if FORCE_SENSOR_ADC_TASK_ENABLE == 1  
     if (hadc->Instance == ADC2)
     {
-      adc_forcesensor_interrupt(hadc);
+      forcesensor_adc_interrupt();
     }
   #endif
 }
@@ -1194,7 +1186,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
   {
     #if FORCE_SENSOR_ADS1115_TASK_ENABLE == 1
     case ADS1115_ALERT_Pin:
-      force_sensor_ads1115_gpio_alert_interrupt();
+      forcesensor_ads1115_gpio_alert_interrupt();
       break;
     #endif
     case ROT_EN_A_Pin:
@@ -1252,7 +1244,7 @@ void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     #if OPTICAL_ENCODER_TASK_ENABLE == 1
       if (htim->Instance == opticalTimInstance) {
-        optical_sensor_output_interrupt();
+        opticalsensor_output_interrupt();
       }
     #endif
 }
@@ -1273,7 +1265,7 @@ void lcdDisplay(void *argument)
   #if LUMEX_LCD_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  lumex_lcd_main(lumexLcdTimer, sessionControllerToLumexLcdHandle, lumexLcdTimerInterruptHandle);
+	  lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
   /* USER CODE END 5 */
 }
@@ -1292,7 +1284,7 @@ void bpmCtrl(void *argument)
   #if BPM_CONTROLLER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  bpm_main(bpmTimer, sessionControllerToBpmHandle, pidControllerToBpmHandle);
+	  bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
   /* USER CODE END bpmCtrl */
 }
@@ -1313,9 +1305,9 @@ void forceSensor(void *argument)
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
     osThreadSuspend(NULL);
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
-	  force_sensor_ads1115_main(forceSensorADS1115Handle, sessionControllerToForceSensorHandle);
+	  forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
   #else
-	  force_sensor_adc_main(forceSensorADCHandle, sessionControllerToForceSensorHandle);
+	  forcesensor_adc_main(sessionControllerToForceSensorHandle);
   #endif
   /* USER CODE END forceSensor */
 }
@@ -1333,7 +1325,7 @@ void pidController(void *argument)
   #if PID_CONTROLLER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  pid_main(sessionControllerToPidControllerHandle, opticalEncoderToPidControllerHandle, pidControllerToBpmHandle, false);
+	  pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
   #endif
   /* USER CODE END pidController */
 }
@@ -1351,7 +1343,7 @@ void opticalSensor(void *argument)
   #if OPTICAL_ENCODER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
-	  optical_sensor_main(opticalTimer, sessionControllerToOpticalSensorHandle);
+	  opticalsensor_main(sessionControllerToOpticalSensorHandle);
   #endif
   /* USER CODE END opticalSensor */
 }
@@ -1441,11 +1433,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   else if (htim->Instance == lumexLcdTimInstance)
   {
-	  lumex_lcd_timer_interrupt(htim, lumexLcdTimerInterruptHandle);
+	  lumex_lcd_timer_interrupt(htim);
   }
   else if (htim->Instance == opticalTimInstance)
   {
-	  optical_sensor_overflow_interrupt();
+	  opticalsensor_overflow_interrupt();
   }
 
   /* USER CODE END Callback 1 */

@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 template <typename T>
 class CircularBufferWriter
 {
@@ -34,32 +37,44 @@ inline CircularBufferWriter<T>::CircularBufferWriter(T* buffer, uint32_t* writer
 template <typename T>
 inline uint32_t CircularBufferWriter<T>::GetIndex() const
 {
-    return *_writerIndex;
+    taskENTER_CRITICAL(); 
+    uint32_t writerIndex = *_writerIndex;
+    taskEXIT_CRITICAL(); 
+    return writerIndex;
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::SetIndex(uint32_t index)
 {
+    taskENTER_CRITICAL(); 
     *_writerIndex = index % _size;
+    taskEXIT_CRITICAL(); 
 }
+
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElement(const T& value)
 {
+    taskENTER_CRITICAL(); 
     _buffer[*_writerIndex] = value;
+    taskEXIT_CRITICAL();
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElement(uint32_t index, const T& value)
 {
+    taskENTER_CRITICAL(); 
     _buffer[index % _size] = value;
+    taskEXIT_CRITICAL(); 
 }
 
 template <typename T>
 inline void CircularBufferWriter<T>::WriteElementAndIncrementIndex(const T& value)
 {
+    taskENTER_CRITICAL(); 
     _buffer[*_writerIndex] = value;
     *_writerIndex = (*_writerIndex + 1) % _size;
+    taskEXIT_CRITICAL(); 
 }
 
 #endif /* CIRCULARBUFFER_INC_CIRCULARBUFFERWRITER_HPP_ */

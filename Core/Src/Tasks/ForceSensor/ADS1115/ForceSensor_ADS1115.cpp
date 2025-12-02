@@ -1,18 +1,15 @@
 #include <Tasks/ForceSensor/ADS1115/forcesensor_ads1115_main.h>
 #include <Tasks/ForceSensor/ADS1115/ForceSensor_ADS1115.hpp>
 
-#define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
 
 // Global interrupts
-volatile bool ads1115_alert_status = false;
+static volatile bool ads1115_alert_status = false;
 
-ForceSensorADS1115::ForceSensorADS1115(I2C_HandleTypeDef* i2cHandle,
-				osMessageQueueId_t sessionControllerToForceSensorHandle) : 
+ForceSensorADS1115::ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle) : 
 		// this comes directly from circular_buffers.h and config.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
-        _ads1115(i2cHandle),
-		_i2cHandle(i2cHandle),
+        _ads1115(forceSensorADS1115Handle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle) {}
 
 bool ForceSensorADS1115::Init()
@@ -81,14 +78,14 @@ float ForceSensorADS1115::GetForce(uint16_t raw_value)
 
 
 
-extern "C" void force_sensor_ads1115_gpio_alert_interrupt(void)
+extern "C" void forcesensor_ads1115_gpio_alert_interrupt(void)
 {
     ads1115_alert_status = true;
 }
 
-extern "C" void force_sensor_ads1115_main(I2C_HandleTypeDef* i2cHandle, osMessageQueueId_t sessionControllerToForcesensorADS1115Handle)
+extern "C" void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToForcesensorADS1115Handle)
 {
-	ForceSensorADS1115 forcesensor = ForceSensorADS1115(i2cHandle, sessionControllerToForcesensorADS1115Handle);
+	ForceSensorADS1115 forcesensor = ForceSensorADS1115(sessionControllerToForcesensorADS1115Handle);
 
 	if (!forcesensor.Init())
 	{

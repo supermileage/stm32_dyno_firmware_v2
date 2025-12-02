@@ -8,7 +8,19 @@
 extern "C" {
 #endif
 
-void sessioncontroller_main(osMessageQueueId_t sessionControllerToLumexLcdHandle);
+typedef struct 
+{
+    osMessageQueueId_t usb_controller;
+    osMessageQueueId_t sd_controller;
+    osMessageQueueId_t force_sensor;
+    osMessageQueueId_t optical_sensor;
+    osMessageQueueId_t bpm_controller;
+    osMessageQueueId_t pid_controller;
+    osMessageQueueId_t lumex_lcd;
+} session_controller_os_tasks;
+
+
+void sessioncontroller_main(session_controller_os_tasks* task_queues);
 
 #ifdef __cplusplus
 }

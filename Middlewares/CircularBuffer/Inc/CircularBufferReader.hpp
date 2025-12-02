@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 template <typename T>
 class CircularBufferReader
 {
@@ -20,7 +23,7 @@ public:
 private:
     T* _buffer;           // external buffer memory
     uint32_t* _writerIndex;
-    uint32_t _size;
+    uint32_t _size; 
     uint32_t _readerIndex;
    
 };
@@ -34,46 +37,60 @@ inline CircularBufferReader<T>::CircularBufferReader(T* buffer, uint32_t* writer
 template <typename T>
 inline uint32_t CircularBufferReader<T>::GetIndex() const
 {
-    return _readerIndex;
+    taskENTER_CRITICAL(); 
+    uint32_t readerIndex = _readerIndex;
+    taskEXIT_CRITICAL(); 
+    return readerIndex;
 }
 
 template <typename T>
 inline void CircularBufferReader<T>::SetIndex(uint32_t index)
 {
-	_readerIndex = index % _size;
+	taskENTER_CRITICAL(); 
+    _readerIndex = index % _size;
+    taskEXIT_CRITICAL();
 }
 
 template <typename T>
 inline T CircularBufferReader<T>::GetElement(uint32_t index) const
 {
+    taskENTER_CRITICAL(); 
     return _buffer[index % _size];
+    taskEXIT_CRITICAL();
 }
 
 template <typename T>
 inline bool CircularBufferReader<T>::GetElement(T& out) const
 {
+    taskENTER_CRITICAL(); 
+    
     // empty: nothing new to read
     if (_readerIndex == *_writerIndex)
+    {
+        taskEXIT_CRITICAL();
         return false;
+    }
 
     out = _buffer[_readerIndex];
+    taskEXIT_CRITICAL();
     return true;
 }
 
 template <typename T>
 inline bool CircularBufferReader<T>::GetElementAndIncrementIndex(T& out)
 {
-    // empty: nothing new to read
+    taskENTER_CRITICAL();                // disable context switch
     if (_readerIndex == *_writerIndex)
+    {
+        taskEXIT_CRITICAL();
         return false;
-
-    out = _buffer[_readerIndex];
-
-    // advance read index
+    }
+    out = _buffer[_readerIndex];         // read full struct
     _readerIndex = (_readerIndex + 1) % _size;
-
+    taskEXIT_CRITICAL();
     return true;
 }
+
 
 
 #endif /* CIRCULARBUFFER_INC_CIRCULARBUFFERREADER_HPP_ */

@@ -1,19 +1,15 @@
 #include <Tasks/ForceSensor/ADC/forcesensor_adc_main.h>
 #include <Tasks/ForceSensor/ADC/ForceSensor_ADC.hpp>
 
-#define MAX_FORCE_LBF 25
 #define LBF_TO_NEWTON 4.44822
 
 // Global interrupts
-volatile uint32_t timestamp = 0;
-volatile uint16_t adc_value = 0;
-volatile bool timerflag = 0;
+static volatile uint32_t timestamp = 0;
+static volatile uint16_t adc_value = 0;
 
-ForceSensorADC::ForceSensorADC(ADC_HandleTypeDef* adcHandle,
-				osMessageQueueId_t sessionControllerToForceSensorHandle) : /* Constructor */
+ForceSensorADC::ForceSensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle) :
 		// this comes directly from circular_buffers.h and config.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
-		_adcHandle(adcHandle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
 {}
 
@@ -31,15 +27,7 @@ void ForceSensorADC::Run(void)
 	{
 	    osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADC, NULL, 0);
 		if (enableADC) {
-
-			timerflag = 0;
-			
-			HAL_ADC_Start_IT(_adcHandle); // Enables interrupt callback
-
-			while (!timerflag) // Interrupt causes exit while-loop, not called again until next HAL_ADC_Start_IT
-			{
-				osDelay(1);
-			}
+			HAL_ADC_Start_IT(forceSensorADCHandle); // Enables interrupt callback
 
 			outputData.timestamp = timestamp;
 			outputData.force = GetForce(adc_value);
@@ -60,16 +48,16 @@ float ForceSensorADC::GetForce(uint16_t adcValue)
 }
 
 
-extern "C" void adc_forcesensor_interrupt(ADC_HandleTypeDef* hadc)
+extern "C" void forcesensor_adc_interrupt()
 {
 	timerflag = 1;
 	timestamp = get_timestamp();
-	adc_value = HAL_ADC_GetValue(hadc);
+	adc_value = HAL_ADC_GetValue(forceSensorADCHandle);
 }
 
-extern "C" void force_sensor_adc_main(ADC_HandleTypeDef* adcHandle, osMessageQueueId_t sessionControllerToForceSensorADCHandle)
+extern "C" void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle)
 {
-	ForceSensorADC forcesensor = ForceSensorADC(adcHandle, sessionControllerToForceSensorADCHandle);
+	ForceSensorADC forcesensor = ForceSensorADC(sessionControllerToForceSensorADCHandle);
 
 	if (!forcesensor.Init())
 	{

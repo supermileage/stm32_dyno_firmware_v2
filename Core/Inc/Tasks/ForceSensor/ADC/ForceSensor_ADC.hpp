@@ -4,6 +4,8 @@
 #include "main.h"
 #include "cmsis_os2.h"
 
+#include "Config/hal_instances.h"
+
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/osqueue_helpers.h"
@@ -18,9 +20,8 @@ extern "C" {
 class ForceSensorADC
 {
 	public:
-		ForceSensorADC(ADC_HandleTypeDef* adcHandle,
-				osMessageQueueId_t sessionControllerToForceSensorHandle);
-		virtual ~ForceSensorADC() = default;
+		ForceSensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle);
+		~ForceSensorADC() = default;
 
 		bool Init();
 		void Run();
@@ -30,8 +31,6 @@ class ForceSensorADC
 
 		// Circular Buffer for ForceSensor with template bpm_output_data
 		CircularBufferWriter<forcesensor_output_data> _buffer_writer;
-
-		ADC_HandleTypeDef* _adcHandle;
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;

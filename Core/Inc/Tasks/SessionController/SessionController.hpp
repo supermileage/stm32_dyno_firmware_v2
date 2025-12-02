@@ -16,7 +16,7 @@ extern "C" {
 class SessionController
 {
     public:
-        SessionController(osMessageQueueId_t sessionControllerToLumexLcdHandle);
+        SessionController(session_controller_os_tasks* task_queues);
         ~SessionController() = default;
 
         bool Init(void);
@@ -24,11 +24,12 @@ class SessionController
 
     private:
         FSM _fsm;
-        osMessageQueueId_t _sessionControllerToLumexLcdHandle;
+        session_controller_os_tasks* _task_queues;
 
         bool _prevUSBLoggingEnabled;
         bool _prevSDLoggingEnabled;
         bool _prevPIDEnabled;
+        bool _prevInSession;
 
 };
 
