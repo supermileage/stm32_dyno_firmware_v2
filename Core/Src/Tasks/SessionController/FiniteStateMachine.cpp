@@ -438,9 +438,41 @@ void FSM::InSessionState()
     _state.mainState = State::MainDynoState::IN_SESSION;
     
     // The actual data will be managed in the session controller
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "n: 00000 F: 00.0" , 0, 0);
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "P: 00000.00" , 1, 0);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "n:     0 T: 0.00" , 0, 0);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "P:     0.00" , 1, 0);
 }
+
+void FSM::DisplayRpm(float rpm)
+{
+    char buf[6]; // Enough for 32-bit integers
+    uint32_t value = static_cast<uint32_t>(std::round(rpm));
+    snprintf(buf, sizeof(buf), "%lu", value);
+
+    const char* buf_ptr = buf; // Make pointer const
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buf_ptr, 0, 3);
+}
+
+void FSM::DisplayTorque(float torque)
+{
+    char buf[6]; // Enough for torque with 2 decimals
+    float value = std::round(torque * 100.0) / 100.0;
+    snprintf(buf, sizeof(buf), "%.2f", value);
+
+    const char* buf_ptr = buf;
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buf_ptr, 0, 12);
+}
+
+void FSM::DisplayPower(float power)
+{
+    char buf[9]; // Enough for big power numbers with 2 decimals
+    float value = std::round(power * 100.0) / 100.0;
+    snprintf(buf, sizeof(buf), "%.2f", value);
+
+    const char* buf_ptr = buf;
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buf_ptr, 1, 3);
+}
+
+
 
 void FSM::AddToLumexLCDMessageQueue(session_controller_to_lumex_lcd_opcode opcode, const char* display_string, uint8_t row, uint8_t column)
 {

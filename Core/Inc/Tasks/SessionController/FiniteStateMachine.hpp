@@ -64,6 +64,10 @@ public:
 
     int GetDesiredRpm() const;
 
+    void DisplayRpm(float rpm);
+    void DisplayTorque(float torque);
+    void DisplayPower(float power);
+
 private:
     // Methods which are called when a state change is done
     void IdleState();

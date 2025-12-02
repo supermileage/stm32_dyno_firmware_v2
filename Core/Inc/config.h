@@ -3,6 +3,10 @@
 
 #include "ADS1115_main.h"
 
+// Power Calculation Constants
+#define DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M 1
+#define MOMENT_OF_INERTIA_KG_M2 1
+
 // Task enable/disables
 #define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
 #define FORCE_SENSOR_ADC_TASK_ENABLE 0
