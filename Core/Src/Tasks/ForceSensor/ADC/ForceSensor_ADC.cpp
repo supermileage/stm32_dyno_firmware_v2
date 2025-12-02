@@ -50,7 +50,6 @@ float ForceSensorADC::GetForce(uint16_t adcValue)
 
 extern "C" void forcesensor_adc_interrupt()
 {
-	timerflag = 1;
 	timestamp = get_timestamp();
 	adc_value = HAL_ADC_GetValue(forceSensorADCHandle);
 }

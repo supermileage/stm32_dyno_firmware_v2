@@ -38,7 +38,6 @@ void OpticalSensor::Run(void)
 			// populates the struct data
 			outputData.timestamp = timestampCopy;
 			outputData.rpm = GetRPM(timeDifferenceCopy);
-			outputData.raw_value = rawValueCopy;
 			_buffer_writer.WriteElementAndIncrementIndex(outputData);
 		}
 
