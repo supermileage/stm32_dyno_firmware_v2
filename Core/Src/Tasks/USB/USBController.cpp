@@ -33,25 +33,20 @@ void USBController::Run()
 	{
 		osMessageQueueGet(_sessionControllerToUsbController, &enableUSB, NULL, 0);
 		if (enableUSB) {
-			while (EnoughSpace(sizeof(opEcdr), sizeof(_oe_output)) && _buffer_reader_oe.GetElementAndIncrementIndex(_oe_output)) { // Takes in struct but only passes in address
-				memcpy(_txBuffer + _txBufferIndex, &opEcdr, sizeof(opEcdr));
-				memcpy(_txBuffer + _txBufferIndex, &_oe_output, sizeof(_oe_output)); // Pointer arithmetic
-				_txBufferIndex = _txBufferIndex + sizeof(opEcdr) + sizeof(_oe_output);
-				SendOutputToUSB(sizeof(_oe_output));
+			while (!SendOutputIfBufferFull(sizeof(opEcdr), sizeof(_oe_output)) && _buffer_reader_oe.GetElementAndIncrementIndex(_oe_output)) { // Takes in struct but only passes in address
+				AddToBuffer(&opEcdr, sizeof(opEcdr));
+				AddToBuffer(&_oe_output, sizeof(_oe_output));
 			}
 
-			while (EnoughSpace(sizeof(fcSnsr), sizeof(_fs_output)) && _buffer_reader_fs.GetElementAndIncrementIndex(_fs_output)) {
-				memcpy(_txBuffer + _txBufferIndex, &fcSnsr, sizeof(fcSnsr));
-				memcpy(_txBuffer + _txBufferIndex, &_fs_output, sizeof(_fs_output));
-				_txBufferIndex = _txBufferIndex + sizeof(fcSnsr) + sizeof(_fs_output);
-				SendOutputToUSB(sizeof(_fs_output));
+			while (!SendOutputIfBufferFull(sizeof(fcSnsr), sizeof(_fs_output)) && _buffer_reader_fs.GetElementAndIncrementIndex(_fs_output)) {
+				AddToBuffer(&fcSnsr, sizeof(fcSnsr));
+				AddToBuffer(&_fs_output, sizeof(_fs_output));
 			}
 
-			while (EnoughSpace(sizeof(bkPowm), sizeof(_bpm_output)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpm_output)) {
-				memcpy(_txBuffer + _txBufferIndex, &bkPowm, sizeof(bkPowm));
-				memcpy(_txBuffer + _txBufferIndex, &_bpm_output, sizeof(_bpm_output));
+			while (!SendOutputIfBufferFull(sizeof(bkPowm), sizeof(_bpm_output)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpm_output)) {
+				AddToBuffer(&bkPowm, sizeof(bkPowm));
+				AddToBuffer(&_bpm_output, sizeof(_bpm_output));
 				_txBufferIndex = _txBufferIndex + sizeof(bkPowm) + sizeof(_bpm_output);
-				SendOutputToUSB(sizeof(_bpm_output));
 			}
 
 			if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
@@ -64,18 +59,27 @@ void USBController::Run()
 
 }
 
-size_t USBController::EnoughSpace(size_t enumSend, size_t outputSend) {
-	return TX_BUFFER_SIZE > _txBufferIndex + enumSend + outputSend;
+//size_t USBController::EnoughSpace(size_t enumSend, size_t outputSend) {
+//	return TX_BUFFER_SIZE > _txBufferIndex + enumSend + outputSend;
+//}
+
+void USBController::AddToBuffer(void* outputData, size_t outputDataSize) {
+	memcpy(_txBuffer + _txBufferIndex, outputData, outputDataSize); // Adds
+	_txBufferIndex += outputDataSize;
 }
 
-void USBController::SendOutputToUSB(size_t addSize) { // takes in size that it's meant to progress length of _txBuffer by
-	if (_txBufferIndex + sizeof(addSize) >= TX_BUFFER_SIZE) {
+bool USBController::SendOutputIfBufferFull(size_t enumSize, size_t outputSize)
+{
+if (_txBufferIndex + sizeof(outputSize) >= TX_BUFFER_SIZE) {
 		// Transmit to USB when safe
 		while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) { // This line writes to USB device once the flag returns false
 			osDelay(1);
 		}
 		_txBufferIndex = 0; // Reset buffer index (actual buffer not cleared, just freed for overwriting)
+		return true;
 	} 
+
+	return false;
 }
 
 extern "C" void usb_main(osMessageQueueId_t sessionControllerToBpmHandle)

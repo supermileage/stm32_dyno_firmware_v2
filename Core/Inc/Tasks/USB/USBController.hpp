@@ -16,8 +16,8 @@ class USBController
         bool Init();
         void Run();
     private:
-        void SendOutputToUSB(size_t);
-        size_t EnoughSpace(size_t, size_t);
+        void AddToBuffer(void*, size_t);
+        bool SendOutputIfBufferFull(size_t, size_t);
     
         CircularBufferReader<optical_encoder_output_data> _buffer_reader_oe;
         CircularBufferReader<forcesensor_output_data> _buffer_reader_fs;
