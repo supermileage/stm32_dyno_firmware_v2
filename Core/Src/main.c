@@ -1376,7 +1376,7 @@ void sessionController(void *argument)
 void startUsbTask(void *argument)
 {
   /* USER CODE BEGIN startUsbTask */
-  #if SESSION_CONTROLLER_TASK_ENABLE == 0
+  #if USB_CONTROLLER_TASK_ENABLE == 0
     osThreadSuspend(NULL);
   #else
     usb_main(sessionControllertoUsbControllerHandle);
