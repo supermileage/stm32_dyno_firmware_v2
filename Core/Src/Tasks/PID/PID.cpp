@@ -8,8 +8,8 @@ PIDController::PIDController(osMessageQueueId_t sessionControllerToPidController
 			_enabled(initialState),
 			_curTimestamp(0),
 			_prevTimestamp(0),
-			_curRpm(static_cast<float>(0)),
-			_desiredRpm(static_cast<float>(0)),
+			_curAngularVelocity(static_cast<float>(0)),
+			_desiredAngularVelocity(static_cast<float>(0)),
 			_prevError(static_cast<float>(0)),
 			_error(static_cast<float>(0))
 {}
@@ -51,13 +51,13 @@ void PIDController::Run()
 
         // Update current values
         _curTimestamp = latestOpticalEncoderData.timestamp;
-        _curRpm = latestOpticalEncoderData.rpm;
+        _curAngularVelocity = latestOpticalEncoderData.angular_velocity;
 
         // Compute time delta safely, handling timer overflow
         timeDelta = GetTimeDelta();
 
         // PID error calculation
-        _error = static_cast<float>(_desiredRpm) - _curRpm;
+        _error = static_cast<float>(_desiredAngularVelocity) - _curAngularVelocity;
 
         derivative = (_error - _prevError) / (float)timeDelta;
         integral += _error * (float)timeDelta;
@@ -106,7 +106,7 @@ void PIDController::Reset()
 {
 	_curTimestamp = 0;
 	_prevTimestamp = 0;
-	_curRpm = static_cast<float>(0);
+	_curAngularVelocity = static_cast<float>(0);
 
 	_error = static_cast<float>(0);
 	_prevError = static_cast<float>(0);
@@ -126,7 +126,7 @@ void PIDController::ReceiveInstruction()
 	}
 
 	_enabled = msg.enable_status;
-	_desiredRpm = msg.desired_rpm;
+	_desiredAngularVelocity = msg.desired_angular_velocity;
 
 	if (_enabled)
 	{

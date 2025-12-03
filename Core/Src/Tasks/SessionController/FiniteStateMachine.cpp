@@ -426,7 +426,7 @@ void FSM::PIDDesiredRPMOptionEditSettingsState(bool clearDisplay)
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID DES RPM", 0, 2);
 
     char buffer[16];
-    snprintf(buffer, sizeof(buffer), "%5d", _desiredRpm);
+    snprintf(buffer, sizeof(buffer), "%5d", static_cast<int>(_desiredRpm));
 
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buffer, 1, 5);
 }
@@ -484,7 +484,12 @@ float FSM::GetDesiredBpmDutyCycle() const
     return _pidOptionToggleableEnabled ? _desiredBpmDutyCycle : -1;
 }
 
-int FSM::GetDesiredRpm() const
+float FSM::GetDesiredRpm() const
 {
     return _desiredRpm;
+}
+
+float FSM::GetDesiredAngularVelocity() const
+{
+    return _desiredRpm * 2 * M_PI / 60;
 }

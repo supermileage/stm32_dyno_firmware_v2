@@ -33,13 +33,17 @@ void OpticalSensor::Run(void)
 		osMessageQueueGet(_sessionControllerToOpticalSensorHandle, &_opticalEncoderEnabled, NULL, 0);
 		if (_opticalEncoderEnabled) {
 			// Copies are made to prevent interrupts from overwriting data
-			// Does not require a lock since making copies use one clock cycle
+			// uses a critical section to get data 
+			taskENTER_CRITICAL();
 			uint32_t timestampCopy = timestamp;
-			uint16_t timerCounterDifferenceCopy = timerCounterDifference;
+			uint32_t timerCounterDifferenceCopy = timerCounterDifference;
+			uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
+			taskEXIT_CRITICAL();
 
 			// populates the struct data
 			outputData.timestamp = timestampCopy;
-			outputData.rpm = GetRPM(timerCounterDifferenceCopy);
+			outputData.angular_velocity = CalculateAngularVelocity(timerCounterDifferenceCopy);
+			outputData.angular_acceleration = CalculateAngularAcceleration(timerCounterDifferenceCopy, prevTimerCounterDifferenceCopy);
 			_buffer_writer.WriteElementAndIncrementIndex(outputData);
 		}
 
@@ -62,12 +66,12 @@ void OpticalSensor::ToggleOpticalEncoder(bool enable)
 	_opticalEncoderEnabled = enable;
 }
 
-float OpticalSensor::GetAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference)
+float OpticalSensor::CalculateAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference)
 {
     if (timerCounterDifference == 0 || prevTimerCounterDifference == 0) return 0;
 
-    float omega_curr = GetAngularVelocity(timerCounterDifference);
-    float omega_prev = GetAngularVelocity(prevTimerCounterDifference);
+    float omega_curr = CalculateAngularVelocity(timerCounterDifference);
+    float omega_prev = CalculateAngularVelocity(prevTimerCounterDifference);
 
     // Δt in seconds between these two measurements
     float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (CLK_SPEED / (opticalTimer->Instance->PSC + 1));
@@ -77,7 +81,7 @@ float OpticalSensor::GetAngularAcceleration(uint32_t timerCounterDifference, uin
 }
 
 
-float OpticalSensor::GetAngularVelocity(uint32_t timerCounterDifference)
+float OpticalSensor::CalculateAngularVelocity(uint32_t timerCounterDifference)
 {
     if (timerCounterDifference == 0) return 0;
 
@@ -90,7 +94,7 @@ float OpticalSensor::GetAngularVelocity(uint32_t timerCounterDifference)
 }
 
 
-float OpticalSensor::GetRPM(uint32_t timerCounterDifference)
+float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
 {
     // Return 0 immediately if no pulse was detected
     if (timerCounterDifference == 0) {
