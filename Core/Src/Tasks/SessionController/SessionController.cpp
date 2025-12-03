@@ -96,7 +96,7 @@ void SessionController::Run()
             {
                 session_controller_to_pid_controller pid_msg;
                 pid_msg.enable_status = PIDEnabled;
-                pid_msg.desired_rpm = _fsm.GetDesiredRpm();
+                pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
                 osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, 0);
                 _prevPIDEnabled = PIDEnabled;
             }
