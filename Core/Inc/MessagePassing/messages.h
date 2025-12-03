@@ -51,18 +51,21 @@ typedef struct
 {
 	uint32_t timestamp;  // Timestamp of the reading 
 	float rpm;           // Measured RPM from the encoder
+	uint32_t raw_value;  // In case users want to have custom implementation with it
 } optical_encoder_output_data;
 
 
 typedef struct {
 	uint32_t timestamp;
 	float force;
+	uint32_t raw_value;
 } forcesensor_output_data;
 
 typedef struct
 {
     uint32_t timestamp;
     float duty_cycle;
+	uint32_t raw_value; // Really just padding to match the other output data types
 } bpm_output_data;
 
 #ifdef __cplusplus
