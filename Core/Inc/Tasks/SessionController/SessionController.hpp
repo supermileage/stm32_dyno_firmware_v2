@@ -41,7 +41,6 @@ class SessionController
         bool _prevPIDEnabled;
         bool _prevInSession;
 
-        inline static float RpmToAngularVelocity(float rpm);
         inline float CalculateTorque(float angularAcceleration, float force, float angularVelocity);
         inline float CalculatePower(float torque, float angularVelocity);
         inline float CalculateMechanicalLosses(float angularAcceleration, float angularVelocity);

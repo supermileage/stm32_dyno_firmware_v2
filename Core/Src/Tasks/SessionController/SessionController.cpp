@@ -129,14 +129,14 @@ void SessionController::Run()
 
             // TO UPDATE
             float angularAcceleration = 0;
-            float angularVelocity = RpmToAngularVelocity(optical_encoder_data.rpm);
+            float angularVelocity = optical_encoder_data.angular_velocity;
             float force = force_data.force;
             
             float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
             
             _fsm.DisplayTorque(torque);
             _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
-            _fsm.DisplayRpm(optical_encoder_data.rpm);
+            _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
 
 
         }
@@ -145,11 +145,6 @@ void SessionController::Run()
             
 
     }
-}
-
-float SessionController::RpmToAngularVelocity(float rpm)
-{
-    return rpm * 2 * M_PI / 60;
 }
 
 float SessionController::CalculateTorque(float angularAcceleration, float force, float angularVelocity)
