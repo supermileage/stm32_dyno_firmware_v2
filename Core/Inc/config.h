@@ -48,8 +48,8 @@
 // PID config
 #define PID_INITIAL_STATUS false
 
-#define TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
+// USB config
+#define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 
-// USB Controller Config
-// #define USB_CDC_TX_BUFFER_SIZE 2028
+
 #endif /* INC_CONFIG_H_ */

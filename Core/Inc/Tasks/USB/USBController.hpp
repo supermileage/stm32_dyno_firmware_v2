@@ -7,6 +7,12 @@
 #include "config.h"
 #include "CircularBufferReader.hpp"
 
+enum class USBOpcode : uint8_t {
+    OPTICAL_ENCODER = 0,
+    FORCESENSOR     = 1,
+    BPM             = 2
+};
+
 class USBController
 {
     public:
@@ -23,12 +29,12 @@ class USBController
         CircularBufferReader<forcesensor_output_data> _buffer_reader_fs;
         CircularBufferReader<bpm_output_data> _buffer_reader_bpm;
 
-        optical_encoder_output_data _oe_output; // Structs containing each output type
-        forcesensor_output_data _fs_output;
-        bpm_output_data _bpm_output;
+        optical_encoder_output_data _opticalEncoderOutput; // Structs containing each output type
+        forcesensor_output_data _forceSensorOutput;
+        bpm_output_data _bpmOutput;
 
         osMessageQueueId_t _sessionControllerToUsbController;
-        uint8_t _txBuffer[TX_BUFFER_SIZE];
+        uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
 };
 

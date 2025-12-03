@@ -8,11 +8,11 @@ USBController::USBController(osMessageQueueId_t sessionControllerToUsbController
     : _buffer_reader_oe(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_fs(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_bpm(bpm_circular_buffer, &bpm_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
-      _oe_output{0},
-      _fs_output{0},
-      _bpm_output{0},
+      _opticalEncoderOutput{},
+      _forceSensorOutput{},
+      _bpmOutput{},
 	  _sessionControllerToUsbController(sessionControllerToUsbController),
-      _txBuffer{0},
+      _txBuffer{},
       _txBufferIndex(0)
 {}
 
@@ -25,28 +25,28 @@ void USBController::Run()
 {
 	bool enableUSB = false;
 
-	send_usb_output_data opEcdr = OPTICAL_ENCODER;
-	send_usb_output_data fcSnsr = FORCESENSOR;
-	send_usb_output_data bkPowm = BRAKE_PWM;
+
 
 	while(1)
 	{
 		osMessageQueueGet(_sessionControllerToUsbController, &enableUSB, NULL, 0);
 		if (enableUSB) {
-			while (!SendOutputIfBufferFull(sizeof(opEcdr), sizeof(_oe_output)) && _buffer_reader_oe.GetElementAndIncrementIndex(_oe_output)) { // Takes in struct but only passes in address
-				AddToBuffer(&opEcdr, sizeof(opEcdr));
-				AddToBuffer(&_oe_output, sizeof(_oe_output));
+			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_opticalEncoderOutput)) && _buffer_reader_oe.GetElementAndIncrementIndex(_opticalEncoderOutput)) { // Takes in struct but only passes in address
+				uint8_t op = static_cast<uint8_t>(USBOpcode::OPTICAL_ENCODER);
+				AddToBuffer(&op, sizeof(USBOpcode));
+				AddToBuffer(&_opticalEncoderOutput, sizeof(_opticalEncoderOutput));
 			}
 
-			while (!SendOutputIfBufferFull(sizeof(fcSnsr), sizeof(_fs_output)) && _buffer_reader_fs.GetElementAndIncrementIndex(_fs_output)) {
-				AddToBuffer(&fcSnsr, sizeof(fcSnsr));
-				AddToBuffer(&_fs_output, sizeof(_fs_output));
+			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_forceSensorOutput)) && _buffer_reader_fs.GetElementAndIncrementIndex(_forceSensorOutput)) {
+				uint8_t op = static_cast<uint8_t>(USBOpcode::FORCESENSOR);
+				AddToBuffer(&op, sizeof(USBOpcode));
+				AddToBuffer(&_forceSensorOutput, sizeof(_forceSensorOutput));
 			}
 
-			while (!SendOutputIfBufferFull(sizeof(bkPowm), sizeof(_bpm_output)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpm_output)) {
-				AddToBuffer(&bkPowm, sizeof(bkPowm));
-				AddToBuffer(&_bpm_output, sizeof(_bpm_output));
-				_txBufferIndex = _txBufferIndex + sizeof(bkPowm) + sizeof(_bpm_output);
+			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_bpmOutput)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpmOutput)) {
+				uint8_t op = static_cast<uint8_t>(USBOpcode::BPM);
+				AddToBuffer(&op, sizeof(USBOpcode));
+				AddToBuffer(&_bpmOutput, sizeof(_bpmOutput));
 			}
 
 			if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
@@ -59,10 +59,6 @@ void USBController::Run()
 
 }
 
-//size_t USBController::EnoughSpace(size_t enumSend, size_t outputSend) {
-//	return TX_BUFFER_SIZE > _txBufferIndex + enumSend + outputSend;
-//}
-
 void USBController::AddToBuffer(void* outputData, size_t outputDataSize) {
 	memcpy(_txBuffer + _txBufferIndex, outputData, outputDataSize); // Adds
 	_txBufferIndex += outputDataSize;
@@ -70,17 +66,18 @@ void USBController::AddToBuffer(void* outputData, size_t outputDataSize) {
 
 bool USBController::SendOutputIfBufferFull(size_t enumSize, size_t outputSize)
 {
-if (_txBufferIndex + sizeof(outputSize) >= TX_BUFFER_SIZE) {
-		// Transmit to USB when safe
-		while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) { // This line writes to USB device once the flag returns false
-			osDelay(1);
-		}
-		_txBufferIndex = 0; // Reset buffer index (actual buffer not cleared, just freed for overwriting)
-		return true;
-	} 
+    if (_txBufferIndex + enumSize + outputSize >= USB_TX_BUFFER_SIZE) {
+        while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+            osDelay(1);
+        }
+        _txBufferIndex = 0;
+        
+    }
 
-	return false;
+	return true;
+
 }
+
 
 extern "C" void usb_main(osMessageQueueId_t sessionControllerToBpmHandle)
 {
