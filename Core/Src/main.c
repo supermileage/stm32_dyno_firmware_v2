@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -31,6 +32,8 @@
 
 #include <Tasks/SessionController/input_manager_interrupts.h>
 #include <Tasks/SessionController/sessioncontroller_main.h>
+
+#include <Tasks/USB/usb_main.h>
 
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
@@ -70,8 +73,6 @@ TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
-
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* Definitions for lcdTask */
 osThreadId_t lcdTaskHandle;
@@ -115,6 +116,13 @@ const osThreadAttr_t sessionControllerTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for usbTask */
+osThreadId_t usbTaskHandle;
+const osThreadAttr_t usbTask_attributes = {
+  .name = "usbTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
@@ -150,6 +158,11 @@ osMessageQueueId_t sessionControllerToOpticalSensorHandle;
 const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
   .name = "sessionControllerToOpticalSensor"
 };
+/* Definitions for sessionControllertoUsbController */
+osMessageQueueId_t sessionControllertoUsbControllerHandle;
+const osMessageQueueAttr_t sessionControllertoUsbController_attributes = {
+  .name = "sessionControllertoUsbController"
+};
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
@@ -176,7 +189,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM14_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
@@ -192,6 +204,7 @@ void forceSensor(void *argument);
 void pidController(void *argument);
 void opticalSensor(void *argument);
 void sessionController(void *argument);
+void startUsbTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -240,7 +253,6 @@ int main(void)
   MX_TIM16_Init();
   MX_SDMMC1_SD_Init();
   MX_USART1_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
   MX_TIM14_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
@@ -291,6 +303,9 @@ int main(void)
   /* creation of sessionControllerToOpticalSensor */
   sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToOpticalSensor_attributes);
 
+  /* creation of sessionControllertoUsbController */
+  sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 
   /* USER CODE END RTOS_QUEUES */
@@ -313,6 +328,9 @@ int main(void)
 
   /* creation of sessionControllerTask */
   sessionControllerTaskHandle = osThreadNew(sessionController, NULL, &sessionControllerTask_attributes);
+
+  /* creation of usbTask */
+  usbTaskHandle = osThreadNew(startUsbTask, NULL, &usbTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1000,42 +1018,6 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 9;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -1277,6 +1259,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 /* USER CODE END Header_lcdDisplay */
 void lcdDisplay(void *argument)
 {
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
   #if LUMEX_LCD_TASK_ENABLE == 0
     osThreadSuspend(NULL);
@@ -1380,6 +1364,24 @@ void sessionController(void *argument)
     sessioncontroller_main(sessionControllerToLumexLcdHandle);
   #endif
   /* USER CODE END sessionController */
+}
+
+/* USER CODE BEGIN Header_startUsbTask */
+/**
+* @brief Function implementing the usbTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startUsbTask */
+void startUsbTask(void *argument)
+{
+  /* USER CODE BEGIN startUsbTask */
+  #if USB_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(NULL);
+  #else
+    usb_main(sessionControllertoUsbControllerHandle);
+  #endif
+  /* USER CODE END startUsbTask */
 }
 
  /* MPU Configuration */

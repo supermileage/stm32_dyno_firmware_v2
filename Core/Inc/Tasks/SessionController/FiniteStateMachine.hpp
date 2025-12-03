@@ -62,7 +62,8 @@ public:
 
     float GetDesiredBpmDutyCycle() const;
 
-    int GetDesiredRpm() const;
+    float GetDesiredRpm() const;
+    float GetDesiredAngularVelocity() const;
 
     void DisplayRpm(float rpm);
     void DisplayTorque(float torque);

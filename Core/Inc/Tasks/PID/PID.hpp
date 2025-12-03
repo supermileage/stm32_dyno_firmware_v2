@@ -34,9 +34,9 @@ class PIDController
 		uint32_t _curTimestamp;
 		uint32_t _prevTimestamp;
 
-		float _curRpm;
+		float _curAngularVelocity;
 
-		float _desiredRpm;
+		float _desiredAngularVelocity;
 
 		float _prevError;
 		float _error;

@@ -25,7 +25,7 @@ private:
     uint32_t* _writerIndex;
     uint32_t _size; 
     uint32_t _readerIndex;
-
+   
 };
 
 template <typename T>

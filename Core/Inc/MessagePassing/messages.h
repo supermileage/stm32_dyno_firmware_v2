@@ -43,26 +43,30 @@ typedef struct {
 typedef struct
 {
 	bool enable_status;   // Enable or disable the PID controller
-	int desired_rpm;    // Desired motor RPM setpoint
+	float desired_angular_velocity;    // Desired motor RPM setpoint
 } session_controller_to_pid_controller;
 
 // Message sent from the optical encoder to the PID controller
 typedef struct
 {
 	uint32_t timestamp;  // Timestamp of the reading 
-	float rpm;           // Measured RPM from the encoder
+	float angular_velocity; // Measured angular velocity
+	uint32_t raw_value;  // In case users want to have custom implementation with it
+	float angular_acceleration; // Measured angular acceleration
 } optical_encoder_output_data;
 
 
 typedef struct {
 	uint32_t timestamp;
 	float force;
+	uint32_t raw_value;
 } forcesensor_output_data;
 
 typedef struct
 {
     uint32_t timestamp;
     float duty_cycle;
+	uint32_t raw_value; // Really just padding to match the other output data types
 } bpm_output_data;
 
 #ifdef __cplusplus
