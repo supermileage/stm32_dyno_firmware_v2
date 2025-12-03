@@ -31,6 +31,7 @@ void ForceSensorADC::Run(void)
 
 			outputData.timestamp = timestamp;
 			outputData.force = GetForce(adc_value);
+			outputData.raw_value = adc_value;
 
 			// Add to circular buffer
             _buffer_writer.WriteElementAndIncrementIndex(outputData);

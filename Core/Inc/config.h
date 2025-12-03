@@ -11,6 +11,7 @@
 #define PID_CONTROLLER_TASK_ENABLE 1
 #define BPM_CONTROLLER_TASK_ENABLE 1
 #define LUMEX_LCD_TASK_ENABLE 1
+#define USB_CONTROLLER_TASK_ENABLE 1
 
 
 // Clock speed for timers, need to find better way to get this
@@ -42,10 +43,13 @@
 // Optical Encoder Config
 #define OP_OF 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
-#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50
+#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50// Need to evaluate maximum possible size from STM32
 
 // PID config
 #define PID_INITIAL_STATUS false
+
+// USB config
+#define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 
 
 #endif /* INC_CONFIG_H_ */
