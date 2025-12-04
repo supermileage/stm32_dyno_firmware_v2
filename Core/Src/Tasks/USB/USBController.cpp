@@ -4,6 +4,10 @@
 
 #include <CircularBufferReader.hpp>
 
+#include <iostream>
+
+using namespace std;
+
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController)
     : _buffer_reader_oe(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_fs(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
@@ -12,12 +16,16 @@ USBController::USBController(osMessageQueueId_t sessionControllerToUsbController
       _fs_output{0},
       _bpm_output{0},
 	  _sessionControllerToUsbController(sessionControllerToUsbController),
+	  _standardSize{0},
       _txBuffer{0},
       _txBufferIndex(0)
 {}
 
 bool USBController::Init()
 {
+	// Need to pad every struct to the largest size out of all of them
+	_standardSize = std::max(sizeof(_oe_output), std::max(sizeof(_bpm_output), sizeof(_fs_output)));
+
 	return true;
 }
 
@@ -33,19 +41,19 @@ void USBController::Run()
 	{
 		osMessageQueueGet(_sessionControllerToUsbController, &enableUSB, NULL, 0);
 		if (enableUSB) {
-			while (!SendOutputIfBufferFull(sizeof(opEcdr), sizeof(_oe_output)) && _buffer_reader_oe.GetElementAndIncrementIndex(_oe_output)) { // Takes in struct but only passes in address
+			while (!SendOutputIfBufferFull(sizeof(opEcdr), _standardSize) && _buffer_reader_oe.GetElementAndIncrementIndex(_oe_output)) { // Takes in struct but only passes in address
 				AddToBuffer(&opEcdr, sizeof(opEcdr));
-				AddToBuffer(&_oe_output, sizeof(_oe_output));
+				AddToBuffer(&_oe_output, _standardSize);
 			}
 
-			while (!SendOutputIfBufferFull(sizeof(fcSnsr), sizeof(_fs_output)) && _buffer_reader_fs.GetElementAndIncrementIndex(_fs_output)) {
+			while (!SendOutputIfBufferFull(sizeof(fcSnsr), _standardSize) && _buffer_reader_fs.GetElementAndIncrementIndex(_fs_output)) {
 				AddToBuffer(&fcSnsr, sizeof(fcSnsr));
-				AddToBuffer(&_fs_output, sizeof(_fs_output));
+				AddToBuffer(&_fs_output, _standardSize);
 			}
 
-			while (!SendOutputIfBufferFull(sizeof(bkPowm), sizeof(_bpm_output)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpm_output)) {
+			while (!SendOutputIfBufferFull(sizeof(bkPowm), _standardSize) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpm_output)) {
 				AddToBuffer(&bkPowm, sizeof(bkPowm));
-				AddToBuffer(&_bpm_output, sizeof(_bpm_output));
+				AddToBuffer(&_bpm_output, _standardSize);
 				_txBufferIndex = _txBufferIndex + sizeof(bkPowm) + sizeof(_bpm_output);
 			}
 

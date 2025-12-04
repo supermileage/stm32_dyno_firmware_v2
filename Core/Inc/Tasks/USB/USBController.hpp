@@ -28,6 +28,7 @@ class USBController
         bpm_output_data _bpm_output;
 
         osMessageQueueId_t _sessionControllerToUsbController;
+        size_t _standardSize;
         uint8_t _txBuffer[TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
 };

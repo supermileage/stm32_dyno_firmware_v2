@@ -71,7 +71,7 @@ typedef struct
 {
     uint32_t timestamp;
     float duty_cycle;
-	uint32_t raw_value; // Really just padding to match the other output data types
+//	uint32_t raw_value; // No longer necessary to pad useless values
 } bpm_output_data;
 
 #ifdef __cplusplus
