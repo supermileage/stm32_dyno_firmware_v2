@@ -12,6 +12,7 @@ extern "C" {
 extern TIM_HandleTypeDef* timestampTimer;
 
 uint32_t get_timestamp();
+uint32_t get_clock_speed();
 
 #ifdef __cplusplus
 }

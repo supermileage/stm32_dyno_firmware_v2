@@ -46,6 +46,12 @@ typedef struct
 	float desired_angular_velocity;    // Desired motor RPM setpoint
 } session_controller_to_pid_controller;
 
+typedef enum {
+	OPTICAL_ENCODER = 0,
+	FORCESENSOR, 
+	BRAKE_PWM
+} send_usb_output_data;
+
 // Message sent from the optical encoder to the PID controller
 typedef struct
 {
