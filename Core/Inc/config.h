@@ -15,7 +15,7 @@
 
 
 // Clock speed for timers, need to find better way to get this
-#define CLK_SPEED 200000000
+// #define CLK_SPEED 200000000
 
 // Voltage Reference (should be 3V3)
 #define VREF 3.3

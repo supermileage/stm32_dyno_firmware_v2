@@ -73,7 +73,7 @@ float OpticalSensor::CalculateAngularAcceleration(uint32_t timerCounterDifferenc
     float omega_prev = CalculateAngularVelocity(prevTimerCounterDifference);
 
     // Δt in seconds between these two measurements
-    float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (CLK_SPEED / (opticalTimer->Instance->PSC + 1));
+    float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (get_clock_speed() / (opticalTimer->Instance->PSC + 1));
 
     float alpha = (omega_curr - omega_prev) / dt_avg;
     return alpha; // rad/s²
@@ -85,7 +85,7 @@ float OpticalSensor::CalculateAngularVelocity(uint32_t timerCounterDifference)
     if (timerCounterDifference == 0) return 0;
 
     // dt is timer ticks, convert to seconds
-    float timerFreq = CLK_SPEED / (opticalTimer->Instance->PSC + 1);
+    float timerFreq = get_clock_speed() / (opticalTimer->Instance->PSC + 1);
     
 	float omega = (2.0f * M_PI / NUM_APERTURES) * (timerFreq / timerCounterDifference); // radians/sec
     
@@ -101,7 +101,7 @@ float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
     }
 
     // Timer frequency in Hz (ticks per second)
-    float timerFreq = CLK_SPEED / (opticalTimer->Instance->PSC + 1);
+    float timerFreq = get_clock_speed() / (opticalTimer->Instance->PSC + 1);
 
     // Time between pulses in seconds
     float deltaTimeSec = (float)timerCounterDifference / timerFreq;
