@@ -1,6 +1,8 @@
 #include <Tasks/SessionController/SessionController.hpp>
 
 SessionController::SessionController(session_controller_os_tasks* task_queues) : 
+                _forcesensor_buffer_reader(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+                _optical_encoder_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
                 _fsm(task_queues->lumex_lcd),
                 _task_queues(task_queues),
                 _prevUSBLoggingEnabled(false),
@@ -17,6 +19,12 @@ bool SessionController::Init(void)
 
 void SessionController::Run()
 {
+    forcesensor_output_data force_data;
+    optical_encoder_output_data optical_encoder_data;
+
+    memset(&force_data, 0, sizeof(force_data));
+    memset(&optical_encoder_data, 0, sizeof(optical_encoder_data));
+
     while(1)
     {
         // First Handle Any User Inputs
@@ -113,6 +121,23 @@ void SessionController::Run()
                 osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
             }
 
+            // Get the most recent force sensor data
+            while(_forcesensor_buffer_reader.GetElementAndIncrementIndex(force_data));
+
+            // Get the most recent optical encoder data
+            while(_optical_encoder_buffer_reader.GetElementAndIncrementIndex(optical_encoder_data));
+
+            // TO UPDATE
+            float angularAcceleration = 0;
+            float angularVelocity = optical_encoder_data.angular_velocity;
+            float force = force_data.force;
+            
+            float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
+            
+            _fsm.DisplayTorque(torque);
+            _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
+            _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
+
 
         }
             
@@ -120,6 +145,21 @@ void SessionController::Run()
             
 
     }
+}
+
+float SessionController::CalculateTorque(float angularAcceleration, float force, float angularVelocity)
+{
+    return (MOMENT_OF_INERTIA_KG_M2 * angularAcceleration + force * DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M + CalculateMechanicalLosses(angularAcceleration, angularVelocity));
+}
+
+float SessionController::CalculatePower(float torque, float angularVelocity)
+{
+    return torque * angularVelocity;
+}
+
+float SessionController::CalculateMechanicalLosses(float angularAcceleration, float angularVelocity)
+{
+    return 0;
 }
 
 extern "C" void sessioncontroller_main(session_controller_os_tasks* task_queues)
