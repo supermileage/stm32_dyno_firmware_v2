@@ -425,7 +425,7 @@ void FSM::PIDDesiredRPMOptionEditSettingsState(bool clearDisplay)
 
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, (char*) "PID DES RPM", 0, 2);
 
-    char buffer[5];
+    char buffer[6];
     snprintf(buffer, sizeof(buffer), "%5d", static_cast<int>(_desiredRpm));
 
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, buffer, 1, 5);
