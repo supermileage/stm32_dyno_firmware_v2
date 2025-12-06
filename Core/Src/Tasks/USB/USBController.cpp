@@ -22,7 +22,7 @@ USBController::USBController(osMessageQueueId_t sessionControllerToUsbController
 
 bool USBController::Init()
 {
-	_standardSize = std::max({sizeof(USBOpcode) + sizeof(_opticalEncoderOutput), sizeof(USBOpcode) + sizeof(_bpmOutput), sizeof(USBOpcode) + sizeof(_forceSensorOutput)});
+	_standardSize = std::max(std::max(sizeof(USBOpcode) + sizeof(_opticalEncoderOutput), sizeof(USBOpcode) + sizeof(_bpmOutput)), sizeof(USBOpcode) + sizeof(_forceSensorOutput));
 	
 	return true;
 }
@@ -72,7 +72,7 @@ void USBController::AddToBuffer(void* messageData, size_t actualMessageSize, siz
 {
     memcpy(_txBuffer + _txBufferIndex, messageData, actualMessageSize);
 
-    if (actualSize < equalitySize) { // Checks if padding is necessary for data to match _standardSize
+    if (actualMessageSize < totalExpectedMessageSize) { // Checks if padding is necessary for data to match _standardSize
         memset(_txBuffer + _txBufferIndex + actualMessageSize, 0, totalExpectedMessageSize - actualMessageSize); // Sets every byte from actualSize to outputDataSize equal to NULL
     }
 
