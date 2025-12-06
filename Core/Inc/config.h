@@ -15,7 +15,7 @@
 
 
 // Clock speed for timers, need to find better way to get this
-#define CLK_SPEED 200000000
+// #define CLK_SPEED 200000000
 
 // Voltage Reference (should be 3V3)
 #define VREF 3.3
@@ -52,4 +52,6 @@
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 
 
+// USB Controller Config
+// #define USB_CDC_TX_BUFFER_SIZE 2028
 #endif /* INC_CONFIG_H_ */

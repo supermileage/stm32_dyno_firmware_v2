@@ -4,9 +4,9 @@
 BPM::BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
     : // this comes directly from circular_buffers.h and config.h
 	_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
-	  _bpmCtrlEnabled(false),
+	  _bpmCtrlEnabled(false), // 
 	  _fromSCHandle(sessionControllerToBpmHandle),
-	  _fromPIDHandle(pidToBpmHandle)
+	  _fromPIDHandle(pidToBpmHandle) // Controls specific RPM
 {}
 
 
