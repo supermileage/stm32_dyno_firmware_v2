@@ -1,7 +1,6 @@
 #include <Tasks/OpticalSensor/OpticalSensor.hpp>
 #include <Tasks/OpticalSensor/opticalsensor_main.h>
 
-
 static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;
@@ -22,7 +21,6 @@ bool OpticalSensor::Init()
 
 void OpticalSensor::Run(void)
 {
-
 	// struct with the data which will be sent to the target modules
 	optical_encoder_output_data outputData;
 
@@ -66,6 +64,7 @@ float OpticalSensor::GetRPM(uint16_t timeDifference)
 	return (timeDifference != 0) ? (float) ((CLK_SPEED / (opticalTimer->Instance->PSC + 1)) * 60)/(timeDifference*NUM_APERTURES) : 0;
 }
 
+/* Need to clarify if it's good as is or if we should get the clock speed at compile time */
 //uint32_t OpticalSensor::GetClockSpeed()
 //{
 //	uint32_t tim14_clk = HAL_RCC_GetPCLK1Freq();
