@@ -22,6 +22,7 @@ class USBController
         bool Init();
         void Run();
     private:
+        void AddToBuffer(void*, size_t);    
         void AddToBuffer(void*, size_t, size_t);
         bool SendOutputIfBufferFull(size_t, size_t);
     

@@ -5,6 +5,7 @@ static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;
 static volatile uint16_t IC_Value2 = 0;
+
 // timerCounterDifference is the delta of the timer counter between IC_Value2 and IC_Value1
 static volatile uint32_t timerCounterDifference = 0;
 static volatile uint32_t prevTimerCounterDifference = 0;
