@@ -58,3 +58,6 @@ release
 
 # STM32CubeIDE temporary files
 MXTmpFiles/
+
+# vscode files
+.vscode/
