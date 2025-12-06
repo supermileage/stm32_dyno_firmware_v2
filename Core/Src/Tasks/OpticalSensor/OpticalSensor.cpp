@@ -113,19 +113,6 @@ float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
     return rpm;
 }
 
-
-//uint32_t OpticalSensor::GetClockSpeed()
-//{
-//	uint32_t tim14_clk = HAL_RCC_GetPCLK1Freq();
-//	/* If APB1 prescaler > 1, timer clock = PCLK1 * 2 */
-//	if ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1)
-//	{
-//	    tim14_clk *= 2;
-//	}
-//
-//	return tim14_clk;
-//}
-
 extern "C" void opticalsensor_output_interrupt()
 {
     IC_Value2 = HAL_TIM_ReadCapturedValue(opticalTimer, TIM_CHANNEL_1);
@@ -161,3 +148,17 @@ extern "C" void opticalsensor_main(osMessageQueueId_t sessionControllerToOptical
 		opticalsensor.Run();
 	}
 }
+
+
+//uint32_t OpticalSensor::GetClockSpeed()
+//{
+//	uint32_t tim14_clk = HAL_RCC_GetPCLK1Freq();
+//	/* If APB1 prescaler > 1, timer clock = PCLK1 * 2 */
+//	if ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1)
+//	{
+//	    tim14_clk *= 2;
+//	}
+//
+//	return tim14_clk;
+//}
+

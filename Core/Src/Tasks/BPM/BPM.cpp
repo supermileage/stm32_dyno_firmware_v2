@@ -95,7 +95,6 @@ void BPM::SetDutyCycle(float new_duty_cycle_percent)
 	__HAL_TIM_SET_COMPARE(bpmTimer, TIM_CHANNEL_1, new_duty_cycle);
 }
 
-
 extern "C" void bpm_main(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidControllerToBpmHandle)
 {
 	BPM bpm = BPM(sessionControllerToBpmHandle, pidControllerToBpmHandle);

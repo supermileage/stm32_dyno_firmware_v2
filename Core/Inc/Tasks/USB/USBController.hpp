@@ -2,8 +2,12 @@
 #define INC_USB_USB_HPP_
 
 #include "cmsis_os2.h"
+
 #include "TimeKeeping/timestamps.h"
+
 #include "MessagePassing/messages.h"
+#include "MessagePassing/circular_buffers.h"
+
 #include "config.h"
 #include "CircularBufferReader.hpp"
 

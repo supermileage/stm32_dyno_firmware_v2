@@ -1,8 +1,5 @@
-#include <Tasks/USB/usb_main.h>
+#include <Tasks/USB/usbcontroller_main.h>
 #include <Tasks/USB/USBController.hpp>
-#include <MessagePassing/circular_buffers.h>
-
-#include <CircularBufferReader.hpp>
 
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController)
     : _buffer_reader_oe(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
@@ -55,6 +52,8 @@ void USBController::Run()
 			}
 			_txBufferIndex = 0;
 		}
+
+		osDelay(USB_TASK_OSDELAY);
 	}
 
 }
@@ -78,8 +77,7 @@ bool USBController::SendOutputIfBufferFull(size_t enumSize, size_t outputSize)
 
 }
 
-
-extern "C" void usb_main(osMessageQueueId_t sessionControllerToBpmHandle)
+extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToBpmHandle)
 {
 	USBController usb = USBController(sessionControllerToBpmHandle);
 

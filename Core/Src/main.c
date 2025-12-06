@@ -33,7 +33,7 @@
 #include <Tasks/SessionController/input_manager_interrupts.h>
 #include <Tasks/SessionController/sessioncontroller_main.h>
 
-#include <Tasks/USB/usb_main.h>
+#include <Tasks/USB/usbcontroller_main.h>
 
 #include <TimeKeeping/timestamps.h>
 #include <MessagePassing/messages.h>
@@ -74,89 +74,101 @@ TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
 
-/* Definitions for lcdTask */
-osThreadId_t lcdTaskHandle;
-const osThreadAttr_t lcdTask_attributes = {
-  .name = "lcdTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
+/* Definitions for usbTask */
+osThreadId_t usbTaskHandle;
+const osThreadAttr_t usbTask_attributes = {
+  .name = "usbTask",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for bpmTask */
 osThreadId_t bpmTaskHandle;
 const osThreadAttr_t bpmTask_attributes = {
-  .name = "bpmTask",
+  .name = " bpmTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityRealtime1,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for forceSensorTask */
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
-  .name = "forceSensorTask",
+  .name = " forceSensorTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
 osThreadId_t pidTaskHandle;
 const osThreadAttr_t pidTask_attributes = {
-  .name = "pidTask",
+  .name = " pidTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for opticalSensorTask */
 osThreadId_t opticalSensorTaskHandle;
 const osThreadAttr_t opticalSensorTask_attributes = {
-  .name = "opticalSensorTask",
+  .name = " opticalSensorTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for sessionControllerTask */
 osThreadId_t sessionControllerTaskHandle;
 const osThreadAttr_t sessionControllerTask_attributes = {
-  .name = "sessionControllerTask",
+  .name = " sessionControllerTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for usbTask */
-osThreadId_t usbTaskHandle;
-const osThreadAttr_t usbTask_attributes = {
-  .name = "usbTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+/* Definitions for lcdDisplayTask */
+osThreadId_t lcdDisplayTaskHandle;
+const osThreadAttr_t lcdDisplayTask_attributes = {
+  .name = "lcdDisplayTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for ledBlinkTask */
+osThreadId_t ledBlinkTaskHandle;
+const osThreadAttr_t ledBlinkTask_attributes = {
+  .name = "ledBlinkTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
   .name = "sessionControllerToLumexLcd"
 };
+/* Definitions for lumexLcdTimerInterrupt */
+osMessageQueueId_t lumexLcdTimerInterruptHandle;
+const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
+  .name = " lumexLcdTimerInterrupt"
+};
 /* Definitions for sessionControllerToBpm */
 osMessageQueueId_t sessionControllerToBpmHandle;
 const osMessageQueueAttr_t sessionControllerToBpm_attributes = {
-  .name = "sessionControllerToBpm"
+  .name = " sessionControllerToBpm"
 };
 /* Definitions for sessionControllerToForceSensor */
 osMessageQueueId_t sessionControllerToForceSensorHandle;
 const osMessageQueueAttr_t sessionControllerToForceSensor_attributes = {
-  .name = "sessionControllerToForceSensor"
+  .name = " sessionControllerToForceSensor"
 };
 /* Definitions for sessionControllerToPidController */
 osMessageQueueId_t sessionControllerToPidControllerHandle;
 const osMessageQueueAttr_t sessionControllerToPidController_attributes = {
-  .name = "sessionControllerToPidController"
+  .name = " sessionControllerToPidController"
 };
 /* Definitions for opticalEncoderToPidController */
 osMessageQueueId_t opticalEncoderToPidControllerHandle;
 const osMessageQueueAttr_t opticalEncoderToPidController_attributes = {
-  .name = "opticalEncoderToPidController"
+  .name = " opticalEncoderToPidController"
 };
 /* Definitions for pidControllerToBpm */
 osMessageQueueId_t pidControllerToBpmHandle;
 const osMessageQueueAttr_t pidControllerToBpm_attributes = {
-  .name = "pidControllerToBpm"
+  .name = " pidControllerToBpm"
 };
 /* Definitions for sessionControllerToOpticalSensor */
 osMessageQueueId_t sessionControllerToOpticalSensorHandle;
 const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
-  .name = "sessionControllerToOpticalSensor"
+  .name = " sessionControllerToOpticalSensor"
 };
 /* Definitions for sessionControllertoUsbController */
 osMessageQueueId_t sessionControllertoUsbControllerHandle;
@@ -198,13 +210,14 @@ static void MX_ADC2_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_I2C4_Init(void);
-void lcdDisplay(void *argument);
-void bpmCtrl(void *argument);
-void forceSensor(void *argument);
-void pidController(void *argument);
-void opticalSensor(void *argument);
-void sessionController(void *argument);
-void startUsbTask(void *argument);
+void usbTaskEntryFunction(void *argument);
+extern void bpmTaskEntryFunction(void *argument);
+extern void forceSensorTaskEntryFunction(void *argument);
+extern void pidControllerTaskEntryFunction(void *argument);
+extern void opticalSensorTaskEntryFunction(void *argument);
+extern void sessionControllerTaskEntryFunction(void *argument);
+extern void lcdDisplayTaskEntryFunction(void *argument);
+void ledBlinkTaskEntryFunction(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -285,23 +298,26 @@ int main(void)
   /* creation of sessionControllerToLumexLcd */
   sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
 
+  /* creation of lumexLcdTimerInterrupt */
+   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), & lumexLcdTimerInterrupt_attributes);
+
   /* creation of sessionControllerToBpm */
-  sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), &sessionControllerToBpm_attributes);
+   sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), & sessionControllerToBpm_attributes);
 
   /* creation of sessionControllerToForceSensor */
-  sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToForceSensor_attributes);
+   sessionControllerToForceSensorHandle = osMessageQueueNew (16, sizeof(bool), & sessionControllerToForceSensor_attributes);
 
   /* creation of sessionControllerToPidController */
-  sessionControllerToPidControllerHandle = osMessageQueueNew (5, sizeof(session_controller_to_pid_controller), &sessionControllerToPidController_attributes);
+   sessionControllerToPidControllerHandle = osMessageQueueNew (5, sizeof(session_controller_to_pid_controller), & sessionControllerToPidController_attributes);
 
   /* creation of opticalEncoderToPidController */
-  opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_output_data), &opticalEncoderToPidController_attributes);
+   opticalEncoderToPidControllerHandle = osMessageQueueNew (10, sizeof(optical_encoder_output_data), & opticalEncoderToPidController_attributes);
 
   /* creation of pidControllerToBpm */
-  pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), &pidControllerToBpm_attributes);
+   pidControllerToBpmHandle = osMessageQueueNew (10, sizeof(float), & pidControllerToBpm_attributes);
 
   /* creation of sessionControllerToOpticalSensor */
-  sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(bool), &sessionControllerToOpticalSensor_attributes);
+   sessionControllerToOpticalSensorHandle = osMessageQueueNew (16, sizeof(uint16_t), & sessionControllerToOpticalSensor_attributes);
 
   /* creation of sessionControllertoUsbController */
   sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
@@ -311,26 +327,29 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of lcdTask */
-  lcdTaskHandle = osThreadNew(lcdDisplay, NULL, &lcdTask_attributes);
+  /* creation of usbTask */
+  usbTaskHandle = osThreadNew(usbTaskEntryFunction, NULL, &usbTask_attributes);
 
   /* creation of bpmTask */
-  bpmTaskHandle = osThreadNew(bpmCtrl, NULL, &bpmTask_attributes);
+   bpmTaskHandle = osThreadNew(bpmTaskEntryFunction, NULL, & bpmTask_attributes);
 
   /* creation of forceSensorTask */
-  forceSensorTaskHandle = osThreadNew(forceSensor, NULL, &forceSensorTask_attributes);
+   forceSensorTaskHandle = osThreadNew(forceSensorTaskEntryFunction, NULL, & forceSensorTask_attributes);
 
   /* creation of pidTask */
-  pidTaskHandle = osThreadNew(pidController, NULL, &pidTask_attributes);
+   pidTaskHandle = osThreadNew(pidControllerTaskEntryFunction, NULL, & pidTask_attributes);
 
   /* creation of opticalSensorTask */
-  opticalSensorTaskHandle = osThreadNew(opticalSensor, NULL, &opticalSensorTask_attributes);
+   opticalSensorTaskHandle = osThreadNew(opticalSensorTaskEntryFunction, NULL, & opticalSensorTask_attributes);
 
   /* creation of sessionControllerTask */
-  sessionControllerTaskHandle = osThreadNew(sessionController, NULL, &sessionControllerTask_attributes);
+   sessionControllerTaskHandle = osThreadNew(sessionControllerTaskEntryFunction, NULL, & sessionControllerTask_attributes);
 
-  /* creation of usbTask */
-  usbTaskHandle = osThreadNew(startUsbTask, NULL, &usbTask_attributes);
+  /* creation of lcdDisplayTask */
+  lcdDisplayTaskHandle = osThreadNew(lcdDisplayTaskEntryFunction, NULL, &lcdDisplayTask_attributes);
+
+  /* creation of ledBlinkTask */
+  ledBlinkTaskHandle = osThreadNew(ledBlinkTaskEntryFunction, NULL, &ledBlinkTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1048,7 +1067,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, ILI_LCD_DC_Pin|ILI_LCD_RST_Pin, GPIO_PIN_RESET);
@@ -1059,14 +1078,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : ROT_EN_A_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ROT_EN_A_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : ROT_EN_SW_Pin BTN_SELECT_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_SW_Pin|BTN_SELECT_Pin;
+  /*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin BTN_SELECT_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin|BTN_SELECT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -1086,7 +1099,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : ADS1115_ALERT_Pin */
   GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
@@ -1105,12 +1118,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ILI_SPI2_TOUCH_CS_Pin ILI_SPI2_SD_CS_Pin */
-  GPIO_InitStruct.Pin = ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin;
+  /*Configure GPIO pin : ILI_SPI2_TOUCH_CS_Pin */
+  GPIO_InitStruct.Pin = ILI_SPI2_TOUCH_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+  HAL_GPIO_Init(ILI_SPI2_TOUCH_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_Pin */
+  GPIO_InitStruct.Pin = LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ILI_LCD_DC_Pin ILI_LCD_RST_Pin */
   GPIO_InitStruct.Pin = ILI_LCD_DC_Pin|ILI_LCD_RST_Pin;
@@ -1129,7 +1149,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : ILI_TOUCH_IRQ_Pin */
   GPIO_InitStruct.Pin = ILI_TOUCH_IRQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ILI_TOUCH_IRQ_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_BACK_Pin LED_SELECT_Pin LED_BRAKE_Pin */
@@ -1248,140 +1268,106 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
       }
     #endif
 }
+
+void forceSensorTaskEntryFunction(void *argument)
+{
+  // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
+  #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
+    #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
+  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
+    osThreadSuspend(forceSensorTaskHandle);
+  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1)
+    forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
+  #else
+    forcesensor_adc_main(sessionControllerToForceSensorHandle);
+  #endif
+}
+
+void bpmTaskEntryFunction(void *argument)
+{
+  #if BPM_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(bpmTaskHandle);
+  #else
+    bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
+  #endif
+
+}
+
+void pidControllerTaskEntryFunction(void *argument)
+{
+    #if PID_CONTROLLER_TASK_ENABLE == 0
+        osThreadSuspend(pidTaskHandle);
+    #else
+        pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
+    #endif
+}
+
+void sessionControllerTaskEntryFunction(void* argument)
+{
+    #if SESSION_CONTROLLER_TASK_ENABLE == 0
+        osThreadSuspend(sessionControllerTaskHandle);
+    #else
+        sessioncontroller_main(sessionControllerToLumexLcdHandle);
+    #endif
+}
+
+void opticalSensorTaskEntryFunction(void *argument)
+{
+  #if OPTICAL_ENCODER_TASK_ENABLE == 0
+    osThreadSuspend(opticalSensorTaskHandle);
+  #else
+    opticalsensor_main(sessionControllerToOpticalSensorHandle);
+  #endif
+
+}
+
+void lcdDisplayTaskEntryFunction(void *argument)
+{
+  #if LUMEX_LCD_TASK_ENABLE == 0
+    osThreadSuspend(lcdDisplayTaskHandle);
+  #else
+    lumex_lcd_main(sessionControllerToLumexLcdHandle);
+  #endif
+}
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_lcdDisplay */
+/* USER CODE BEGIN Header_usbTaskEntryFunction */
 /**
-  * @brief  Function implementing the lcdTask thread.
+  * @brief  Function implementing the usbTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_lcdDisplay */
-void lcdDisplay(void *argument)
+/* USER CODE END Header_usbTaskEntryFunction */
+__weak void usbTaskEntryFunction(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
-  #if LUMEX_LCD_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
+  #if USB_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(usbTaskHandle);
   #else
-	  lumex_lcd_main(sessionControllerToLumexLcdHandle);
+    usbcontroller_main(sessionControllertoUsbControllerHandle);
   #endif
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_bpmCtrl */
+/* USER CODE BEGIN Header_ledBlinkTaskEntryFunction */
 /**
-* @brief Function implementing the bpmTask thread.
+* @brief Function implementing the ledBlinkTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_bpmCtrl */
-void bpmCtrl(void *argument)
+/* USER CODE END Header_ledBlinkTaskEntryFunction */
+__weak void ledBlinkTaskEntryFunction(void *argument)
 {
-  /* USER CODE BEGIN bpmCtrl */
+  /* USER CODE BEGIN ledBlinkTaskEntryFunction */
   /* Infinite loop */
-  #if BPM_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
-  #else
-	  bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
-  #endif
-  /* USER CODE END bpmCtrl */
-}
-
-/* USER CODE BEGIN Header_forceSensor */
-/**
-* @brief Function implementing the forceSensorTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_forceSensor */
-void forceSensor(void *argument)
-{
-  /* USER CODE BEGIN forceSensor */
-  // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
-  #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
-    #error "Cannot enable both ADS1115 and ADC tasks at the same time!"
-  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
-    osThreadSuspend(NULL);
-  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) 
-	  forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
-  #else
-	  forcesensor_adc_main(sessionControllerToForceSensorHandle);
-  #endif
-  /* USER CODE END forceSensor */
-}
-
-/* USER CODE BEGIN Header_pidController */
-/**
-* @brief Function implementing the pidTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_pidController */
-void pidController(void *argument)
-{
-  /* USER CODE BEGIN pidController */
-  #if PID_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
-  #else
-	  pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
-  #endif
-  /* USER CODE END pidController */
-}
-
-/* USER CODE BEGIN Header_opticalSensor */
-/**
-* @brief Function implementing the opticalSensorTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_opticalSensor */
-void opticalSensor(void *argument)
-{
-  /* USER CODE BEGIN opticalSensor */
-  #if OPTICAL_ENCODER_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
-  #else
-	  opticalsensor_main(sessionControllerToOpticalSensorHandle);
-  #endif
-  /* USER CODE END opticalSensor */
-}
-
-/* USER CODE BEGIN Header_sessionController */
-/**
-* @brief Function implementing the sessionControllerTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_sessionController */
-void sessionController(void *argument)
-{
-  /* USER CODE BEGIN sessionController */
-  #if SESSION_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
-  #else 
-    sessioncontroller_main(sessionControllerToLumexLcdHandle);
-  #endif
-  /* USER CODE END sessionController */
-}
-
-/* USER CODE BEGIN Header_startUsbTask */
-/**
-* @brief Function implementing the usbTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_startUsbTask */
-void startUsbTask(void *argument)
-{
-  /* USER CODE BEGIN startUsbTask */
-  #if USB_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(NULL);
-  #else
-    usb_main(sessionControllertoUsbControllerHandle);
-  #endif
-  /* USER CODE END startUsbTask */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    osDelay(500);
+  }
+  /* USER CODE END ledBlinkTaskEntryFunction */
 }
 
  /* MPU Configuration */

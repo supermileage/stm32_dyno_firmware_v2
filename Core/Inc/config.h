@@ -4,14 +4,15 @@
 #include "ADS1115_main.h"
 
 // Task enable/disables
-#define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
+#define FORCE_SENSOR_ADS1115_TASK_ENABLE 0
 #define FORCE_SENSOR_ADC_TASK_ENABLE 0
-#define OPTICAL_ENCODER_TASK_ENABLE 1
-#define SESSION_CONTROLLER_TASK_ENABLE 1
-#define PID_CONTROLLER_TASK_ENABLE 1
-#define BPM_CONTROLLER_TASK_ENABLE 1
-#define LUMEX_LCD_TASK_ENABLE 1
-#define USB_CONTROLLER_TASK_ENABLE 1
+#define OPTICAL_ENCODER_TASK_ENABLE 0
+#define SESSION_CONTROLLER_TASK_ENABLE 0
+#define PID_CONTROLLER_TASK_ENABLE 0
+#define BPM_CONTROLLER_TASK_ENABLE 0
+#define LUMEX_LCD_TASK_ENABLE 0
+#define USB_CONTROLLER_TASK_ENABLE 0
+#define LED_BLINK_TASK_ENABLE 1
 
 
 // Clock speed for timers, need to find better way to get this
@@ -50,6 +51,7 @@
 
 // USB config
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
+#define USB_TASK_OSDELAY 10 
 
 
 #endif /* INC_CONFIG_H_ */
