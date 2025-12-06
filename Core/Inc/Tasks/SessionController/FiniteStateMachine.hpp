@@ -62,7 +62,8 @@ public:
 
     float GetDesiredBpmDutyCycle() const;
 
-    int GetDesiredRpm() const;
+    float GetDesiredRpm() const;
+    float GetDesiredAngularVelocity() const;
 
 private:
     // Methods which are called when a state change is done

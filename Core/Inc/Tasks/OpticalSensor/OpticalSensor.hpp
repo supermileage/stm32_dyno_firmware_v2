@@ -1,6 +1,9 @@
 #ifndef INC_OPTICALSENSOR_HPP_
 #define INC_OPTICALSENSOR_HPP_
 
+#include <cstdint>
+
+#include "FreeRTOS.h"
 #include "cmsis_os2.h"
 
 #include "Config/hal_instances.h"
@@ -20,9 +23,12 @@ public:
     void Run();
     
 private:
-    float GetRPM(uint16_t timeDifference);
+    float CalculateRPM(uint32_t timerCounterDifference);
+    float CalculateAngularVelocity(uint32_t timerCounterDifference);
+    float CalculateAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference);
 
-	void ToggleOPS(bool enable);
+
+	void ToggleOpticalEncoder(bool enable);
 
     CircularBufferWriter<optical_encoder_output_data> _buffer_writer;
 
