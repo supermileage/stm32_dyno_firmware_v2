@@ -4,8 +4,10 @@
 #include "main.h"
 #include "cmsis_os2.h"
 
+#include "Config/config.h"
+
 #include "MessagePassing/osqueue_helpers.h"
-#include <config.h>
+
 
 #ifdef __cplusplus
 extern "C" {

@@ -37,36 +37,47 @@ void ForceSensorADS1115::Run(void)
 
     while (1)
     {
-        // Check if new message from session controller
-        osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADS1115, NULL, 0);
+        // Get the latest enable/disable message
+        // If currently disabled, block forever; if enabled, poll non-blocking
+        bool gotMessage = GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+                                             &enableADS1115,
+                                             sizeof(enableADS1115),
+                                             enableADS1115 ? 0 : osWaitForever);
 
-        if (enableADS1115)
+        // If no message received and currently disabled, just continue
+        if (!gotMessage && !enableADS1115)
         {
-            // Trigger conversion
-        	_ads1115.triggerConversion();
-
-            // Wait for alert GPIO to indicate conversion complete
-            while (!ads1115_alert_status)
-            {
-                osDelay(1); // optional: yield to other tasks
-            }
-            ads1115_alert_status = false;
-
-            // Read the conversion
-            uint16_t rawVal = _ads1115.getConversion(false);
-            outputData.force = GetForce(rawVal);
-
-            // Capture timestamp once value is received
-            outputData.timestamp = get_timestamp();
-
-            outputData.raw_value = rawVal;
-
-            // Add to circular buffer
-            _buffer_writer.WriteElementAndIncrementIndex(outputData);
+            continue;
         }
-        
+
+        // If the latest message says disabled, skip processing
+        if (!enableADS1115)
+        {
+            continue;
+        }
+
+        // --- Trigger conversion ---
+        _ads1115.triggerConversion();
+
+        // --- Wait for alert GPIO to indicate conversion complete ---
+        while (!ads1115_alert_status)
+        {
+            osDelay(1); // yield to other tasks
+        }
+        ads1115_alert_status = false;
+
+        // --- Read conversion and populate output ---
+        uint16_t rawVal = _ads1115.getConversion(false);
+        outputData.force = GetForce(rawVal);
+        outputData.timestamp = get_timestamp();
+        outputData.raw_value = rawVal;
+
+        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+
+        osDelay(FORCESENSOR_TASK_OSDELAY);  // allow other tasks to run
     }
 }
+
 
 
 

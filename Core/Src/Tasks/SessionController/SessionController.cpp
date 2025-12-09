@@ -19,6 +19,8 @@ void SessionController::Run()
 {
     while(1)
     {
+        osDelay(SESSIONCONTROLLER_TASK_OSDELAY);
+        
         // First Handle Any User Inputs
         _fsm.HandleUserInputs();
 
@@ -115,6 +117,8 @@ void SessionController::Run()
 
 
         }
+
+        
             
 
             

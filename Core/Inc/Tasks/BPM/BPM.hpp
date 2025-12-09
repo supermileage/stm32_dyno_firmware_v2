@@ -13,7 +13,7 @@
 
 #include "CircularBufferWriter.hpp"
 
-#include "config.h"
+#include "Config/config.h"
 
 
 #ifdef __cplusplus

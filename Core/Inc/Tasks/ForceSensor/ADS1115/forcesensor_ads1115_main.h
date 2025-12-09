@@ -4,7 +4,7 @@
 #include "main.h"
 #include "cmsis_os2.h"
 
-#include "config.h"
+#include "Config/config.h"
 
 #include "MessagePassing/osqueue_helpers.h"
 

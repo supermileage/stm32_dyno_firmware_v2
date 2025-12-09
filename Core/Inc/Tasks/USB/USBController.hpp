@@ -8,7 +8,7 @@
 #include "MessagePassing/messages.h"
 #include "MessagePassing/circular_buffers.h"
 
-#include "config.h"
+#include "Config/config.h"
 #include "CircularBufferReader.hpp"
 
 enum class USBOpcode : uint8_t {

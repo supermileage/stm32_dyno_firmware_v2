@@ -20,25 +20,44 @@ bool ForceSensorADC::Init()
 
 void ForceSensorADC::Run(void)
 {
-	bool enableADC = false;
-	forcesensor_output_data outputData;
+    bool enableADC = false;
+    forcesensor_output_data outputData;
 
-	while (1)
-	{
-	    osMessageQueueGet(_sessionControllerToForceSensorHandle, &enableADC, NULL, 0);
-		if (enableADC) {
-			HAL_ADC_Start_IT(forceSensorADCHandle); // Enables interrupt callback
+    while (1)
+    {
+        // --- Get the latest enable/disable state ---
+        bool gotMessage = GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+                                             &enableADC,
+                                             sizeof(enableADC),
+                                             enableADC ? 0 : osWaitForever);
 
-			outputData.timestamp = timestamp;
-			outputData.force = GetForce(adc_value);
-			outputData.raw_value = adc_value;
+        // If no message received and ADC is disabled, just continue
+        if (!gotMessage && !enableADC)
+        {
+            continue;
+        }
 
-			// Add to circular buffer
-            _buffer_writer.WriteElementAndIncrementIndex(outputData);
-		}
-	}
+        // Skip processing if the latest state says disabled
+        if (!enableADC)
+        {
+            continue;
+        }
 
+        // --- Trigger ADC conversion via interrupt ---
+        HAL_ADC_Start_IT(forceSensorADCHandle);
+
+        // --- Populate output struct ---
+        outputData.timestamp = timestamp;
+        outputData.force = GetForce(adc_value);
+        outputData.raw_value = adc_value;
+
+        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+
+        // --- Yield to other tasks ---
+        osDelay(FORCESENSOR_TASK_OSDELAY);
+    }
 }
+
 
 
 

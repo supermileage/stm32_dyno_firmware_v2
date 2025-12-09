@@ -106,13 +106,13 @@ const osThreadAttr_t pidTask_attributes = {
 osThreadId_t opticalSensorTaskHandle;
 const osThreadAttr_t opticalSensorTask_attributes = {
   .name = " opticalSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for sessionControllerTask */
 osThreadId_t sessionControllerTaskHandle;
 const osThreadAttr_t sessionControllerTask_attributes = {
-  .name = " sessionControllerTask",
+  .name = "sessionControllerTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
@@ -120,8 +120,8 @@ const osThreadAttr_t sessionControllerTask_attributes = {
 osThreadId_t lcdDisplayTaskHandle;
 const osThreadAttr_t lcdDisplayTask_attributes = {
   .name = "lcdDisplayTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for ledBlinkTask */
 osThreadId_t ledBlinkTaskHandle;
@@ -217,7 +217,7 @@ extern void pidControllerTaskEntryFunction(void *argument);
 extern void opticalSensorTaskEntryFunction(void *argument);
 extern void sessionControllerTaskEntryFunction(void *argument);
 extern void lcdDisplayTaskEntryFunction(void *argument);
-void ledBlinkTaskEntryFunction(void *argument);
+extern void ledBlinkTaskEntryFunction(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -343,7 +343,7 @@ int main(void)
    opticalSensorTaskHandle = osThreadNew(opticalSensorTaskEntryFunction, NULL, & opticalSensorTask_attributes);
 
   /* creation of sessionControllerTask */
-   sessionControllerTaskHandle = osThreadNew(sessionControllerTaskEntryFunction, NULL, & sessionControllerTask_attributes);
+  sessionControllerTaskHandle = osThreadNew(sessionControllerTaskEntryFunction, NULL, &sessionControllerTask_attributes);
 
   /* creation of lcdDisplayTask */
   lcdDisplayTaskHandle = osThreadNew(lcdDisplayTaskEntryFunction, NULL, &lcdDisplayTask_attributes);
@@ -471,6 +471,9 @@ static void MX_ADC2_Init(void)
 {
 
   /* USER CODE BEGIN ADC2_Init 0 */
+  #if STM32_PERIPHERAL_ADC2_ENABLE == 0
+    return;
+  #endif
 
   /* USER CODE END ADC2_Init 0 */
 
@@ -531,7 +534,9 @@ static void MX_ADC3_Init(void)
 {
 
   /* USER CODE BEGIN ADC3_Init 0 */
-
+  #if STM32_PERIPHERAL_ADC3_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END ADC3_Init 0 */
 
   ADC_ChannelConfTypeDef sConfig = {0};
@@ -591,7 +596,9 @@ static void MX_I2C4_Init(void)
 {
 
   /* USER CODE BEGIN I2C4_Init 0 */
-
+  #if STM32_PERIPHERAL_I2C4_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END I2C4_Init 0 */
 
   /* USER CODE BEGIN I2C4_Init 1 */
@@ -639,7 +646,9 @@ static void MX_SDMMC1_SD_Init(void)
 {
 
   /* USER CODE BEGIN SDMMC1_Init 0 */
-
+  #if STM32_PERIPHERAL_SDMMC1_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END SDMMC1_Init 0 */
 
   /* USER CODE BEGIN SDMMC1_Init 1 */
@@ -670,7 +679,9 @@ static void MX_SPI1_Init(void)
 {
 
   /* USER CODE BEGIN SPI1_Init 0 */
-
+  #if STM32_PERIPHERAL_SPI1_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END SPI1_Init 0 */
 
   /* USER CODE BEGIN SPI1_Init 1 */
@@ -718,7 +729,9 @@ static void MX_SPI2_Init(void)
 {
 
   /* USER CODE BEGIN SPI2_Init 0 */
-
+  #if STM32_PERIPHERAL_SPI2_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END SPI2_Init 0 */
 
   /* USER CODE BEGIN SPI2_Init 1 */
@@ -766,7 +779,9 @@ static void MX_TIM1_Init(void)
 {
 
   /* USER CODE BEGIN TIM1_Init 0 */
-
+  #if STM32_PERIPHERAL_TIM1_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END TIM1_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -813,7 +828,9 @@ static void MX_TIM2_Init(void)
 {
 
   /* USER CODE BEGIN TIM2_Init 0 */
-
+  #if STM32_PERIPHERAL_TIM2_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END TIM2_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -858,7 +875,9 @@ static void MX_TIM13_Init(void)
 {
 
   /* USER CODE BEGIN TIM13_Init 0 */
-
+  #if STM32_PERIPHERAL_TIM13_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END TIM13_Init 0 */
 
   /* USER CODE BEGIN TIM13_Init 1 */
@@ -889,7 +908,9 @@ static void MX_TIM14_Init(void)
 {
 
   /* USER CODE BEGIN TIM14_Init 0 */
-
+  #if STM32_PERIPHERAL_TIM14_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END TIM14_Init 0 */
 
   TIM_IC_InitTypeDef sConfigIC = {0};
@@ -934,7 +955,9 @@ static void MX_TIM16_Init(void)
 {
 
   /* USER CODE BEGIN TIM16_Init 0 */
-
+  #if STM32_PERIPHERAL_TIM16_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END TIM16_Init 0 */
 
   TIM_OC_InitTypeDef sConfigOC = {0};
@@ -997,7 +1020,9 @@ static void MX_USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */
-
+  #if STM32_PERIPHERAL_USART1_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END USART1_Init 0 */
 
   /* USER CODE BEGIN USART1_Init 1 */
@@ -1045,7 +1070,9 @@ static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
-
+  #if STM32_PERIPHERAL_GPIO_ENABLE == 0
+    return;
+  #endif
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
@@ -1099,7 +1126,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : ADS1115_ALERT_Pin */
   GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
@@ -1329,6 +1356,17 @@ void lcdDisplayTaskEntryFunction(void *argument)
     lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
 }
+
+
+void ledBlinkTaskEntryFunction(void *argument)
+{
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    osDelay(LED_TASK_OSDELAY);
+  }
+
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_usbTaskEntryFunction */
@@ -1349,25 +1387,6 @@ __weak void usbTaskEntryFunction(void *argument)
     usbcontroller_main(sessionControllertoUsbControllerHandle);
   #endif
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_ledBlinkTaskEntryFunction */
-/**
-* @brief Function implementing the ledBlinkTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_ledBlinkTaskEntryFunction */
-__weak void ledBlinkTaskEntryFunction(void *argument)
-{
-  /* USER CODE BEGIN ledBlinkTaskEntryFunction */
-  /* Infinite loop */
-  for(;;)
-  {
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    osDelay(500);
-  }
-  /* USER CODE END ledBlinkTaskEntryFunction */
 }
 
  /* MPU Configuration */

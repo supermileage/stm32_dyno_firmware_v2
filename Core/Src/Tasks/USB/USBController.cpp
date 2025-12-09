@@ -23,35 +23,41 @@ void USBController::Run()
 	bool enableUSB = false;
 
 
-
+	const uint8_t msg[] = "hi\r\n";
 	while(1)
 	{
-		osMessageQueueGet(_sessionControllerToUsbController, &enableUSB, NULL, 0);
-		if (enableUSB) {
-			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_opticalEncoderOutput)) && _buffer_reader_oe.GetElementAndIncrementIndex(_opticalEncoderOutput)) { // Takes in struct but only passes in address
-				uint8_t op = static_cast<uint8_t>(USBOpcode::OPTICAL_ENCODER);
-				AddToBuffer(&op, sizeof(USBOpcode));
-				AddToBuffer(&_opticalEncoderOutput, sizeof(_opticalEncoderOutput));
-			}
+		while (CDC_Transmit_FS((uint8_t*)msg, sizeof(msg) - 1) == USBD_BUSY)
+	  	  	  {
+		  	  	  osDelay(1);
+	  	  	  }
+	  	  osDelay(100);
+		
+		// osMessageQueueGet(_sessionControllerToUsbController, &enableUSB, NULL, 0);
+		// if (enableUSB) {
+		// 	while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_opticalEncoderOutput)) && _buffer_reader_oe.GetElementAndIncrementIndex(_opticalEncoderOutput)) { // Takes in struct but only passes in address
+		// 		uint8_t op = static_cast<uint8_t>(USBOpcode::OPTICAL_ENCODER);
+		// 		AddToBuffer(&op, sizeof(USBOpcode));
+		// 		AddToBuffer(&_opticalEncoderOutput, sizeof(_opticalEncoderOutput));
+		// 	}
 
-			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_forceSensorOutput)) && _buffer_reader_fs.GetElementAndIncrementIndex(_forceSensorOutput)) {
-				uint8_t op = static_cast<uint8_t>(USBOpcode::FORCESENSOR);
-				AddToBuffer(&op, sizeof(USBOpcode));
-				AddToBuffer(&_forceSensorOutput, sizeof(_forceSensorOutput));
-			}
+		// 	while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_forceSensorOutput)) && _buffer_reader_fs.GetElementAndIncrementIndex(_forceSensorOutput)) {
+		// 		uint8_t op = static_cast<uint8_t>(USBOpcode::FORCESENSOR);
+		// 		AddToBuffer(&op, sizeof(USBOpcode));
+		// 		AddToBuffer(&_forceSensorOutput, sizeof(_forceSensorOutput));
+		// 	}
 
-			while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_bpmOutput)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpmOutput)) {
-				uint8_t op = static_cast<uint8_t>(USBOpcode::BPM);
-				AddToBuffer(&op, sizeof(USBOpcode));
-				AddToBuffer(&_bpmOutput, sizeof(_bpmOutput));
-			}
+		// 	while (!SendOutputIfBufferFull(sizeof(USBOpcode), sizeof(_bpmOutput)) && _buffer_reader_bpm.GetElementAndIncrementIndex(_bpmOutput)) {
+		// 		uint8_t op = static_cast<uint8_t>(USBOpcode::BPM);
+		// 		AddToBuffer(&op, sizeof(USBOpcode));
+		// 		AddToBuffer(&_bpmOutput, sizeof(_bpmOutput));
+		// 	}
 
-			if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+		// 	if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
 	
-				continue;
-			}
-			_txBufferIndex = 0;
-		}
+		// 		continue;
+		// 	}
+		// 	_txBufferIndex = 0;
+		// }
 
 		osDelay(USB_TASK_OSDELAY);
 	}
