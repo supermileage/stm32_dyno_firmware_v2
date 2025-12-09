@@ -33,9 +33,9 @@
 
 
 // Task enable/disables
-#define FORCE_SENSOR_ADS1115_TASK_ENABLE 1 // problem
-#define FORCE_SENSOR_ADC_TASK_ENABLE 0 // problem
-#define OPTICAL_ENCODER_TASK_ENABLE 1 // problem
+#define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
+#define FORCE_SENSOR_ADC_TASK_ENABLE 0
+#define OPTICAL_ENCODER_TASK_ENABLE 1 
 #define SESSION_CONTROLLER_TASK_ENABLE 0
 #define PID_CONTROLLER_TASK_ENABLE 1 
 #define BPM_CONTROLLER_TASK_ENABLE 1
@@ -43,12 +43,12 @@
 #define USB_CONTROLLER_TASK_ENABLE 1
 #define LED_BLINK_TASK_ENABLE 1
 
-
-// Clock speed for timers, need to find better way to get this
-#define CLK_SPEED 200000000
-
 // Voltage Reference (should be 3V3)
 #define VREF 3.3
+
+// Mechanical Power Calculation Constants
+#define DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M 1
+#define MOMENT_OF_INERTIA_KG_M2 1
 
 // Main PID controller K_P, K_I and K_D
 #define K_P 1.0

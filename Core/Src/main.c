@@ -183,9 +183,10 @@ ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
-TIM_HandleTypeDef* opticalTimer = &htim14;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
+TIM_HandleTypeDef* opticalTimer = &htim14;
+
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
 TIM_TypeDef* opticalTimInstance = TIM14;
 

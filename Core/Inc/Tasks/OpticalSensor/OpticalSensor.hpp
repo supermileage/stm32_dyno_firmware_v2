@@ -34,6 +34,8 @@ private:
 
     osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 
+    const uint32_t _clockSpeed;
+
     bool _opticalEncoderEnabled;
 };
 
