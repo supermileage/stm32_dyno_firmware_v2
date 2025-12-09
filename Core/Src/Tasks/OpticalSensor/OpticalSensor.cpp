@@ -25,71 +25,52 @@ bool OpticalSensor::Init()
 
 void OpticalSensor::Run(void)
 {
+    optical_encoder_output_data outputData;
 
     while (1)
-	{
-		bool previousState = _opticalEncoderEnabled;  // save current state
+    {
+        // --- Get the latest enable/disable state ---
+        bool gotMessage = GetLatestFromQueue(
+            _sessionControllerToOpticalSensorHandle,
+            &_opticalEncoderEnabled,
+            sizeof(_opticalEncoderEnabled),
+            _opticalEncoderEnabled ? 0 : osWaitForever
+        );
 
-		// --- Get the latest enable/disable state ---
-		GetLatestFromQueue(
-			_sessionControllerToOpticalSensorHandle,
-			&_opticalEncoderEnabled,
-			sizeof(_opticalEncoderEnabled),
-			_opticalEncoderEnabled ? 0 : osWaitForever
-		);
+        // If no message received and sensor is disabled, skip
+        if (!gotMessage && !_opticalEncoderEnabled)
+        {
+            continue;
+        }
 
-		// If state changed, toggle encoder
-		if (previousState != _opticalEncoderEnabled)
-		{
-			ToggleOpticalEncoder(_opticalEncoderEnabled);
-		}
+        // Skip processing if the latest state says disabled
+        if (!_opticalEncoderEnabled)
+        {
+            continue;
+        }
 
-		// Skip processing if disabled
-		if (!_opticalEncoderEnabled)
-		{
-			continue;
-		}
+        // --- Copy critical data to avoid race conditions ---
+        taskENTER_CRITICAL();
+        uint32_t timestampCopy = timestamp;
+        uint32_t timerCounterDifferenceCopy = timerCounterDifference;
+        uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
+        taskEXIT_CRITICAL();
 
-		// --- Copy critical data to avoid race conditions ---
-		taskENTER_CRITICAL();
-		uint32_t timestampCopy = timestamp;
-		uint32_t timerCounterDifferenceCopy = timerCounterDifference;
-		uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
-		taskEXIT_CRITICAL();
+        // --- Populate output struct ---
+        outputData.timestamp = timestampCopy;
+        outputData.angular_velocity = CalculateAngularVelocity(timerCounterDifferenceCopy);
+        outputData.angular_acceleration = CalculateAngularAcceleration(
+            timerCounterDifferenceCopy,
+            prevTimerCounterDifferenceCopy
+        );
 
-		// --- Populate output struct ---
-		optical_encoder_output_data outputData;
-		outputData.timestamp = timestampCopy;
-		outputData.angular_velocity = CalculateAngularVelocity(timerCounterDifferenceCopy);
-		outputData.angular_acceleration = CalculateAngularAcceleration(
-			timerCounterDifferenceCopy,
-			prevTimerCounterDifferenceCopy
-		);
+        _buffer_writer.WriteElementAndIncrementIndex(outputData);
 
-		_buffer_writer.WriteElementAndIncrementIndex(outputData);
-
-		// --- Yield ---
-		osDelay(OPTICAL_ENCODER_TASK_OSDELAY);
-	}
-
+        // --- Yield to allow other tasks to run ---
+        osDelay(OPTICAL_ENCODER_TASK_OSDELAY);
+    }
 }
 
-
-void OpticalSensor::ToggleOpticalEncoder(bool enable)
-{
-	// if master enables and BPM was previously disabled, then start PWM
-	if (enable && !_opticalEncoderEnabled)
-	{
-		HAL_TIM_PWM_Start(opticalTimer, TIM_CHANNEL_1);
-	}
-	// if master enables and BPM was previously enabled, then stop PWM
-	else if (!enable && _opticalEncoderEnabled)
-	{
-		HAL_TIM_PWM_Stop(opticalTimer, TIM_CHANNEL_1);
-	}
-
-	_opticalEncoderEnabled = enable;
-}
 
 float OpticalSensor::CalculateAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference)
 {

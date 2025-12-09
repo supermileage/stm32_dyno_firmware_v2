@@ -34,10 +34,7 @@ class USBController
         CircularBufferReader<forcesensor_output_data> _buffer_reader_fs;
         CircularBufferReader<bpm_output_data> _buffer_reader_bpm;
 
-        optical_encoder_output_data _opticalEncoderOutput; // Structs containing each output type
-        forcesensor_output_data _forceSensorOutput;
-        bpm_output_data _bpmOutput;
-        size_t _standardSize;
+        const size_t _standardSize;
 
         osMessageQueueId_t _sessionControllerToUsbController;
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
