@@ -26,30 +26,50 @@ void PIDController::Run()
     float integral = 0;
     float derivative = 0;
     uint32_t timeDelta;
-	optical_encoder_output_data latestOpticalEncoderData;
+    optical_encoder_output_data latestOpticalEncoderData;
 
     while (true)
     {
-        // Process any incoming instructions
-        ReceiveInstruction();
+        // --- Conditional blocking on instructions ---
+        session_controller_to_pid_controller msg;
+        bool gotInstruction = GetLatestFromQueue(
+            _sessionControllerToPidHandle,
+            &msg,
+            sizeof(msg),
+            _enabled ? 0 : osWaitForever  // poll if enabled, block if disabled
+        );
 
-        if (!_enabled)
+        // If we got a message, update PID state
+        if (gotInstruction)
         {
-            // If PID is disabled, clear any pending BPM commands
-            EmptyQueue(_pidToBpmHandle, sizeof(session_controller_to_bpm));
-            continue; // skip PID processing
+            _enabled = msg.enable_status;
+            _desiredAngularVelocity = msg.desired_angular_velocity;
+
+            if (_enabled)
+            {
+                Reset();
+            }
         }
 
-		// Try to get the first new element
-		if (!_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData)) {
-			// Nothing new, go back to top of loop
-			continue;
-		}
+        // Skip processing if PID is disabled
+        if (!_enabled)
+        {
+            // Clear any pending BPM commands
+            EmptyQueue(_pidToBpmHandle, sizeof(session_controller_to_bpm));
+            continue;
+        }
 
-		// There is at least one element, keep fetching until the last one
-		while (_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
+        // --- Read latest optical encoder data ---
+        if (!_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData))
+        {
+            // Nothing new, skip loop
+            continue;
+        }
 
-        // Update current values
+        // Drain any remaining elements to get the latest
+        while (_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
+
+        // --- Update current values ---
         _curTimestamp = latestOpticalEncoderData.timestamp;
         _curAngularVelocity = latestOpticalEncoderData.angular_velocity;
 
@@ -58,26 +78,26 @@ void PIDController::Run()
 
         // PID error calculation
         _error = static_cast<float>(_desiredAngularVelocity) - _curAngularVelocity;
-
-        derivative = (_error - _prevError) / (float)timeDelta;
-        integral += _error * (float)timeDelta;
+        derivative = (_error - _prevError) / static_cast<float>(timeDelta);
+        integral += _error * static_cast<float>(timeDelta);
 
         // PID control output
         controlValue = K_P * _error
                      + K_D * derivative
                      + K_I * integral;
 
-        // Update previous values for next iteration
+        // Update previous values
         _prevTimestamp = _curTimestamp;
         _prevError = _error;
 
-        // Send controlValue to BPM queue
+        // Send control value to BPM
         SendDutyCycle(controlValue);
 
-        // Optional: small delay to yield (not strictly necessary since blocking)
-        osDelay(1);
+        // Yield to other tasks
+        osDelay(PID_TASK_OSDELAY);
     }
 }
+
 
 
 
@@ -112,27 +132,6 @@ void PIDController::Reset()
 	_prevError = static_cast<float>(0);
 }
 
-void PIDController::ReceiveInstruction()
-{
-	osStatus_t status;
-
-	session_controller_to_pid_controller msg;
-
-	status = osMessageQueueGet(_sessionControllerToPidHandle, &msg, NULL, 0);
-
-	if (status != osOK)
-	{
-		return;
-	}
-
-	_enabled = msg.enable_status;
-	_desiredAngularVelocity = msg.desired_angular_velocity;
-
-	if (_enabled)
-	{
-		Reset();
-	}
-}
 
 void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 {

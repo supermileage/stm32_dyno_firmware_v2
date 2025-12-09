@@ -3,7 +3,7 @@
 
 #include "main.h"
 #include "FreeRTOS.h"
-#include "config.h"
+#include "Config/config.h"
 
 #include <stdbool.h>
 #include <stdint.h>

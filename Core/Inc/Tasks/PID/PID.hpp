@@ -11,7 +11,7 @@
 
 #include "CircularBufferReader.hpp"
 
-#include "config.h"
+#include "Config/config.h"
 
 #include <stdint.h>
 
@@ -43,7 +43,6 @@ class PIDController
 
 		float GetTimeDelta();
 
-		void ReceiveInstruction();
 		void SendDutyCycle(float new_duty_cycle_percent);
 
 		void Reset();

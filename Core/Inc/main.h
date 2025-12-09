@@ -112,8 +112,8 @@ void Error_Handler(void);
 #define ILI_SPI2_SCK_GPIO_Port GPIOB
 #define ILI_SPI2_TOUCH_CS_Pin GPIO_PIN_6
 #define ILI_SPI2_TOUCH_CS_GPIO_Port GPIOH
-#define ILI_SPI2_SD_CS_Pin GPIO_PIN_7
-#define ILI_SPI2_SD_CS_GPIO_Port GPIOH
+#define LED_Pin GPIO_PIN_7
+#define LED_GPIO_Port GPIOH
 #define ADS1115_I2C4_SCL_Pin GPIO_PIN_11
 #define ADS1115_I2C4_SCL_GPIO_Port GPIOH
 #define ADS1115_I2C4_SDA_Pin GPIO_PIN_12

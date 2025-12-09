@@ -7,6 +7,8 @@
 
 #include "string.h"
 
+
+#include "Config/config.h"
 #include "Config/hal_instances.h"
 
 #include "MessagePassing/messages.h"

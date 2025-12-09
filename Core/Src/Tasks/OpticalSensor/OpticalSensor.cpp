@@ -14,6 +14,7 @@ OpticalSensor::OpticalSensor(osMessageQueueId_t sessionControllerToOpticalSensor
 		// this comes directly from circular_buffers.h and config.h
 		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle),
+		_clockSpeed(get_timer_clock(opticalTimer->Instance)),
 		_opticalEncoderEnabled(false)
 {}
 
@@ -24,46 +25,52 @@ bool OpticalSensor::Init()
 
 void OpticalSensor::Run(void)
 {
-	// struct with the data which will be sent to the target modules
-	optical_encoder_output_data outputData;
+    optical_encoder_output_data outputData;
 
-	while (1)
-	{
-		osMessageQueueGet(_sessionControllerToOpticalSensorHandle, &_opticalEncoderEnabled, NULL, 0);
-		if (_opticalEncoderEnabled) {
-			// Copies are made to prevent interrupts from overwriting data
-			// uses a critical section to get data 
-			taskENTER_CRITICAL();
-			uint32_t timestampCopy = timestamp;
-			uint32_t timerCounterDifferenceCopy = timerCounterDifference;
-			uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
-			taskEXIT_CRITICAL();
+    while (1)
+    {
+        // --- Get the latest enable/disable state ---
+        bool gotMessage = GetLatestFromQueue(
+            _sessionControllerToOpticalSensorHandle,
+            &_opticalEncoderEnabled,
+            sizeof(_opticalEncoderEnabled),
+            _opticalEncoderEnabled ? 0 : osWaitForever
+        );
 
-			// populates the struct data
-			outputData.timestamp = timestampCopy;
-			outputData.angular_velocity = CalculateAngularVelocity(timerCounterDifferenceCopy);
-			outputData.angular_acceleration = CalculateAngularAcceleration(timerCounterDifferenceCopy, prevTimerCounterDifferenceCopy);
-			_buffer_writer.WriteElementAndIncrementIndex(outputData);
-		}
+        // If no message received and sensor is disabled, skip
+        if (!gotMessage && !_opticalEncoderEnabled)
+        {
+            continue;
+        }
 
-	}
+        // Skip processing if the latest state says disabled
+        if (!_opticalEncoderEnabled)
+        {
+            continue;
+        }
+
+        // --- Copy critical data to avoid race conditions ---
+        taskENTER_CRITICAL();
+        uint32_t timestampCopy = timestamp;
+        uint32_t timerCounterDifferenceCopy = timerCounterDifference;
+        uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
+        taskEXIT_CRITICAL();
+
+        // --- Populate output struct ---
+        outputData.timestamp = timestampCopy;
+        outputData.angular_velocity = CalculateAngularVelocity(timerCounterDifferenceCopy);
+        outputData.angular_acceleration = CalculateAngularAcceleration(
+            timerCounterDifferenceCopy,
+            prevTimerCounterDifferenceCopy
+        );
+
+        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+
+        // --- Yield to allow other tasks to run ---
+        osDelay(OPTICAL_ENCODER_TASK_OSDELAY);
+    }
 }
 
-void OpticalSensor::ToggleOpticalEncoder(bool enable)
-{
-	// if master enables and BPM was previously disabled, then start PWM
-	if (enable && !_opticalEncoderEnabled)
-	{
-		HAL_TIM_PWM_Start(opticalTimer, TIM_CHANNEL_1);
-	}
-	// if master enables and BPM was previously enabled, then stop PWM
-	else if (!enable && _opticalEncoderEnabled)
-	{
-		HAL_TIM_PWM_Stop(opticalTimer, TIM_CHANNEL_1);
-	}
-
-	_opticalEncoderEnabled = enable;
-}
 
 float OpticalSensor::CalculateAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference)
 {
@@ -73,7 +80,7 @@ float OpticalSensor::CalculateAngularAcceleration(uint32_t timerCounterDifferenc
     float omega_prev = CalculateAngularVelocity(prevTimerCounterDifference);
 
     // Δt in seconds between these two measurements
-    float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (get_clock_speed() / (opticalTimer->Instance->PSC + 1));
+    float dt_avg = ((float)timerCounterDifference + (float)prevTimerCounterDifference) / 2.0f / (_clockSpeed / (opticalTimer->Instance->PSC + 1));
 
     float alpha = (omega_curr - omega_prev) / dt_avg;
     return alpha; // rad/s²
@@ -85,7 +92,7 @@ float OpticalSensor::CalculateAngularVelocity(uint32_t timerCounterDifference)
     if (timerCounterDifference == 0) return 0;
 
     // dt is timer ticks, convert to seconds
-    float timerFreq = get_clock_speed() / (opticalTimer->Instance->PSC + 1);
+    float timerFreq = static_cast<float>(_clockSpeed) / (opticalTimer->Instance->PSC + 1);
     
 	float omega = (2.0f * M_PI / NUM_APERTURES) * (timerFreq / timerCounterDifference); // radians/sec
     
@@ -101,7 +108,7 @@ float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
     }
 
     // Timer frequency in Hz (ticks per second)
-    float timerFreq = get_clock_speed() / (opticalTimer->Instance->PSC + 1);
+    float timerFreq = static_cast<float>(_clockSpeed) / (opticalTimer->Instance->PSC + 1);
 
     // Time between pulses in seconds
     float deltaTimeSec = (float)timerCounterDifference / timerFreq;
@@ -111,19 +118,6 @@ float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
 
     return rpm;
 }
-
-
-//uint32_t OpticalSensor::GetClockSpeed()
-//{
-//	uint32_t tim14_clk = HAL_RCC_GetPCLK1Freq();
-//	/* If APB1 prescaler > 1, timer clock = PCLK1 * 2 */
-//	if ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1)
-//	{
-//	    tim14_clk *= 2;
-//	}
-//
-//	return tim14_clk;
-//}
 
 extern "C" void opticalsensor_output_interrupt()
 {
@@ -160,3 +154,17 @@ extern "C" void opticalsensor_main(osMessageQueueId_t sessionControllerToOptical
 		opticalsensor.Run();
 	}
 }
+
+
+//uint32_t OpticalSensor::GetClockSpeed()
+//{
+//	uint32_t tim14_clk = HAL_RCC_GetPCLK1Freq();
+//	/* If APB1 prescaler > 1, timer clock = PCLK1 * 2 */
+//	if ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1)
+//	{
+//	    tim14_clk *= 2;
+//	}
+//
+//	return tim14_clk;
+//}
+

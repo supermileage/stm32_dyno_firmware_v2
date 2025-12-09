@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-void usb_main(osMessageQueueId_t sessionControllerToBpmHandle);
+void usbcontroller_main(osMessageQueueId_t sessionControllerToBpmHandle);
 
 #ifdef __cplusplus
 }

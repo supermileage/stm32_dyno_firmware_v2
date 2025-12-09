@@ -3,7 +3,7 @@
 
 #include "messages.h"
 
-#include "config.h"
+#include "Config/config.h"
 
 #ifdef __cplusplus
 extern "C" {

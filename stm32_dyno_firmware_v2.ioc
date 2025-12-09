@@ -20,23 +20,11 @@ CORTEX_M7.IPParameters=default_mode_Activation
 CORTEX_M7.default_mode_Activation=1
 FREERTOS.FootprintOK=true
 FREERTOS.IPParameters=Tasks01,configUSE_NEWLIB_REENTRANT,FootprintOK,Queues01,configMAX_TASK_NAME_LEN,configENABLE_FPU,configTOTAL_HEAP_SIZE
-FREERTOS.Queues01=sessionControllerToLumexLcd,25,session_controller_to_lumex_lcd,0,Dynamic,NULL,NULL; \
-lumexLcdTimerInterrupt,1,HAL_StatusTypeDef,0,Dynamic,NULL,NULL; \
-sessionControllerToBpm,10,session_controller_to_bpm,0,Dynamic,NULL,NULL; \
-sessionControllerToForceSensor,16,bool,0,Dynamic,NULL,NULL; \
-sessionControllerToPidController,5,session_controller_to_pid_controller,0,Dynamic,NULL,NULL; \
-opticalEncoderToPidController,10,optical_encoder_output_data,0,Dynamic,NULL,NULL; \
-pidControllerToBpm,10,float,0,Dynamic,NULL,NULL; \
-sessionControllerToOpticalSensor,16,uint16_t,0,Dynamic,NULL,NULL;sessionControllertoUsbController,16,uint16_t,0,Dynamic,NULL,NULL
-FREERTOS.Tasks01=lcdTask,16,256,lcdDisplay,Default,NULL,Dynamic,NULL,NULL; \
-bpmTask,49,128,bpmCtrl,Default,NULL,Dynamic,NULL,NULL; \
-forceSensorTask,32,256,forceSensor,Default,NULL,Dynamic,NULL,NULL; \
-pidTask,40,256,pidController,Default,NULL,Dynamic,NULL,NULL; \
-opticalSensorTask,8,128,opticalSensor,Default,NULL,Dynamic,NULL,NULL; \
-sessionControllerTask,40,256,sessionController,Default,NULL,Dynamic,NULL,NULL;usbTask,24,256,startUsbTask,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.Queues01=sessionControllerToLumexLcd,25,session_controller_to_lumex_lcd,0,Dynamic,NULL,NULL; lumexLcdTimerInterrupt,1,HAL_StatusTypeDef,0,Dynamic,NULL,NULL; sessionControllerToBpm,10,session_controller_to_bpm,0,Dynamic,NULL,NULL; sessionControllerToForceSensor,16,bool,0,Dynamic,NULL,NULL; sessionControllerToPidController,5,session_controller_to_pid_controller,0,Dynamic,NULL,NULL; opticalEncoderToPidController,10,optical_encoder_output_data,0,Dynamic,NULL,NULL; pidControllerToBpm,10,float,0,Dynamic,NULL,NULL; sessionControllerToOpticalSensor,16,uint16_t,0,Dynamic,NULL,NULL;sessionControllertoUsbController,16,uint16_t,0,Dynamic,NULL,NULL
+FREERTOS.Tasks01=usbTask,40,1024,usbTaskEntryFunction,As weak,NULL,Dynamic,NULL,NULL; bpmTask,40,128,bpmTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL; forceSensorTask,32,256,forceSensorTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL; pidTask,40,256,pidControllerTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL; opticalSensorTask,32,256,opticalSensorTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL;sessionControllerTask,40,256,sessionControllerTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL;lcdDisplayTask,16,256,lcdDisplayTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL;ledBlinkTask,8,128,ledBlinkTaskEntryFunction,As external,NULL,Dynamic,NULL,NULL
 FREERTOS.configENABLE_FPU=1
 FREERTOS.configMAX_TASK_NAME_LEN=32
-FREERTOS.configTOTAL_HEAP_SIZE=30720
+FREERTOS.configTOTAL_HEAP_SIZE=46080
 FREERTOS.configUSE_NEWLIB_REENTRANT=1
 File.Version=6
 GPIO.groupedBy=Group By Peripherals
@@ -281,7 +269,7 @@ PD7.Signal=SPI1_MOSI
 PE3.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_ModeDefaultEXTI
 PE3.GPIO_Label=ROT_EN_A
 PE3.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_FALLING
-PE3.GPIO_PuPd=GPIO_NOPULL
+PE3.GPIO_PuPd=GPIO_PULLUP
 PE3.Locked=true
 PE3.Signal=GPXTI3
 PE4.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_ModeDefaultEXTI
@@ -328,7 +316,7 @@ PG11.Signal=SPI1_SCK
 PG14.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_ModeDefaultEXTI
 PG14.GPIO_Label=ILI_TOUCH_IRQ
 PG14.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_FALLING
-PG14.GPIO_PuPd=GPIO_NOPULL
+PG14.GPIO_PuPd=GPIO_PULLUP
 PG14.Locked=true
 PG14.Signal=GPXTI14
 PG9.GPIOParameters=GPIO_Label
@@ -354,9 +342,8 @@ PH6.GPIO_Label=ILI_SPI2_TOUCH_CS
 PH6.GPIO_Speed=GPIO_SPEED_FREQ_MEDIUM
 PH6.Locked=true
 PH6.Signal=GPIO_Output
-PH7.GPIOParameters=GPIO_Speed,GPIO_Label
-PH7.GPIO_Label=ILI_SPI2_SD_CS
-PH7.GPIO_Speed=GPIO_SPEED_FREQ_MEDIUM
+PH7.GPIOParameters=GPIO_Label
+PH7.GPIO_Label=LED
 PH7.Locked=true
 PH7.Signal=GPIO_Output
 PI11.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_ModeDefaultEXTI

@@ -23,6 +23,9 @@ void BPM::Run(void)
 
 	while(1) {
 
+		osDelay(BPM_TASK_OSDELAY);
+
+		// do not want latest from queue since there may be specific instructions to address
 		while (osMessageQueueGet(_fromSCHandle, &scMsg, NULL, 0) == osOK)
 		{
 			switch(scMsg.op)
@@ -46,20 +49,30 @@ void BPM::Run(void)
 
 
 		}
-		if (readFromPID)
+
+		if (!readFromPID)
 		{
-			float latestDutyCycle;
-			// Get the latest available value (non-blocking)
-			if (GetLatestFromQueue(_fromPIDHandle, &latestDutyCycle, sizeof(latestDutyCycle), 0))
-			{
-				SetDutyCycle(latestDutyCycle);
-				TogglePWM(true);
-				bpm_output_data outputData;
-				outputData.timestamp = get_timestamp();
-				outputData.duty_cycle = latestDutyCycle;
-				_buffer_writer.WriteElementAndIncrementIndex(outputData);
-			}
+			continue;
 		}
+
+		float latestDutyCycle;
+
+		// Get the latest available value (non-blocking)
+		if (!GetLatestFromQueue(_fromPIDHandle, &latestDutyCycle, sizeof(latestDutyCycle), 0))
+		{
+			continue;
+		}
+
+		SetDutyCycle(latestDutyCycle);
+		TogglePWM(true);
+		bpm_output_data outputData;
+		outputData.timestamp = get_timestamp();
+		outputData.duty_cycle = latestDutyCycle;
+		_buffer_writer.WriteElementAndIncrementIndex(outputData);
+		
+	
+
+		
 
 	}
 }
@@ -94,7 +107,6 @@ void BPM::SetDutyCycle(float new_duty_cycle_percent)
 
 	__HAL_TIM_SET_COMPARE(bpmTimer, TIM_CHANNEL_1, new_duty_cycle);
 }
-
 
 extern "C" void bpm_main(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidControllerToBpmHandle)
 {
