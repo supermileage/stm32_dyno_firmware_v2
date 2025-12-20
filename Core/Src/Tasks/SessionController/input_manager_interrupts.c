@@ -9,7 +9,8 @@ volatile button_press_data button_press_circular_buffer[USER_INPUT_CIRCULAR_BUFF
 
 void register_rotary_encoder_input()
 {
-    // This function would be called on ROT_EN_A
+
+	// This function would be called on ROT_EN_A
     bool positive;
     // The state of ROT_EN_B would tell us the direction
     if (HAL_GPIO_ReadPin(ROT_EN_B_GPIO_Port, ROT_EN_B_Pin))
@@ -26,9 +27,12 @@ void register_rotary_encoder_input()
 
 
 }
+
+
+
 void register_rotary_encoder_sw_input()
 {
-    // if button is pressed
+	// if button is pressed
     GPIO_PinState pin_state = HAL_GPIO_ReadPin(ROT_EN_SW_GPIO_Port, ROT_EN_SW_Pin);
     if (pin_state == GPIO_PIN_RESET)
     {
@@ -48,7 +52,8 @@ void register_rotary_encoder_sw_input()
 
 void register_button_back_input()
 {
-    // Get the current pin state of the back button
+
+	// Get the current pin state of the back button
     GPIO_PinState pin_state = HAL_GPIO_ReadPin(BTN_BACK_GPIO_Port, BTN_BACK_Pin);
     if (pin_state == GPIO_PIN_RESET)
     {

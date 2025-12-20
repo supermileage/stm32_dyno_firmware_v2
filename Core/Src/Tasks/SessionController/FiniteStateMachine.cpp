@@ -476,7 +476,8 @@ void FSM::DisplayPower(float power)
 
 void FSM::AddToLumexLCDMessageQueue(session_controller_to_lumex_lcd_opcode opcode, const char* display_string, uint8_t row, uint8_t column)
 {
-    session_controller_to_lumex_lcd msg;
+
+	session_controller_to_lumex_lcd msg;
     msg.op = opcode;
     msg.display_string = display_string;
     msg.row = row;

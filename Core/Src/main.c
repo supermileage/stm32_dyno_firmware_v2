@@ -78,7 +78,7 @@ UART_HandleTypeDef huart1;
 osThreadId_t usbTaskHandle;
 const osThreadAttr_t usbTask_attributes = {
   .name = "usbTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for bpmTask */
@@ -92,35 +92,35 @@ const osThreadAttr_t bpmTask_attributes = {
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
   .name = " forceSensorTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
 osThreadId_t pidTaskHandle;
 const osThreadAttr_t pidTask_attributes = {
   .name = " pidTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for opticalSensorTask */
 osThreadId_t opticalSensorTaskHandle;
 const osThreadAttr_t opticalSensorTask_attributes = {
   .name = " opticalSensorTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for sessionControllerTask */
 osThreadId_t sessionControllerTaskHandle;
 const osThreadAttr_t sessionControllerTask_attributes = {
   .name = "sessionControllerTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for lcdDisplayTask */
 osThreadId_t lcdDisplayTaskHandle;
 const osThreadAttr_t lcdDisplayTask_attributes = {
   .name = "lcdDisplayTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for ledBlinkTask */
@@ -324,7 +324,7 @@ int main(void)
   sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
-
+//
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -353,11 +353,11 @@ int main(void)
   ledBlinkTaskHandle = osThreadNew(ledBlinkTaskEntryFunction, NULL, &ledBlinkTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+//  /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
+//  /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -1104,19 +1104,19 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(ILI_SPI1_LCD_CS_GPIO_Port, ILI_SPI1_LCD_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOI, LED_BACK_Pin|LED_SELECT_Pin|LED_BRAKE_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin BTN_SELECT_Pin */
-  GPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin|BTN_SELECT_Pin;
+  /*Configure GPIO pins : ROT_EN_A_Pin ROT_EN_SW_Pin */
+  GPIO_InitStruct.Pin = ROT_EN_A_Pin|ROT_EN_SW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : BTN_BACK_Pin */
-  GPIO_InitStruct.Pin = BTN_BACK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : BTN_SELECT_Pin BTN_BACK_Pin */
+  GPIO_InitStruct.Pin = BTN_SELECT_Pin|BTN_BACK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(BTN_BACK_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ROT_EN_B_Pin */
   GPIO_InitStruct.Pin = ROT_EN_B_Pin;
@@ -1190,7 +1190,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BTN_BRAKE_Pin */
   GPIO_InitStruct.Pin = BTN_BRAKE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(BTN_BRAKE_GPIO_Port, &GPIO_InitStruct);
 
   /*AnalogSwitch Config */
@@ -1228,7 +1228,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
   #endif
 }
 
-void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	switch(GPIO_Pin)
   {
@@ -1262,32 +1262,6 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
   }
 }
 
-void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
-{
-	switch(GPIO_Pin)
-  {
-    case ROT_EN_A_Pin:
-      register_rotary_encoder_input();
-      break;
-    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
-    case ROT_EN_B_Pin:
-      break;
-    case ROT_EN_SW_Pin:
-      register_rotary_encoder_sw_input();
-      break;
-    case BTN_BACK_Pin:
-      register_button_back_input();
-      break;
-    case BTN_SELECT_Pin:
-      register_button_select_input();
-      break;
-    case BTN_BRAKE_Pin:
-      register_button_brake_input();
-      break;
-    default:
-      break;
-  }
-}
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     #if OPTICAL_ENCODER_TASK_ENABLE == 1
@@ -1335,7 +1309,16 @@ void sessionControllerTaskEntryFunction(void* argument)
     #if SESSION_CONTROLLER_TASK_ENABLE == 0
         osThreadSuspend(sessionControllerTaskHandle);
     #else
-        sessioncontroller_main(sessionControllerToLumexLcdHandle);
+        session_controller_os_tasks tasks = {
+        	.usb_controller = sessionControllertoUsbControllerHandle,
+			.sd_controller = NULL,
+			.force_sensor = sessionControllerToForceSensorHandle,
+			.optical_sensor = sessionControllerToOpticalSensorHandle,
+			.bpm_controller = sessionControllerToBpmHandle,
+			.pid_controller = sessionControllerToPidControllerHandle,
+			.lumex_lcd = sessionControllerToLumexLcdHandle
+        };
+        sessioncontroller_main(&tasks);
     #endif
 }
 

@@ -59,37 +59,45 @@ bool LumexLCD::Init()
     return true;
 }
 
-void LumexLCD::Run(void)
-{
-    session_controller_to_lumex_lcd msg;
-    memset(&msg, 0, sizeof(msg));
+ void LumexLCD::Run(void)
+ {
+     session_controller_to_lumex_lcd msg;
+     memset(&msg, 0, sizeof(msg));
 
-    while (1)
-    {
-        // Block until a message arrives
-        if (osMessageQueueGet(_fromSCqHandle, &msg, 0, osWaitForever) == osOK)
-        {
-            // Drain any remaining messages to ensure we process all pending commands
-            do
-            {
-                switch (msg.op)
-                {
-                    case CLEAR_DISPLAY:
-                        ClearDisplay();
-                        break;
+     while (1)
+     {
+         // Block until a message arrives
+         if (osMessageQueueGet(_fromSCqHandle, &msg, 0, osWaitForever) == osOK)
+         {
+             // Drain any remaining messages to ensure we process all pending commands
+             do
+             {
+                 switch (msg.op)
+                 {
+                     case CLEAR_DISPLAY:
+                         ClearDisplay();
+                         break;
 
-                    case WRITE_TO_DISPLAY:
-                        DisplayString(msg.row, msg.column, msg.display_string);
-                        break;
+                     case WRITE_TO_DISPLAY:
+                         DisplayString(msg.row, msg.column, msg.display_string);
+                         break;
 
-                    default:
-                        break;
-                }
-            }
-            while (osMessageQueueGet(_fromSCqHandle, &msg, 0, 0) == osOK);
-        }
-    }
-}
+                     default:
+                         break;
+                 }
+             }
+             while (osMessageQueueGet(_fromSCqHandle, &msg, 0, 0) == osOK);
+         }
+     }
+ }
+
+//void LumexLCD::Run()
+//{
+//	while(1)
+//	{
+//		DisplayString(0, 0, "hi");
+//	}
+//}
 
 
 
