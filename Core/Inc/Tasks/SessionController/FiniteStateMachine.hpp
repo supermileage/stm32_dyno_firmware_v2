@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 #include "cmsis_os2.h"
 
@@ -51,7 +52,7 @@ public:
 
     // Display related methods
     void ClearDisplay();
-    void AddToLumexLCDMessageQueue(session_controller_to_lumex_lcd_opcode opcode, const char* display_string, uint8_t row, uint8_t column);
+    void AddToLumexLCDMessageQueue(session_controller_to_lumex_lcd_opcode opcode, uint8_t row, uint8_t column, const char* display_string, size_t size);
     
     // Getters
     State GetState() const;

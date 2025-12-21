@@ -36,7 +36,7 @@ class LumexLCD
 		bool ClearDisplay();
 		bool SetCursor(uint8_t row, uint8_t column);
 		bool DisplayChar(uint8_t row, uint8_t column, uint8_t character);
-		bool DisplayString(uint8_t row, uint8_t column, const char* string);
+		bool DisplayString(uint8_t row, uint8_t column, const char* string, size_t size);
 
 		osMessageQueueId_t _fromSCqHandle;
 		osMessageQueueId_t _timqHandle;

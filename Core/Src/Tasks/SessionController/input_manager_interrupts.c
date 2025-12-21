@@ -15,11 +15,11 @@ void register_rotary_encoder_input()
     // The state of ROT_EN_B would tell us the direction
     if (HAL_GPIO_ReadPin(ROT_EN_B_GPIO_Port, ROT_EN_B_Pin))
     {
-        positive = false;
+        positive = true;
     }
     else
     {
-        positive = true;
+        positive = false;
     }
 
     // Add the number of changed ticks to the buffer
@@ -126,18 +126,18 @@ void add_to_circular_buffer(button_opcode opcode, bool positive)
 
     // Disable all button interrupts. Due to the nature of interrupts, they can interrupt each other
     // We cannot allow an interrupt to interrupt another while writing to the input_data buffer
-    HAL_NVIC_DisableIRQ(EXTI3_IRQn);
-    HAL_NVIC_DisableIRQ(EXTI4_IRQn);
-    HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
+//    HAL_NVIC_DisableIRQ(EXTI3_IRQn);
+//    HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+//    HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
 
     // Critical section: write to the circular buffer
     button_press_circular_buffer[interrupt_input_data_index] = data_to_add;
     interrupt_input_data_index = (interrupt_input_data_index + 1) % USER_INPUT_CIRCULAR_BUFFER_SIZE;
 
     // renable the IRQs
-    HAL_NVIC_EnableIRQ(EXTI3_IRQn);
-    HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+//    HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+//    HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+//    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 }
 
 volatile button_press_data* get_circular_buffer_data(uint32_t index)

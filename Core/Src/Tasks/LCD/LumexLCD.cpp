@@ -79,7 +79,7 @@ bool LumexLCD::Init()
                          break;
 
                      case WRITE_TO_DISPLAY:
-                         DisplayString(msg.row, msg.column, msg.display_string);
+                         DisplayString(msg.row, msg.column, (const char*) msg.display_string, msg.size);
                          break;
 
                      default:
@@ -211,9 +211,11 @@ bool LumexLCD::DisplayChar(uint8_t row, uint8_t column, uint8_t character)
 	return true;
 }
 
-bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string)
+bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string, size_t size)
 {
-	for (uint8_t i = 0; i < strlen(string); i++)
+	assert_param(size < SESSION_CONTROLLER_TO_LUMEX_LCD_MSG_STRING_SIZE);
+	
+	for (uint8_t i = 0; i < size; i++)
 	{
 		if (!SetCursor(row, column))
 		{

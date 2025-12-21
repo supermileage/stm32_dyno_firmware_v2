@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "Config/config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,7 +23,8 @@ typedef struct {
 	session_controller_to_lumex_lcd_opcode op;  // Operation to perform on the display
     uint8_t row;                                // Row number on the LCD
     uint8_t column;                             // Column number on the LCD
-    const char* display_string;                       // String to write (if WRITE_TO_DISPLAY)
+    char display_string[SESSION_CONTROLLER_TO_LUMEX_LCD_MSG_STRING_SIZE];                       // String to write (if WRITE_TO_DISPLAY)
+	size_t size;
 } session_controller_to_lumex_lcd;
 
 // Opcodes for controlling the BPM (Pulse Width Modulation) module from the session controller
