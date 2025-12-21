@@ -59,37 +59,45 @@ bool LumexLCD::Init()
     return true;
 }
 
-void LumexLCD::Run(void)
-{
-    session_controller_to_lumex_lcd msg;
-    memset(&msg, 0, sizeof(msg));
+ void LumexLCD::Run(void)
+ {
+     session_controller_to_lumex_lcd msg;
+     memset(&msg, 0, sizeof(msg));
 
-    while (1)
-    {
-        // Block until a message arrives
-        if (osMessageQueueGet(_fromSCqHandle, &msg, 0, osWaitForever) == osOK)
-        {
-            // Drain any remaining messages to ensure we process all pending commands
-            do
-            {
-                switch (msg.op)
-                {
-                    case CLEAR_DISPLAY:
-                        ClearDisplay();
-                        break;
+     while (1)
+     {
+         // Block until a message arrives
+         if (osMessageQueueGet(_fromSCqHandle, &msg, 0, osWaitForever) == osOK)
+         {
+             // Drain any remaining messages to ensure we process all pending commands
+             do
+             {
+                 switch (msg.op)
+                 {
+                     case CLEAR_DISPLAY:
+                         ClearDisplay();
+                         break;
 
-                    case WRITE_TO_DISPLAY:
-                        DisplayString(msg.row, msg.column, msg.display_string);
-                        break;
+                     case WRITE_TO_DISPLAY:
+                         DisplayString(msg.row, msg.column, (const char*) msg.display_string, msg.size);
+                         break;
 
-                    default:
-                        break;
-                }
-            }
-            while (osMessageQueueGet(_fromSCqHandle, &msg, 0, 0) == osOK);
-        }
-    }
-}
+                     default:
+                         break;
+                 }
+             }
+             while (osMessageQueueGet(_fromSCqHandle, &msg, 0, 0) == osOK);
+         }
+     }
+ }
+
+//void LumexLCD::Run()
+//{
+//	while(1)
+//	{
+//		DisplayString(0, 0, "hi");
+//	}
+//}
 
 
 
@@ -203,9 +211,11 @@ bool LumexLCD::DisplayChar(uint8_t row, uint8_t column, uint8_t character)
 	return true;
 }
 
-bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string)
+bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string, size_t size)
 {
-	for (uint8_t i = 0; i < strlen(string); i++)
+	assert_param(size < SESSION_CONTROLLER_TO_LUMEX_LCD_MSG_STRING_SIZE);
+	
+	for (uint8_t i = 0; i < size; i++)
 	{
 		if (!SetCursor(row, column))
 		{

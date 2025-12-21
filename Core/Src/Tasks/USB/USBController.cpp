@@ -57,6 +57,31 @@ void USBController::Run()
 	}
 }
 
+
+
+// void USBController::Run()
+// {
+// 	uint8_t msg[6];
+
+// 	for (;;)
+// 	{
+// 	    msg[0] = 'B';
+// 	    msg[1] = HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port,  BTN_BRAKE_Pin)  ? '1' : '0';
+// 	    msg[2] = 'S';
+// 	    msg[3] = HAL_GPIO_ReadPin(BTN_SELECT_GPIO_Port, BTN_SELECT_Pin) ? '1' : '0';
+// 	    msg[4] = 'K';
+// 	    msg[5] = '\n';
+
+// 	    while (CDC_Transmit_FS(msg, sizeof(msg)) == USBD_BUSY)
+// 	    {
+// 	        osDelay(1);
+// 	    }
+
+// 	    osDelay(100);
+// 	}
+
+// }
+
 void USBController::AddToBuffer(void* outputType, size_t outputTypeSize) {
 	memcpy(_txBuffer + _txBufferIndex, outputType, outputTypeSize); // Adds
 	_txBufferIndex += outputTypeSize;
