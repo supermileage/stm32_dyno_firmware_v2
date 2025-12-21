@@ -3,7 +3,11 @@
 
 #include "main.h"
 #include "FreeRTOS.h"
+#include "task.h"
+
+
 #include "Config/config.h"
+#include "Config/hal_instances.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -42,6 +46,9 @@ void register_rotary_encoder_sw_input();
 void register_button_back_input();
 void register_button_select_input();
 void register_button_brake_input();
+void register_button_back_debounce_timer_interrupt();
+void register_button_select_debounce_timer_interrupt();
+void register_button_brake_debounce_timer_interrupt();
 void add_to_circular_buffer(button_opcode opcode, bool positive);
 volatile button_press_data* get_circular_buffer_data(uint32_t index);
 

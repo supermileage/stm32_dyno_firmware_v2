@@ -57,6 +57,8 @@
 
 // User Input Config (like buttons)
 #define USER_INPUT_CIRCULAR_BUFFER_SIZE 100
+#define BUTTON_DEBOUNCE_TIME_MS 10
+#define BUTTON_DEBOUNCE_TIME_US BUTTON_DEBOUNCE_TIME_MS * 1000
 
 // Session Controller Config
 #define SESSIONCONTROLLER_TASK_OSDELAY 20

@@ -182,6 +182,19 @@ ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
 // Force sensor ADS1115 I2C Handle
 I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 
+TIM_HandleTypeDef* buttonDebounceTimer = &htim1;
+
+TIM_TypeDef* buttonDebounceTimInstance = TIM1;
+
+const uint8_t buttonDebounceTimerButtonBackTimerChannel = TIM_CHANNEL_1;
+const uint8_t buttonDebounceTimerButtonSelectTimerChannel = TIM_CHANNEL_2;
+const uint8_t buttonDebounceTimerButtonBrakeTimerChannel = TIM_CHANNEL_3;
+
+const HAL_TIM_ActiveChannel buttonDebounceTimerButtonBackTimerInterruptChannel = HAL_TIM_ACTIVE_CHANNEL_1;
+const HAL_TIM_ActiveChannel buttonDebounceTimerButtonSelectTimerInterruptChannel = HAL_TIM_ACTIVE_CHANNEL_2;
+const HAL_TIM_ActiveChannel buttonDebounceTimerButtonBrakeTimerInterruptChannel = HAL_TIM_ACTIVE_CHANNEL_3;
+
+
 TIM_HandleTypeDef* timestampTimer = &htim2;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
@@ -787,17 +800,19 @@ static void MX_TIM1_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 200-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 65535;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
@@ -807,10 +822,48 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1228,9 +1281,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
   #endif
 }
 
-void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	switch(GPIO_Pin)
+  switch(GPIO_Pin)
   {
     #if FORCE_SENSOR_ADS1115_TASK_ENABLE == 1
     case ADS1115_ALERT_Pin:
@@ -1262,30 +1315,22 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
   }
 }
 
-void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
-{
-	switch(GPIO_Pin)
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance == buttonDebounceTimInstance)
   {
-    case ROT_EN_A_Pin:
-      register_rotary_encoder_input();
-      break;
-    // Should not ever be triggered, ROT_EN_B should be set up as a basic GPIO Input Pin
-    case ROT_EN_B_Pin:
-      break;
-    case ROT_EN_SW_Pin:
-      register_rotary_encoder_sw_input();
-      break;
-    case BTN_BACK_Pin:
-      register_button_back_input();
-      break;
-    case BTN_SELECT_Pin:
-      register_button_select_input();
-      break;
-    case BTN_BRAKE_Pin:
-      register_button_brake_input();
-      break;
-    default:
-      break;
+    if (htim->Channel == buttonDebounceTimerButtonBackTimerInterruptChannel)
+    {
+      register_button_back_debounce_timer_interrupt();
+    }
+    else if (htim->Channel == buttonDebounceTimerButtonSelectTimerInterruptChannel)
+    {
+      register_button_select_debounce_timer_interrupt();
+    }
+    else if (htim->Channel == buttonDebounceTimerButtonBrakeTimerInterruptChannel)
+    {
+      register_button_brake_debounce_timer_interrupt();
+    } 
+    
   }
 }
 

@@ -7,6 +7,12 @@
 extern "C" {
 #endif
 
+extern TIM_HandleTypeDef* buttonDebounceTimer;
+
+extern const uint8_t buttonDebounceTimerButtonBackTimerChannel;
+extern const uint8_t buttonDebounceTimerButtonSelectTimerChannel;
+extern const uint8_t buttonDebounceTimerButtonBrakeTimerChannel;
+
 extern TIM_HandleTypeDef* lumexLcdTimer;
 extern TIM_HandleTypeDef* bpmTimer;
 extern TIM_HandleTypeDef* opticalTimer;
