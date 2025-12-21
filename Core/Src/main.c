@@ -1380,7 +1380,16 @@ void sessionControllerTaskEntryFunction(void* argument)
     #if SESSION_CONTROLLER_TASK_ENABLE == 0
         osThreadSuspend(sessionControllerTaskHandle);
     #else
-        sessioncontroller_main(sessionControllerToLumexLcdHandle);
+      session_controller_os_tasks tasks = {
+        .usb_controller = sessionControllertoUsbControllerHandle,
+        .sd_controller = NULL,
+        .force_sensor = sessionControllerToForceSensorHandle,
+        .optical_sensor = sessionControllerToOpticalSensorHandle,
+        .bpm_controller = sessionControllerToBpmHandle,
+        .pid_controller = sessionControllerToPidControllerHandle,
+        .lumex_lcd = sessionControllerToLumexLcdHandle
+      };
+      sessioncontroller_main(&tasks);
     #endif
 }
 

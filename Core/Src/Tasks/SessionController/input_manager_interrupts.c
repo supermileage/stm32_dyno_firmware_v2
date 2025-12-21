@@ -162,16 +162,11 @@ void add_to_circular_buffer(button_opcode opcode, bool positive)
     data_to_add.opcode = opcode;
     data_to_add.positive = positive;
 
-    // Disable all button interrupts. Due to the nature of interrupts, they can interrupt each other
-    // We cannot allow an interrupt to interrupt another while writing to the input_data buffer
-    taskENTER_CRITICAL();
 
-    // Critical section: write to the circular buffer
+    // THIS ONLY SHOULD WORK FINE IF ALL BUTTONS HAVE IDENTICAL PRIORITY
     button_press_circular_buffer[interrupt_input_data_index] = data_to_add;
     interrupt_input_data_index = (interrupt_input_data_index + 1) % USER_INPUT_CIRCULAR_BUFFER_SIZE;
 
-    // renable the IRQs
-    taskEXIT_CRITICAL();
 }
 
 volatile button_press_data* get_circular_buffer_data(uint32_t index)
