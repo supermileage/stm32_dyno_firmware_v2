@@ -78,7 +78,7 @@ UART_HandleTypeDef huart1;
 osThreadId_t usbTaskHandle;
 const osThreadAttr_t usbTask_attributes = {
   .name = "usbTask",
-  .stack_size = 128 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for bpmTask */
@@ -1095,7 +1095,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, LUMEX_LCD_EN_Pin|LUMEX_LCD_RS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOH, ILI_SPI2_TOUCH_CS_Pin|ILI_SPI2_SD_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, ILI_LCD_DC_Pin|ILI_LCD_RST_Pin, GPIO_PIN_RESET);
@@ -1153,12 +1153,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(ILI_SPI2_TOUCH_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LED_Pin */
-  GPIO_InitStruct.Pin = LED_Pin;
+  /*Configure GPIO pin : ILI_SPI2_SD_CS_Pin */
+  GPIO_InitStruct.Pin = ILI_SPI2_SD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(ILI_SPI2_SD_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ILI_LCD_DC_Pin ILI_LCD_RST_Pin */
   GPIO_InitStruct.Pin = ILI_LCD_DC_Pin|ILI_LCD_RST_Pin;
@@ -1346,7 +1346,7 @@ void ledBlinkTaskEntryFunction(void *argument)
 {
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    HAL_GPIO_TogglePin(ILI_SPI2_SD_CS_GPIO_Port, ILI_SPI2_SD_CS_Pin);
     osDelay(LED_TASK_OSDELAY);
   }
 
