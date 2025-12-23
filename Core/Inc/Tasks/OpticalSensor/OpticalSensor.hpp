@@ -30,7 +30,7 @@ private:
 
 	void ToggleOpticalEncoder(bool enable);
 
-    CircularBufferWriter<optical_encoder_output_data> _buffer_writer;
+    CircularBufferWriter<optical_encoder_output_data> _data_buffer_writer;
 
     osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 

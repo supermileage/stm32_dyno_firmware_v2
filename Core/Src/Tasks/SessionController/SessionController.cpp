@@ -27,7 +27,6 @@ void SessionController::Run()
 
     while(1)
     {
-        osDelay(SESSIONCONTROLLER_TASK_OSDELAY);
         
         // First Handle Any User Inputs
         _fsm.HandleUserInputs();
@@ -37,7 +36,7 @@ void SessionController::Run()
         // Only if the status has changed
         if (usbLoggingEnabled ^ _prevUSBLoggingEnabled)
         {
-            osMessageQueuePut(_task_queues->usb_controller, &usbLoggingEnabled, 0, 0);
+            osMessageQueuePut(_task_queues->usb_controller, &usbLoggingEnabled, 0, osWaitForever);
             _prevUSBLoggingEnabled = usbLoggingEnabled;
         }
 
@@ -46,7 +45,7 @@ void SessionController::Run()
         // Only if the status has changed
         if (SDLoggingEnabled ^ _prevSDLoggingEnabled)
         {
-            osMessageQueuePut(_task_queues->sd_controller, &SDLoggingEnabled, 0, 0);
+            osMessageQueuePut(_task_queues->sd_controller, &SDLoggingEnabled, 0, osWaitForever);
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
 
@@ -95,53 +94,58 @@ void SessionController::Run()
 
         }
 
-        // Things that need to occur every pass of the loop
-        if (InSessionStatus)
+        if (!InSessionStatus)
         {
-            // Get PID enabled status and enable PID Controller
-            bool PIDEnabled = _fsm.GetPIDEnabledStatus();
-
-            // Only if the status has changed
-            if (PIDEnabled ^ _prevPIDEnabled)
-            {
-                session_controller_to_pid_controller pid_msg;
-                pid_msg.enable_status = PIDEnabled;
-                pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
-                osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, 0);
-                _prevPIDEnabled = PIDEnabled;
-            }
-            
-            // Always run since the PID controller could be turned off while in-session
-            float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
-            if (newDutyCycle != static_cast<float>(-1))
-            {
-                session_controller_to_bpm bpmSettings;
-                
-                bpmSettings.op = START_PWM;
-                bpmSettings.new_duty_cycle_percent =  newDutyCycle;
-
-                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
-            }
-
-            // Get the most recent force sensor data
-            while(_forcesensor_buffer_reader.GetElementAndIncrementIndex(force_data));
-
-            // Get the most recent optical encoder data
-            while(_optical_encoder_buffer_reader.GetElementAndIncrementIndex(optical_encoder_data));
-
-            // TO UPDATE
-            float angularAcceleration = 0;
-            float angularVelocity = optical_encoder_data.angular_velocity;
-            float force = force_data.force;
-            
-            float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
-            
-            _fsm.DisplayTorque(torque);
-            _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
-            _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
-
-
+            osDelay(SESSIONCONTROLLER_TASK_OSDELAY);
+            continue;
         }
+
+        // Get PID enabled status and enable PID Controller
+        bool PIDEnabled = _fsm.GetPIDEnabledStatus();
+
+        // Only if the status has changed
+        if (PIDEnabled ^ _prevPIDEnabled)
+        {
+            session_controller_to_pid_controller pid_msg;
+            pid_msg.enable_status = PIDEnabled;
+            pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
+            osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, osWaitForever);
+            _prevPIDEnabled = PIDEnabled;
+        }
+        
+        // Always run since the PID controller could be turned off while in-session
+        float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
+        if (newDutyCycle != static_cast<float>(-1))
+        {
+            session_controller_to_bpm bpmSettings;
+            
+            bpmSettings.op = START_PWM;
+            bpmSettings.new_duty_cycle_percent =  newDutyCycle;
+
+            osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+        }
+
+        // Get the most recent force sensor data
+        while(_forcesensor_buffer_reader.GetElementAndIncrementIndex(force_data));
+
+        // Get the most recent optical encoder data
+        while(_optical_encoder_buffer_reader.GetElementAndIncrementIndex(optical_encoder_data));
+
+        // TO UPDATE
+        float angularAcceleration = 0;
+        float angularVelocity = optical_encoder_data.angular_velocity;
+        float force = force_data.force;
+        
+        float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
+        
+        _fsm.DisplayTorque(torque);
+        _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
+        _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
+
+
+        
+
+        osDelay(SESSIONCONTROLLER_TASK_OSDELAY);
 
         
             

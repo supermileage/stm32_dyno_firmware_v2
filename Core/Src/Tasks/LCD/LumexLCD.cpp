@@ -4,6 +4,7 @@
 static volatile bool timerCallbackFlag = false;
 
 LumexLCD::LumexLCD(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
+		_task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
 		_fromSCqHandle(sessionControllerToLumexLcdHandle)
 {}
 
@@ -13,7 +14,7 @@ bool LumexLCD::Init()
     // Enable to GND to tell that we are in command mode, not data mode
 	HAL_GPIO_WritePin(LUMEX_LCD_EN_GPIO_Port, LUMEX_LCD_EN_Pin, GPIO_PIN_RESET);
 
-    HAL_Delay(40);
+    osDelay(40);
 
 
     // Proper 8-bit mode initialization sequence
@@ -23,7 +24,7 @@ bool LumexLCD::Init()
     	return false;
     }
 
-    HAL_Delay(5);
+    osDelay(5);
 
 
     // needs to be done twice
@@ -32,7 +33,7 @@ bool LumexLCD::Init()
 		return false;
 	}
 
-	HAL_Delay(5);
+	osDelay(5);
 
     // just to make sure it works
 	if (!WriteCommand(0x38))
@@ -40,7 +41,7 @@ bool LumexLCD::Init()
 		return false;
 	}
 
-	HAL_Delay(5);
+	osDelay(5);
 
     // Display ON, Cursor OFF, Blink OFF
 	if (!WriteCommand(0x0c))
@@ -48,7 +49,7 @@ bool LumexLCD::Init()
 		return false;
 	}
 
-	HAL_Delay(5);
+	osDelay(5);
 
     // Clear Display
     if (!ClearDisplay())
@@ -61,7 +62,8 @@ bool LumexLCD::Init()
 
  void LumexLCD::Run(void)
  {
-     session_controller_to_lumex_lcd msg;
+
+	session_controller_to_lumex_lcd msg;
      memset(&msg, 0, sizeof(msg));
 
      while (1)
@@ -79,7 +81,10 @@ bool LumexLCD::Init()
                          break;
 
                      case WRITE_TO_DISPLAY:
-                         DisplayString(msg.row, msg.column, (const char*) msg.display_string, msg.size);
+                         if (!DisplayString(msg.row, msg.column, (const char*) msg.display_string, msg.size))
+						 {
+							return;
+						 }
                          break;
 
                      default:
@@ -88,6 +93,8 @@ bool LumexLCD::Init()
              }
              while (osMessageQueueGet(_fromSCqHandle, &msg, 0, 0) == osOK);
          }
+
+		 osDelay(LCD_TASK_OSDELAY);
      }
  }
 
@@ -108,6 +115,7 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 	__HAL_TIM_SET_AUTORELOAD(lumexLcdTimer, microseconds);
 	if (HAL_TIM_Base_Start_IT(lumexLcdTimer) != HAL_OK)
 	{
+		_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_LUMEX_LCD_TIMER_START_FAILURE);
 		return false;
 	}
 

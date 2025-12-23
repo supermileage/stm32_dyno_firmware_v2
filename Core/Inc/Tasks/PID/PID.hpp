@@ -8,8 +8,10 @@
 #include "MessagePassing/osqueue_helpers.h"
 #include "MessagePassing/messages.h"
 #include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/errors.h"
 
 #include "CircularBufferReader.hpp"
+#include "CircularBufferWriter.hpp"
 
 #include "Config/config.h"
 
@@ -20,12 +22,13 @@ class PIDController
 	public:
 		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
 
-		virtual ~PIDController() = default;
+		~PIDController() = default;
 
 		bool Init();
 		void Run();
 	private:
-		CircularBufferReader<optical_encoder_output_data> _buffer_reader;
+		CircularBufferReader<optical_encoder_output_data> _data_buffer_reader;
+		CircularBufferWriter<task_errors> _task_error_buffer_writer;
 
 		osMessageQueueId_t _sessionControllerToPidHandle;
 		osMessageQueueId_t _pidToBpmHandle;

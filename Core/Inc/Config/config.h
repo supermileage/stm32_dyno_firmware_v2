@@ -64,13 +64,13 @@
 // BPM Config
 #define MIN_DUTY_CYCLE_PERCENT 0.0
 #define MAX_DUTY_CYCLE_PERCENT 0.95
-#define BPM_CIRCULAR_BUFFER_SIZE 50
+#define BPM_CIRCULAR_BUFFER_SIZE 100
 #define BPM_TASK_OSDELAY 20
 
 // FORCE SENSOR Config
 #define MAX_FORCE_LBF 25
 #define FORCESENSOR_TASK_OSDELAY 20
-#define FORCESENSOR_CIRCULAR_BUFFER_SIZE 50
+#define FORCESENSOR_CIRCULAR_BUFFER_SIZE 100
 
 // ADS1115 I2C Config
 #define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
@@ -79,7 +79,7 @@
 // Optical Encoder Config
 #define OP_OF 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
-#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 50// Need to evaluate maximum possible size from STM32
+#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 100 // Need to evaluate maximum possible size from STM32
 #define OPTICAL_ENCODER_TASK_OSDELAY 20
 
 // PID config
@@ -96,6 +96,11 @@
 
 // LED config
 #define LED_TASK_OSDELAY 500
+
+// Error and Warning settings
+#define TASK_ERROR_CIRCULAR_BUFFER_SIZE 50
+#define TASK_WARNING_RETRY_OSDELAY 100
+
 
 
 

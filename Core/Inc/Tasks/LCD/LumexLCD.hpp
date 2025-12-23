@@ -11,8 +11,11 @@
 #include "Config/config.h"
 #include "Config/hal_instances.h"
 
+#include "CircularBufferWriter.hpp"
+
 #include "MessagePassing/messages.h"
 #include "MessagePassing/osqueue_helpers.h"
+#include "MessagePassing/circular_buffers.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,7 +25,7 @@ class LumexLCD
 {
 	public:
 		LumexLCD(osMessageQueueId_t lumexLcdToSessionControllerqHandle);
-		virtual ~LumexLCD() = default;
+		~LumexLCD() = default;
 
 		bool Init();
 		void Run();
@@ -38,8 +41,9 @@ class LumexLCD
 		bool DisplayChar(uint8_t row, uint8_t column, uint8_t character);
 		bool DisplayString(uint8_t row, uint8_t column, const char* string, size_t size);
 
+		CircularBufferWriter<task_errors> _task_error_buffer_writer;
+
 		osMessageQueueId_t _fromSCqHandle;
-		osMessageQueueId_t _timqHandle;
 };
 
 

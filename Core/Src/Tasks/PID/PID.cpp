@@ -2,8 +2,9 @@
 #include <Tasks/PID/PID.hpp>
 
 PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
-			_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
-			_sessionControllerToPidHandle(sessionControllerToPidControllerHandle),
+			_data_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
+            _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
+            _sessionControllerToPidHandle(sessionControllerToPidControllerHandle),
 			_pidToBpmHandle(pidToBpmHandle),
 			_enabled(initialState),
 			_curTimestamp(0),
@@ -60,14 +61,14 @@ void PIDController::Run()
         }
 
         // --- Read latest optical encoder data ---
-        if (!_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData))
+        if (!_data_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData))
         {
             // Nothing new, skip loop
             continue;
         }
 
         // Drain any remaining elements to get the latest
-        while (_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
+        while (_data_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
 
         // --- Update current values ---
         _curTimestamp = latestOpticalEncoderData.timestamp;
@@ -138,7 +139,9 @@ void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 
 	if (osMessageQueuePut(_pidToBpmHandle, &new_duty_cycle_percent, 0, 0) != osOK)
 	{
-		return;
+		_task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL);
+        osDelay(TASK_WARNING_RETRY_OSDELAY);
+        return;
 	}
 
 }

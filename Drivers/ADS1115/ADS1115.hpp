@@ -56,27 +56,27 @@ public:
     ADS1115(I2C_HandleTypeDef* i2cHandle, uint8_t address = ADS1115_DEFAULT_ADDRESS);
     ~ADS1115() = default;
 
-	void initialize();
+	bool initialize();
     bool testConnection();
 
     // SINGLE SHOT utilities
     bool pollConversion(uint16_t max_retries);
-    void triggerConversion();
+    bool triggerConversion();
 
     // Read the current CONVERSION register
-    int16_t getConversion(bool triggerAndPoll = true);
+    bool getConversion(int16_t& value, bool triggerAndPoll = true);
 
     // Differential
-    int16_t getConversionP0N1();
-    int16_t getConversionP0N3();
-    int16_t getConversionP1N3();
-    int16_t getConversionP2N3();
+    bool getConversionP0N1(int16_t& value);
+    bool getConversionP0N3(int16_t& value);
+    bool getConversionP1N3(int16_t& value);
+    bool getConversionP2N3(int16_t& value);
 
     // Single-ended
-    int16_t getConversionP0GND();
-    int16_t getConversionP1GND();
-    int16_t getConversionP2GND();
-    int16_t getConversionP3GND();
+    bool getConversionP0GND(int16_t& value);
+    bool getConversionP1GND(int16_t& value);
+    bool getConversionP2GND(int16_t& value);
+    bool getConversionP3GND(int16_t& value);
 
     // Utility
     float getMilliVolts(bool triggerAndPoll = true);
@@ -84,32 +84,32 @@ public:
 
     // CONFIG register
     bool isConversionReady();
-    uint8_t getMultiplexer();
-    void setMultiplexer(uint8_t mux);
-    uint8_t getGain();
-    void setGain(uint8_t gain);
+    bool getMultiplexer(uint8_t& muxMode);
+    bool setMultiplexer(uint8_t mux);
+    bool getGain(uint8_t& gain);
+    bool setGain(uint8_t gain);
     bool getMode();
-    void setMode(bool mode);
-    uint8_t getRate();
-    void setRate(uint8_t rate);
+    bool setMode(bool mode);
+    bool getRate(uint8_t& rate);
+    bool setRate(uint8_t rate);
     bool getComparatorMode();
-    void setComparatorMode(bool mode);
+    bool setComparatorMode(bool mode);
     bool getComparatorPolarity();
-    void setComparatorPolarity(bool polarity);
+    bool setComparatorPolarity(bool polarity);
     bool getComparatorLatchEnabled();
-    void setComparatorLatchEnabled(bool enabled);
-    uint8_t getComparatorQueueMode();
-    void setComparatorQueueMode(uint8_t mode);
-    void setConversionReadyPinMode();
+    bool setComparatorLatchEnabled(bool enabled);
+    bool getComparatorQueueMode(uint8_t& mode);
+    bool setComparatorQueueMode(uint8_t mode);
+    bool setConversionReadyPinMode();
 
     // *_THRESH registers
-    int16_t getLowThreshold();
-    void setLowThreshold(int16_t threshold);
-    int16_t getHighThreshold();
-    void setHighThreshold(int16_t threshold);
+    bool getLowThreshold(int16_t& threshold);
+    bool setLowThreshold(int16_t threshold);
+    bool getHighThreshold(int16_t& threshold);
+    bool setHighThreshold(int16_t threshold);
 
     // DEBUG
-    void showConfigRegister();
+    bool showConfigRegister();
 
 private:
     I2C_HandleTypeDef* _i2cHandle;
