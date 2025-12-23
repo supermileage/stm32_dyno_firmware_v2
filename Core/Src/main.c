@@ -85,42 +85,42 @@ const osThreadAttr_t usbTask_attributes = {
 osThreadId_t bpmTaskHandle;
 const osThreadAttr_t bpmTask_attributes = {
   .name = " bpmTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for forceSensorTask */
 osThreadId_t forceSensorTaskHandle;
 const osThreadAttr_t forceSensorTask_attributes = {
   .name = " forceSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for pidTask */
 osThreadId_t pidTaskHandle;
 const osThreadAttr_t pidTask_attributes = {
   .name = " pidTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for opticalSensorTask */
 osThreadId_t opticalSensorTaskHandle;
 const osThreadAttr_t opticalSensorTask_attributes = {
   .name = " opticalSensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for sessionControllerTask */
 osThreadId_t sessionControllerTaskHandle;
 const osThreadAttr_t sessionControllerTask_attributes = {
   .name = "sessionControllerTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for lcdDisplayTask */
 osThreadId_t lcdDisplayTaskHandle;
 const osThreadAttr_t lcdDisplayTask_attributes = {
   .name = "lcdDisplayTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for ledBlinkTask */
@@ -134,11 +134,6 @@ const osThreadAttr_t ledBlinkTask_attributes = {
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
 const osMessageQueueAttr_t sessionControllerToLumexLcd_attributes = {
   .name = "sessionControllerToLumexLcd"
-};
-/* Definitions for lumexLcdTimerInterrupt */
-osMessageQueueId_t lumexLcdTimerInterruptHandle;
-const osMessageQueueAttr_t lumexLcdTimerInterrupt_attributes = {
-  .name = " lumexLcdTimerInterrupt"
 };
 /* Definitions for sessionControllerToBpm */
 osMessageQueueId_t sessionControllerToBpmHandle;
@@ -298,9 +293,6 @@ int main(void)
   /* Create the queue(s) */
   /* creation of sessionControllerToLumexLcd */
   sessionControllerToLumexLcdHandle = osMessageQueueNew (25, sizeof(session_controller_to_lumex_lcd), &sessionControllerToLumexLcd_attributes);
-
-  /* creation of lumexLcdTimerInterrupt */
-   lumexLcdTimerInterruptHandle = osMessageQueueNew (1, sizeof(HAL_StatusTypeDef), & lumexLcdTimerInterrupt_attributes);
 
   /* creation of sessionControllerToBpm */
    sessionControllerToBpmHandle = osMessageQueueNew (10, sizeof(session_controller_to_bpm), & sessionControllerToBpm_attributes);

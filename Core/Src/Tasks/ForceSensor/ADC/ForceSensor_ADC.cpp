@@ -6,10 +6,12 @@
 // Global interrupts
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t adc_value = 0;
+static volatile bool adc_conversion_complete = false;
 
 ForceSensorADC::ForceSensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle) :
 		// this comes directly from circular_buffers.h and config.h
-		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+		_data_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+        _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
 {}
 
@@ -26,16 +28,11 @@ void ForceSensorADC::Run(void)
     while (1)
     {
         // --- Get the latest enable/disable state ---
-        bool gotMessage = GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
                                              &enableADC,
                                              sizeof(enableADC),
                                              enableADC ? 0 : osWaitForever);
 
-        // If no message received and ADC is disabled, just continue
-        if (!gotMessage && !enableADC)
-        {
-            continue;
-        }
 
         // Skip processing if the latest state says disabled
         if (!enableADC)
@@ -43,15 +40,26 @@ void ForceSensorADC::Run(void)
             continue;
         }
 
+        adc_conversion_complete = false;
+
         // --- Trigger ADC conversion via interrupt ---
-        HAL_ADC_Start_IT(forceSensorADCHandle);
+        if (HAL_ADC_Start_IT(forceSensorADCHandle) != HAL_OK)
+        {
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_FORCE_SENSOR_ADC_START_FAILURE);
+            return;
+        }
+
+        while (!adc_conversion_complete)
+        {
+            osDelay(1); // yield to other tasks
+        }
 
         // --- Populate output struct ---
         outputData.timestamp = timestamp;
         outputData.force = GetForce(adc_value);
         outputData.raw_value = adc_value;
 
-        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+        _data_buffer_writer.WriteElementAndIncrementIndex(outputData);
 
         // --- Yield to other tasks ---
         osDelay(FORCESENSOR_TASK_OSDELAY);
@@ -69,8 +77,10 @@ float ForceSensorADC::GetForce(uint16_t adcValue)
 
 extern "C" void forcesensor_adc_interrupt()
 {
-	timestamp = get_timestamp();
+	
+    timestamp = get_timestamp();
 	adc_value = HAL_ADC_GetValue(forceSensorADCHandle);
+    adc_conversion_complete = true;
 }
 
 extern "C" void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle)

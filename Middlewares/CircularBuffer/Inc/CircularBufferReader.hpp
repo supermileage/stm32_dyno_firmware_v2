@@ -10,49 +10,51 @@ template <typename T>
 class CircularBufferReader
 {
 public:
-    CircularBufferReader(T* buffer, uint32_t* writerIndex, uint32_t size);
+    CircularBufferReader(T* buffer, size_t* writerIndex, size_t size);
 
     // Index management
-    uint32_t GetIndex() const;
-	void SetIndex(uint32_t index);
+    size_t GetIndex() const;
+    void SetIndex(size_t index);
 
-	T GetElement(uint32_t index) const;
-	bool GetElement(T& out) const;
-	bool GetElementAndIncrementIndex(T& out);
+    T GetElement(size_t index) const;
+    bool GetElement(T& out) const;
+    bool GetElementAndIncrementIndex(T& out);
+
+    // New method to check if data is available
+    bool HasData() const;
 
 private:
     T* _buffer;           // external buffer memory
-    uint32_t* _writerIndex;
-    uint32_t _size; 
-    uint32_t _readerIndex;
-   
+    size_t* _writerIndex;
+    size_t _size; 
+    size_t _readerIndex;
 };
 
 template <typename T>
-inline CircularBufferReader<T>::CircularBufferReader(T* buffer, uint32_t* writerIndex, uint32_t size)
+inline CircularBufferReader<T>::CircularBufferReader(T* buffer, size_t* writerIndex, size_t size)
     : _buffer(buffer), _writerIndex(writerIndex), _size(size), _readerIndex(0)
 {
 }
 
 template <typename T>
-inline uint32_t CircularBufferReader<T>::GetIndex() const
+inline size_t CircularBufferReader<T>::GetIndex() const
 {
     taskENTER_CRITICAL(); 
-    uint32_t readerIndex = _readerIndex;
+    size_t readerIndex = _readerIndex;
     taskEXIT_CRITICAL(); 
     return readerIndex;
 }
 
 template <typename T>
-inline void CircularBufferReader<T>::SetIndex(uint32_t index)
+inline void CircularBufferReader<T>::SetIndex(size_t index)
 {
-	taskENTER_CRITICAL(); 
+    taskENTER_CRITICAL(); 
     _readerIndex = index % _size;
     taskEXIT_CRITICAL();
 }
 
 template <typename T>
-inline T CircularBufferReader<T>::GetElement(uint32_t index) const
+inline T CircularBufferReader<T>::GetElement(size_t index) const
 {
     taskENTER_CRITICAL(); 
     return _buffer[index % _size];
@@ -91,6 +93,14 @@ inline bool CircularBufferReader<T>::GetElementAndIncrementIndex(T& out)
     return true;
 }
 
-
+// New method implementation
+template <typename T>
+inline bool CircularBufferReader<T>::HasData() const
+{
+    taskENTER_CRITICAL();
+    bool hasData = (_readerIndex != *_writerIndex);
+    taskEXIT_CRITICAL();
+    return hasData;
+}
 
 #endif /* CIRCULARBUFFER_INC_CIRCULARBUFFERREADER_HPP_ */

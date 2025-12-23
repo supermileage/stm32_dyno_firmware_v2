@@ -12,7 +12,7 @@ static volatile uint32_t prevTimerCounterDifference = 0;
 
 OpticalSensor::OpticalSensor(osMessageQueueId_t sessionControllerToOpticalSensorHandle) : 
 		// this comes directly from circular_buffers.h and config.h
-		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
+		_data_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle),
 		_clockSpeed(get_timer_clock(opticalTimer->Instance)),
 		_opticalEncoderEnabled(false)
@@ -30,18 +30,12 @@ void OpticalSensor::Run(void)
     while (1)
     {
         // --- Get the latest enable/disable state ---
-        bool gotMessage = GetLatestFromQueue(
+        GetLatestFromQueue(
             _sessionControllerToOpticalSensorHandle,
             &_opticalEncoderEnabled,
             sizeof(_opticalEncoderEnabled),
             _opticalEncoderEnabled ? 0 : osWaitForever
         );
-
-        // If no message received and sensor is disabled, skip
-        if (!gotMessage && !_opticalEncoderEnabled)
-        {
-            continue;
-        }
 
         // Skip processing if the latest state says disabled
         if (!_opticalEncoderEnabled)
@@ -64,7 +58,7 @@ void OpticalSensor::Run(void)
             prevTimerCounterDifferenceCopy
         );
 
-        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+        _data_buffer_writer.WriteElementAndIncrementIndex(outputData);
 
         // --- Yield to allow other tasks to run ---
         osDelay(OPTICAL_ENCODER_TASK_OSDELAY);

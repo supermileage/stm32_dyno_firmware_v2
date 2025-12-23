@@ -3,10 +3,11 @@
 
 BPM::BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
     : // this comes directly from circular_buffers.h and config.h
-	_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
-	  _bpmCtrlEnabled(false), // 
+	_data_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
+	_task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
 	  _fromSCHandle(sessionControllerToBpmHandle),
-	  _fromPIDHandle(pidToBpmHandle) // Controls specific RPM
+	  _fromPIDHandle(pidToBpmHandle), // Controls specific RPM
+	  _prevBpmCtrlEnabled(false)
 {}
 
 
@@ -23,10 +24,8 @@ void BPM::Run(void)
 
 	while(1) {
 
-		osDelay(BPM_TASK_OSDELAY);
-
 		// do not want latest from queue since there may be specific instructions to address
-		while (osMessageQueueGet(_fromSCHandle, &scMsg, NULL, 0) == osOK)
+		while (osMessageQueueGet(_fromSCHandle, &scMsg, NULL, osWaitForever) == osOK)
 		{
 			switch(scMsg.op)
 			{
@@ -35,11 +34,17 @@ void BPM::Run(void)
 					break;
 				case START_PWM:
 					SetDutyCycle(scMsg.new_duty_cycle_percent);
-					TogglePWM(true);
+					if (!TogglePWM(true))
+					{
+						return;
+					}
 					readFromPID = false;
 					break;
 				case STOP_PWM:
-					TogglePWM(false);
+					if (!TogglePWM(false))
+					{
+						return;
+					}
 					readFromPID = false;
 					break;
 				default:
@@ -64,11 +69,16 @@ void BPM::Run(void)
 		}
 
 		SetDutyCycle(latestDutyCycle);
-		TogglePWM(true);
+		if (!TogglePWM(true))
+		{
+			return;
+		}
 		bpm_output_data outputData;
 		outputData.timestamp = get_timestamp();
 		outputData.duty_cycle = latestDutyCycle;
-		_buffer_writer.WriteElementAndIncrementIndex(outputData);
+		_data_buffer_writer.WriteElementAndIncrementIndex(outputData);
+
+		osDelay(BPM_TASK_OSDELAY);
 		
 	
 
@@ -78,20 +88,29 @@ void BPM::Run(void)
 }
 
 
-void BPM::TogglePWM(bool enable)
+bool BPM::TogglePWM(bool enable)
 {
 	// if master enables and BPM was previously disabled, then start PWM
-	if (enable && !_bpmCtrlEnabled)
+	if (enable && !_prevBpmCtrlEnabled)
 	{
-		HAL_TIM_PWM_Start(bpmTimer, TIM_CHANNEL_1);
+		if (HAL_TIM_PWM_Start(bpmTimer, TIM_CHANNEL_1) != HAL_OK)
+		{
+			_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_BPM_PWM_START_FAILURE);
+			return false;
+		}
 	}
 	// if master enables and BPM was previously enabled, then stop PWM
-	else if (!enable && _bpmCtrlEnabled)
+	else if (!enable && _prevBpmCtrlEnabled)
 	{
-		HAL_TIM_PWM_Stop(bpmTimer, TIM_CHANNEL_1);
+		if (HAL_TIM_PWM_Stop(bpmTimer, TIM_CHANNEL_1) != HAL_OK)
+		{
+			_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_BPM_PWM_STOP_FAILURE);
+			return false;
+		}
 	}
+	_prevBpmCtrlEnabled = enable;
 
-	_bpmCtrlEnabled = enable;
+	return true;
 }
 
 

@@ -10,6 +10,7 @@
 
 #include "MessagePassing/osqueue_helpers.h"
 #include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/errors.h"
 
 #include "CircularBufferWriter.hpp"
 
@@ -24,20 +25,21 @@ class BPM
 {
 	public:
 		BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle);
-		virtual ~BPM() = default;
+		~BPM() = default;
 		bool Init();
 		void Run();
 
 	private:
 		void SetDutyCycle(float new_duty_cycle_percent);
-		void TogglePWM(bool enable);
+		bool TogglePWM(bool enable);
 
-		CircularBufferWriter<bpm_output_data> _buffer_writer;
-
-		bool _bpmCtrlEnabled;
+		CircularBufferWriter<bpm_output_data> _data_buffer_writer;
+		CircularBufferWriter<task_errors> _task_error_buffer_writer;
 
 		osMessageQueueId_t _fromSCHandle;
 		osMessageQueueId_t _fromPIDHandle;
+
+		bool _prevBpmCtrlEnabled;
 
 };
 

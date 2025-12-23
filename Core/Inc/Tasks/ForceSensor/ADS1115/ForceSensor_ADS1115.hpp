@@ -21,7 +21,7 @@ class ForceSensorADS1115
 {
 	public:
 		ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle);
-		virtual ~ForceSensorADS1115() = default;
+		~ForceSensorADS1115() = default;
 
 		bool Init();
 		void Run();
@@ -30,7 +30,8 @@ class ForceSensorADS1115
 		float GetForce(uint16_t rawValue);
 
 		// Circular Buffer for ForceSensor with template bpm_output_data
-		CircularBufferWriter<forcesensor_output_data> _buffer_writer;
+		CircularBufferWriter<forcesensor_output_data> _data_buffer_writer;
+		CircularBufferWriter<task_errors> _task_error_buffer_writer;
 
 		ADS1115 _ads1115;
 

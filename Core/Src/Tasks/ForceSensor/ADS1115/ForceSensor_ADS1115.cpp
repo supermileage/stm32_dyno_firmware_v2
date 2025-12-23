@@ -8,26 +8,43 @@ static volatile bool ads1115_alert_status = false;
 
 ForceSensorADS1115::ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle) : 
 		// this comes directly from circular_buffers.h and config.h
-		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+		_data_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
+        _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
         _ads1115(forceSensorADS1115Handle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle) {}
 
 bool ForceSensorADS1115::Init()
 {
-	_ads1115.initialize();
+    bool status = true;
+    
 
+    status &= _ads1115.setMultiplexer(ADS1115_MUX_P0_N1);
+
+    status &= _ads1115.setComparatorMode(ADS1115_COMP_MODE_HYSTERESIS);
+    status &= _ads1115.setComparatorPolarity(ADS1115_COMP_POL_ACTIVE_LOW);
+
+    status &= _ads1115.setComparatorLatchEnabled(ADS1115_COMP_LAT_NON_LATCHING);
+    status &= _ads1115.setComparatorQueueMode(ADS1115_COMP_QUE_DISABLE);
+
+    
     // Set device mode to single-shot
-	_ads1115.setMode(ADS1115_MODE_SINGLESHOT);
+	status &= _ads1115.setMode(ADS1115_MODE_SINGLESHOT);
 
     // Set data rate (slow for demonstration or high depending on application)
-	_ads1115.setRate(ADS1115_SAMPLE_SPEED);
+	status &= _ads1115.setRate(ADS1115_SAMPLE_SPEED);
 
     // Set PGA (programmable gain amplifier)
-	_ads1115.setGain(ADS1115_PGA_6P144);
+	status &= _ads1115.setGain(ADS1115_PGA_6P144);
 
-	_ads1115.setConversionReadyPinMode();
-    
-    return true;
+	status &= _ads1115.setConversionReadyPinMode();
+
+    if (!status)
+    {
+        task_errors error = ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE;
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error);
+    }
+
+    return status;
 }
 
 void ForceSensorADS1115::Run(void)
@@ -39,16 +56,10 @@ void ForceSensorADS1115::Run(void)
     {
         // Get the latest enable/disable message
         // If currently disabled, block forever; if enabled, poll non-blocking
-        bool gotMessage = GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
                                              &enableADS1115,
                                              sizeof(enableADS1115),
                                              enableADS1115 ? 0 : osWaitForever);
-
-        // If no message received and currently disabled, just continue
-        if (!gotMessage && !enableADS1115)
-        {
-            continue;
-        }
 
         // If the latest message says disabled, skip processing
         if (!enableADS1115)
@@ -56,23 +67,36 @@ void ForceSensorADS1115::Run(void)
             continue;
         }
 
+        ads1115_alert_status = false;
+
         // --- Trigger conversion ---
-        _ads1115.triggerConversion();
+        if (!_ads1115.triggerConversion()) 
+        {
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE);
+            osDelay(TASK_WARNING_RETRY_OSDELAY);
+            continue;
+        }
 
         // --- Wait for alert GPIO to indicate conversion complete ---
         while (!ads1115_alert_status)
         {
             osDelay(1); // yield to other tasks
         }
-        ads1115_alert_status = false;
-
+    
         // --- Read conversion and populate output ---
-        uint16_t rawVal = _ads1115.getConversion(false);
+        int16_t rawVal;
+        if (!_ads1115.getConversion(rawVal, false)) 
+        {
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE);
+            osDelay(TASK_WARNING_RETRY_OSDELAY);
+            continue; 
+        }
+
         outputData.force = GetForce(rawVal);
         outputData.timestamp = get_timestamp();
         outputData.raw_value = rawVal;
 
-        _buffer_writer.WriteElementAndIncrementIndex(outputData);
+        _data_buffer_writer.WriteElementAndIncrementIndex(outputData);
 
         osDelay(FORCESENSOR_TASK_OSDELAY);  // allow other tasks to run
     }
