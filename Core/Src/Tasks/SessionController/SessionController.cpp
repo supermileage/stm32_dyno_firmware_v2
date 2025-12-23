@@ -111,18 +111,24 @@ void SessionController::Run()
             pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
             osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, osWaitForever);
             _prevPIDEnabled = PIDEnabled;
+
+            _fsm.DisplayPIDEnabled();
+
         }
         
         // Always run since the PID controller could be turned off while in-session
-        float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
-        if (newDutyCycle != static_cast<float>(-1))
+        if (!PIDEnabled)
         {
+            float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
+            
             session_controller_to_bpm bpmSettings;
             
             bpmSettings.op = START_PWM;
             bpmSettings.new_duty_cycle_percent =  newDutyCycle;
 
             osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+
+            _fsm.DisplayManualBPMDutyCycle();
         }
 
         // Get the most recent force sensor data

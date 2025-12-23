@@ -69,6 +69,8 @@ public:
     void DisplayRpm(float rpm);
     void DisplayTorque(float torque);
     void DisplayPower(float power);
+    void DisplayPIDEnabled();
+    void DisplayManualBPMDutyCycle();
 
 private:
     // Methods which are called when a state change is done
@@ -102,7 +104,7 @@ private:
     bool _pidOptionToggleableEnabled;
     bool _pidEnabled;
     bool _inSession;
-    float _desiredBpmDutyCycle;
+    float _desiredManualBpmDutyCycle;
     int _desiredRpm;
     int _desiredRpmIncrement;
     uint32_t _fsmInputDataIndex;
