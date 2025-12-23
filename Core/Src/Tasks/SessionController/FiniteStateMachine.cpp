@@ -9,8 +9,9 @@ FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
         _usbLoggingEnabled(false),
         _sdLoggingEnabled(false),
         _pidOptionToggleableEnabled(false),
+        _pidEnabled(false),
         _inSession(false),
-        _desiredBpmDutyCycle(0),
+        _desiredManualBpmDutyCycle(0),
         _desiredRpm(5000),
         _desiredRpmIncrement(0),
         _fsmInputDataIndex(0)
@@ -120,7 +121,7 @@ void FSM::HandleRotaryEncoderInput(bool positiveTick)
                     increment *= -1;
                 }
 
-                _desiredBpmDutyCycle = clamp(_desiredBpmDutyCycle + increment, 0.0f, 1.0f);
+                _desiredManualBpmDutyCycle = clamp(_desiredManualBpmDutyCycle + increment, 0.0f, 1.0f);
             }
             break;
     }
@@ -242,7 +243,7 @@ void FSM::HandleButtonSelectInput(void)
             }
             break;
         case State::MainDynoState::IN_SESSION:
-            _pidEnabled = (_pidOptionToggleableEnabled) ? !_pidEnabled : _pidEnabled;
+            _pidEnabled = !_pidEnabled;
             break;
     }
 }
@@ -452,8 +453,9 @@ void FSM::InSessionState()
     
     // The actual data will be managed in the session controller
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 0, 0, "n:     0 T: 0.00", sizeof("n:     0 T: 0.00") - 1);
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 0, "P:     0.00", sizeof("P:     0.00") - 1);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 0, "P:     0.00    0", sizeof("P:     0.00    0") - 1);
 }
+
 
 void FSM::DisplayRpm(float rpm)
 {
@@ -480,6 +482,22 @@ void FSM::DisplayPower(float power)
     snprintf(buf, sizeof(buf), "%8.2f", value);
 
     AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 3, buf, sizeof(buf) - 1);
+}
+
+void FSM::DisplayPIDEnabled()
+{
+    
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 13, "PID", sizeof("PID") - 1);
+
+}
+
+void FSM::DisplayManualBPMDutyCycle()
+{
+    char buf[4]; // Enough for duty cycle with no decimals
+    uint8_t value = std::round(_desiredManualBpmDutyCycle * 100.0);
+    snprintf(buf, sizeof(buf), "%3u", value);
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 13, buf, sizeof(buf) - 1);
 }
 
 
@@ -516,7 +534,7 @@ bool FSM::GetSDLoggingEnabledStatus() const
 
 bool FSM::GetPIDEnabledStatus() const
 {
-    return _pidEnabled;
+    return _pidOptionToggleableEnabled && _pidEnabled;
 }
 
 
@@ -527,7 +545,7 @@ bool FSM::GetInSessionStatus() const
 
 float FSM::GetDesiredBpmDutyCycle() const
 {
-    return _pidOptionToggleableEnabled ? _desiredBpmDutyCycle : -1;
+    return _desiredManualBpmDutyCycle;
 }
 
 float FSM::GetDesiredRpm() const
