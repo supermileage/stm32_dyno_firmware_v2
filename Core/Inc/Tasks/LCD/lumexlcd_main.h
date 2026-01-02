@@ -1,5 +1,5 @@
-#ifndef INC_LCD_LUMEXLCD_MAIN_H_
-#define INC_LCD_LUMEXLCD_MAIN_H_
+#ifndef INC_TASKS_LCD_LUMEXLCD_MAIN_H_
+#define INC_TASKS_LCD_LUMEXLCD_MAIN_H_
 
 #include "main.h"
 
@@ -20,4 +20,4 @@ void lumex_lcd_main(osMessageQueueId_t lumexLcdToSessionControllerqHandle);
 
 
 
-#endif /* INC_LCD_LUMEXLCD_MAIN_H_ */
+#endif /* INC_TASKS_LCD_LUMEXLCD_MAIN_H_ */

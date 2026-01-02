@@ -258,7 +258,7 @@ extern "C" void lumex_lcd_main(osMessageQueueId_t sessionControllerToLumexLcdHan
 
 	if (!lcd.Init())
 	{
-		return;
+		osThreadTerminate(osThreadGetId());
 	}
 
 

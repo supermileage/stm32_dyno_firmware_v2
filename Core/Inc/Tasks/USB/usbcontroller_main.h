@@ -1,5 +1,5 @@
-#ifndef INC_USB_USB_H_
-#define INC_USB_USB_H_
+#ifndef INC_TASKS_USB_USBCONTROLLER_MAIN_H_
+#define INC_TASKS_USB_USBCONTROLLER_MAIN_H_
 
 #include <stdint.h>
 #include "cmsis_os2.h"
@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-void usbcontroller_main(osMessageQueueId_t sessionControllerToBpmHandle);
+void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle);
 
 #ifdef __cplusplus
 }
@@ -20,4 +20,4 @@ void usbcontroller_main(osMessageQueueId_t sessionControllerToBpmHandle);
 
 
 
-#endif /* INC_USB_USB_H_ */
+#endif /* INC_TASKS_USB_USBCONTROLLER_MAIN_H_ */

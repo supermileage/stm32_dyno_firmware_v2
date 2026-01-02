@@ -1,5 +1,5 @@
-#ifndef INC_OPTICALSENSOR_HPP_
-#define INC_OPTICALSENSOR_HPP_
+#ifndef INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_HPP_
+#define INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_HPP_
 
 #include <cstdint>
 
@@ -39,4 +39,4 @@ private:
     bool _opticalEncoderEnabled;
 };
 
-#endif //
+#endif // INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_HPP_

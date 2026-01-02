@@ -1,5 +1,5 @@
-#ifndef INC_BPM_BPM_HPP_
-#define INC_BPM_BPM_HPP_
+#ifndef INC_TASKS_BPM_BPM_HPP_
+#define INC_TASKS_BPM_BPM_HPP_
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -48,4 +48,4 @@ class BPM
 #endif
 
 
-#endif /* INC_BPM_BPM_HPP_ */
+#endif /* INC_TASKS_BPM_BPM_HPP_ */

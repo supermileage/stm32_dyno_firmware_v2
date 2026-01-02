@@ -89,11 +89,10 @@ extern "C" void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForce
 
 	if (!forcesensor.Init())
 	{
-		return;
+		osThreadTerminate(osThreadGetId());
 	}
 
-	while(1)
-	{
-		forcesensor.Run();
-	}
+
+    forcesensor.Run();
+
 }

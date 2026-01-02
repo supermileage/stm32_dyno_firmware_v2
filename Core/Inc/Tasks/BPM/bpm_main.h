@@ -1,5 +1,5 @@
-#ifndef BPM_H_
-#define BPM_H_
+#ifndef INC_TASKS_BPM_BPM_MAIN_H_
+#define INC_TASKS_BPM_BPM_MAIN_H_
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -15,4 +15,4 @@ void bpm_main(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_
 }
 #endif
 
-#endif /* BPM_H_ */
+#endif /* INC_TASKS_BPM_BPM_MAIN_H_ */
