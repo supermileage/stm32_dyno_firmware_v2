@@ -1,5 +1,5 @@
-#ifndef INC_PID_PID_HPP_
-#define INC_PID_PID_HPP_
+#ifndef INC_TASKS_PID_PID_HPP_
+#define INC_TASKS_PID_PID_HPP_
 
 #include "main.h"
 
@@ -54,4 +54,4 @@ class PIDController
 };
 
 
-#endif /* INC_PID_PID_HPP_ */
+#endif /* INC_TASKS_PID_PID_HPP_ */

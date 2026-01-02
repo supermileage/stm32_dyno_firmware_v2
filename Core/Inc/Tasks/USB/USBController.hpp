@@ -1,5 +1,5 @@
-#ifndef INC_USB_USB_HPP_
-#define INC_USB_USB_HPP_
+#ifndef INC_TASKS_USB_USBCONTROLLER_HPP_
+#define INC_TASKS_USB_USBCONTROLLER_HPP_
 
 #include <array>
 #include <algorithm>
@@ -24,11 +24,12 @@ class USBController
         enum class USBMessageIdentifier : uint8_t {
             TASK_ERROR = 0,
             TASK_WARNING = 1,
-            TASK_OPTICAL_ENCODER = 10,
-            TASK_FORCESENSOR     = 11,
-            TASK_BPM             = 12
+            TASK_MONITOR = 2,
+            TASK_OPTICAL_ENCODER = 100,
+            TASK_FORCESENSOR     = 101,
+            TASK_BPM             = 102, 
         };
-        USBController(osMessageQueueId_t);
+        USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle);
         ~USBController() = default; // Destructor
 
         bool Init();
@@ -36,7 +37,7 @@ class USBController
     private:
         void AddToBuffer(void*, size_t);    
         void PadBuffer(size_t);
-        bool BlockAndSendIfBufferFull();
+        bool BufferFull();
         void ProcessErrorsAndWarnings();
 
         template <typename T>
@@ -46,8 +47,11 @@ class USBController
 
             while (bufferReader.HasData()) { // Check if data is available
                 // Ensure the buffer is not full before adding data
-                if (!BlockAndSendIfBufferFull()) {
-                    break;
+                if (BufferFull()) {
+                    while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+                        osDelay(1);
+                    }
+                    _txBufferIndex = 0;
                 }
 
                 if (bufferReader.GetElementAndIncrementIndex(data)) {
@@ -61,17 +65,21 @@ class USBController
             }
         }
 
+        void ProcessTaskMonitorData();
+
         CircularBufferReader<task_errors> _task_errors_buffer_reader;
     
         CircularBufferReader<optical_encoder_output_data> _buffer_reader_optical_encoder;
         CircularBufferReader<forcesensor_output_data> _buffer_reader_forcesensor;
         CircularBufferReader<bpm_output_data> _buffer_reader_bpm;
 
+        osMessageQueueId_t _taskMonitorToUsbControllerHandle;
+        osMessageQueueId_t _sessionControllerToUsbController;
+
         const size_t _maxMsgSize;
 
-        osMessageQueueId_t _sessionControllerToUsbController;
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
 };
 
-#endif // INC_USB_USB_HPP_
+#endif // INC_TASKS_USB_USBCONTROLLER_HPP_

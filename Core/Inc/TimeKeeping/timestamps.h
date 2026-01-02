@@ -18,6 +18,11 @@ inline uint32_t get_timestamp()
     return __HAL_TIM_GET_COUNTER(timestampTimer);
 }
 
+inline HAL_StatusTypeDef start_timestamp_timer()
+{
+	return HAL_TIM_Base_Start(timestampTimer);
+}
+
 const uint32_t get_apb1_timer_clock(void);
 const uint32_t get_apb2_timer_clock(void);
 const uint32_t get_timer_clock(TIM_TypeDef* TIMx);

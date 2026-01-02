@@ -1,5 +1,5 @@
-#ifndef INC_LCD_LUMEXLCD_HPP_
-#define INC_LCD_LUMEXLCD_HPP_
+#ifndef INC_TASKS_LCD_LUMEXLCD_HPP_
+#define INC_TASKS_LCD_LUMEXLCD_HPP_
 
 #include "main.h"
 
@@ -53,4 +53,4 @@ class LumexLCD
 
 
 
-#endif /* INC_LCD_LUMEXLCD_HPP_ */
+#endif /* INC_TASKS_LCD_LUMEXLCD_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef INC_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_
-#define INC_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_
+#ifndef INC_TASKS_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_
+#define INC_TASKS_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -19,4 +19,4 @@ void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForceSensorADCHa
 
 
 
-#endif /* INC_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_ */
+#endif /* INC_TASKS_FORCESENSOR_ADC_FORCESENSOR_ADC_MAIN_H_ */

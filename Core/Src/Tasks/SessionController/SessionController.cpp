@@ -1,6 +1,7 @@
 #include <Tasks/SessionController/SessionController.hpp>
 
-SessionController::SessionController(session_controller_os_tasks* task_queues) : 
+SessionController::SessionController(session_controller_os_task_queues* task_queues) : 
+                _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
                 _forcesensor_buffer_reader(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
                 _optical_encoder_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
                 _fsm(task_queues->lumex_lcd),
@@ -11,10 +12,52 @@ SessionController::SessionController(session_controller_os_tasks* task_queues) :
                 _prevInSession(false)
             {}
 
+bool SessionController::CheckTaskQueuesValid()
+{
+
+    if (_task_queues == nullptr
+        #if USB_CONTROLLER_TASK_ENABLE
+        || _task_queues->usb_controller == nullptr
+        #endif
+        #if SD_CONTROLLER_TASK_ENABLE
+        || _task_queues->sd_controller == nullptr
+        #endif
+        #if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
+        || _task_queues->force_sensor == nullptr
+        #endif
+        #if OPTICAL_ENCODER_TASK_ENABLE
+        || _task_queues->optical_sensor == nullptr
+        #endif
+        #if BPM_CONTROLLER_TASK_ENABLE
+        || _task_queues->bpm_controller == nullptr
+        #endif
+        #if PID_CONTROLLER_TASK_ENABLE
+        || _task_queues->pid_controller == nullptr
+        #endif
+        #if LUMEX_LCD_TASK_ENABLE
+        || _task_queues->lumex_lcd == nullptr
+        #endif
+    )
+    {
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER);
+        return false;
+    }
+
+    
+
+    return true;
+}
+
 bool SessionController::Init(void)
 {
-    
-    return true;
+
+    if (start_timestamp_timer() != HAL_OK)
+    {
+    	_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE);
+        return false;
+    }
+
+	return CheckTaskQueuesValid();
 }
 
 void SessionController::Run()
@@ -31,23 +74,31 @@ void SessionController::Run()
         // First Handle Any User Inputs
         _fsm.HandleUserInputs();
 
+        
         // Get USB Enabled Status and enable USB Controller
         bool usbLoggingEnabled = _fsm.GetUSBLoggingEnabledStatus();
         // Only if the status has changed
         if (usbLoggingEnabled ^ _prevUSBLoggingEnabled)
         {
+            #if USB_CONTROLLER_TASK_ENABLE
             osMessageQueuePut(_task_queues->usb_controller, &usbLoggingEnabled, 0, osWaitForever);
+            #endif
             _prevUSBLoggingEnabled = usbLoggingEnabled;
         }
+        
 
+        
         // Get SD Card Enabled Status and enable SD Card Controller
         bool SDLoggingEnabled = _fsm.GetSDLoggingEnabledStatus();
         // Only if the status has changed
         if (SDLoggingEnabled ^ _prevSDLoggingEnabled)
         {
+            #if SD_CONTROLLER_TASK_ENABLE
             osMessageQueuePut(_task_queues->sd_controller, &SDLoggingEnabled, 0, osWaitForever);
+            #endif 
             _prevSDLoggingEnabled = SDLoggingEnabled;
         }
+        
 
         bool InSessionStatus = _fsm.GetInSessionStatus();
 
@@ -72,20 +123,22 @@ void SessionController::Run()
             // disable things
             else if (InSessionFallingEdge)
             {
-                session_controller_to_bpm bpmSettings;
-
+                
                 opticalEncoderEnable = false;
                 forceSensorEnable = false;
 
+                
+                session_controller_to_bpm bpmSettings;
                 bpmSettings.op = STOP_PWM;
                 bpmSettings.new_duty_cycle_percent = static_cast<float>(0);
 
                 osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
                 
             }
-
+             
             // Send enable or disable messages
             osMessageQueuePut(_task_queues->optical_sensor, &opticalEncoderEnable, 0, osWaitForever);
+
             osMessageQueuePut(_task_queues->force_sensor, &forceSensorEnable, 0, osWaitForever);
             
 
@@ -100,6 +153,7 @@ void SessionController::Run()
             continue;
         }
 
+        
         // Get PID enabled status and enable PID Controller
         bool PIDEnabled = _fsm.GetPIDEnabledStatus();
 
@@ -112,6 +166,7 @@ void SessionController::Run()
             osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, osWaitForever);
             _prevPIDEnabled = PIDEnabled;
 
+
             _fsm.DisplayPIDEnabled();
 
         }
@@ -119,17 +174,19 @@ void SessionController::Run()
         // Always run since the PID controller could be turned off while in-session
         if (!PIDEnabled)
         {
+            
+            
             float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
             
             session_controller_to_bpm bpmSettings;
             
             bpmSettings.op = START_PWM;
             bpmSettings.new_duty_cycle_percent =  newDutyCycle;
-
             osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
-
             _fsm.DisplayManualBPMDutyCycle();
+            
         }
+
 
         // Get the most recent force sensor data
         while(_forcesensor_buffer_reader.GetElementAndIncrementIndex(force_data));
@@ -143,6 +200,7 @@ void SessionController::Run()
         float force = force_data.force;
         
         float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
+        
         
         _fsm.DisplayTorque(torque);
         _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
@@ -176,13 +234,13 @@ float SessionController::CalculateMechanicalLosses(float angularAcceleration, fl
     return 0;
 }
 
-extern "C" void sessioncontroller_main(session_controller_os_tasks* task_queues)
+extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_queues)
 {
     SessionController controller = SessionController(task_queues);
 
 	if (!controller.Init())
 	{
-		return;
+		osThreadTerminate(osThreadGetId());
 	}
 
 

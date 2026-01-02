@@ -1,18 +1,21 @@
 #include <Tasks/USB/usbcontroller_main.h>
 #include <Tasks/USB/USBController.hpp>
 
-USBController::USBController(osMessageQueueId_t sessionControllerToUsbController)
+USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
     : _task_errors_buffer_reader(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
         _buffer_reader_optical_encoder(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_forcesensor(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_bpm(bpm_circular_buffer, &bpm_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
-      _maxMsgSize([]() -> size_t {
-          size_t opticalEncoderSize = sizeof(USBController::USBMessageIdentifier) + sizeof(optical_encoder_output_data);
-          size_t forceSensorSize = sizeof(USBController::USBMessageIdentifier) + sizeof(forcesensor_output_data);
-          size_t bpmSize = sizeof(USBController::USBMessageIdentifier) + sizeof(bpm_output_data);
-          return std::max({opticalEncoderSize, forceSensorSize, bpmSize});
-      }()),
+      _taskMonitorToUsbControllerHandle(taskMonitorToUsbControllerHandle),
       _sessionControllerToUsbController(sessionControllerToUsbController),
+      _maxMsgSize([]() -> size_t {
+          size_t opticalEncoderMsgSize = sizeof(USBController::USBMessageIdentifier) + sizeof(optical_encoder_output_data);
+          size_t forceSensorMsgSize = sizeof(USBController::USBMessageIdentifier) + sizeof(forcesensor_output_data);
+          size_t bpmMsgSize = sizeof(USBController::USBMessageIdentifier) + sizeof(bpm_output_data);
+          size_t taskErrorMsgSize = sizeof(USBController::USBMessageIdentifier) + sizeof(task_errors);
+          size_t taskMonitorMsgSize = sizeof(USBController::USBMessageIdentifier) + sizeof(task_monitor_to_usb_controller);
+          return std::max({opticalEncoderMsgSize, forceSensorMsgSize, bpmMsgSize, taskErrorMsgSize, taskMonitorMsgSize});
+      }()),
       _txBuffer{},
       _txBufferIndex(0)
 {}
@@ -40,8 +43,6 @@ void USBController::Run()
             continue;
         }
 
-        BlockAndSendIfBufferFull();
-
         // Process optical encoder data
         ProcessTaskData(_buffer_reader_optical_encoder, USBController::USBMessageIdentifier::TASK_OPTICAL_ENCODER);
 
@@ -52,6 +53,11 @@ void USBController::Run()
         ProcessTaskData(_buffer_reader_bpm, USBController::USBMessageIdentifier::TASK_BPM);
 
         ProcessErrorsAndWarnings();
+
+        #if TASK_MONITOR_TASK_ENABLE
+        // Process Task Monitor data
+        ProcessTaskMonitorData();
+        #endif
 
         if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
             continue;
@@ -87,12 +93,37 @@ void USBController::Run()
 
 // }
 
+void USBController::ProcessTaskMonitorData()
+{
+    task_monitor_to_usb_controller task_monitor_data;
+    while(osMessageQueueGet(_taskMonitorToUsbControllerHandle, &task_monitor_data, 0, 0) == osOK) {
+        // Ensure the buffer is not full before adding data
+        if (BufferFull()) {
+            while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+                osDelay(1);
+            }
+            _txBufferIndex = 0;
+        }
+
+        uint8_t op = static_cast<uint8_t>(USBController::USBMessageIdentifier::TASK_MONITOR);
+        AddToBuffer(&op, sizeof(USBController::USBMessageIdentifier));
+        AddToBuffer(&task_monitor_data, sizeof(task_monitor_to_usb_controller));
+
+        size_t messageIndex = sizeof(USBController::USBMessageIdentifier) + sizeof(task_monitor_to_usb_controller);
+        PadBuffer(messageIndex);
+        
+    }
+}
+
 void USBController::ProcessErrorsAndWarnings()
 {
     while(_task_errors_buffer_reader.HasData()) {
         // Ensure the buffer is not full before adding data
-        if (!BlockAndSendIfBufferFull()) {
-            break;
+        if (BufferFull()) {
+            while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+                osDelay(1);
+            }
+            _txBufferIndex = 0;
         }
 
         task_errors error;
@@ -122,27 +153,22 @@ void USBController::AddToBuffer(void* msg, size_t msgSize) {
 }
 
 
-bool USBController::BlockAndSendIfBufferFull()
+bool USBController::BufferFull()
 {
     if (_txBufferIndex + _maxMsgSize >= USB_TX_BUFFER_SIZE) {
-        while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-            osDelay(1);
-        }
-        _txBufferIndex = 0;
-        
+        return true;   
     }
-
-	return true;
+	return false;
 
 }
 
-extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToBpmHandle)
+extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
 {
-	USBController usb = USBController(sessionControllerToBpmHandle);
+	USBController usb = USBController(sessionControllerToUsbController, taskMonitorToUsbControllerHandle);
 
 	if (!usb.Init())
 	{
-		return;
+		while(1);
 	}
 
 	usb.Run();

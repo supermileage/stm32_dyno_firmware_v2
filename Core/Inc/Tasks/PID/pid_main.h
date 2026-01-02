@@ -1,5 +1,5 @@
-#ifndef INC_PID_PID_MAIN_H_
-#define INC_PID_PID_MAIN_H_
+#ifndef INC_TASKS_PID_PID_MAIN_H_
+#define INC_TASKS_PID_PID_MAIN_H_
 
 #include "main.h"
 
@@ -18,4 +18,4 @@ void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessa
 }
 #endif
 
-#endif /* INC_PID_PID_MAIN_H_ */
+#endif /* INC_TASKS_PID_PID_MAIN_H_ */

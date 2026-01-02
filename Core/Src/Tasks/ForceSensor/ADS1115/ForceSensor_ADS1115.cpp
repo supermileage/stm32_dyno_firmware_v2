@@ -40,8 +40,7 @@ bool ForceSensorADS1115::Init()
 
     if (!status)
     {
-        task_errors error = ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE;
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error);
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE);
     }
 
     return status;
@@ -124,11 +123,9 @@ extern "C" void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToF
 
 	if (!forcesensor.Init())
 	{
-		return;
+		osDelay(osWaitForever);
 	}
 
-	while(1)
-	{
-		forcesensor.Run();
-	}
+    forcesensor.Run();
+
 }

@@ -1,5 +1,5 @@
-#ifndef INC_OPTICALSENSOR_H_
-#define INC_OPTICALSENSOR_H_
+#ifndef INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_MAIN_H_
+#define INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_MAIN_H_
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -21,4 +21,4 @@ void opticalsensor_main(osMessageQueueId_t sessionControllerToForceSensorADCHand
 }
 #endif
 
-#endif // INC_OPTICALSENSOR_H_
+#endif // INC_TASKS_OPTICALSENSOR_OPTICALSENSOR_MAIN_H_

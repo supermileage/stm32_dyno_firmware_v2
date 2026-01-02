@@ -1,5 +1,5 @@
-#ifndef INC_SESSION_CONTROLLER_SESSION_CONTROLLER_H_
-#define INC_SESSION_CONTROLLER_SESSION_CONTROLLER_H_
+#ifndef INC_TASKS_SESSION_CONTROLLER_SESSION_CONTROLLER_MAIN_H_
+#define INC_TASKS_SESSION_CONTROLLER_SESSION_CONTROLLER_MAIN_H_
 
 #include "main.h"
 #include "cmsis_os.h"
@@ -17,13 +17,13 @@ typedef struct
     osMessageQueueId_t bpm_controller;
     osMessageQueueId_t pid_controller;
     osMessageQueueId_t lumex_lcd;
-} session_controller_os_tasks;
+} session_controller_os_task_queues;
 
 
-void sessioncontroller_main(session_controller_os_tasks* task_queues);
+void sessioncontroller_main(session_controller_os_task_queues* task_queues);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* INC_SESSION_CONTROLLER_SESSION_CONTROLLER_H_ */
+#endif /* INC_TASKS_SESSION_CONTROLLER_SESSION_CONTROLLER_MAIN_H_ */

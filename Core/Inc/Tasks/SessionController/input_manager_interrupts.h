@@ -1,5 +1,5 @@
-#ifndef INC_SESSION_CONTROLLER_USER_INPUTS_H_
-#define INC_SESSION_CONTROLLER_USER_INPUTS_H_
+#ifndef INC_TASKS_SESSION_CONTROLLER_INPUT_MANAGER_INTERRUPTS_H_
+#define INC_TASKS_SESSION_CONTROLLER_INPUT_MANAGER_INTERRUPTS_H_
 
 #include "main.h"
 #include "FreeRTOS.h"
@@ -50,4 +50,4 @@ volatile button_press_data* get_circular_buffer_data(uint32_t index);
 }
 #endif
 
-#endif /* INC_SESSION_CONTROLLER_USER_INPUTS_H_ */
+#endif /* INC_TASKS_SESSION_CONTROLLER_INPUT_MANAGER_INTERRUPTS_H_ */

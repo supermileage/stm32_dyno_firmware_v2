@@ -33,10 +33,15 @@
 #include <Tasks/SessionController/input_manager_interrupts.h>
 #include <Tasks/SessionController/sessioncontroller_main.h>
 
+#include <Tasks/TaskMonitor/taskmonitor_main.h>
+
 #include <Tasks/USB/usbcontroller_main.h>
 
-#include <TimeKeeping/timestamps.h>
+#include <Config/debug.h>
+
 #include <MessagePassing/messages.h>
+
+#include <TimeKeeping/timestamps.h>
 
 /* USER CODE END Includes */
 
@@ -78,14 +83,14 @@ UART_HandleTypeDef huart1;
 osThreadId_t usbTaskHandle;
 const osThreadAttr_t usbTask_attributes = {
   .name = "usbTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for bpmTask */
 osThreadId_t bpmTaskHandle;
 const osThreadAttr_t bpmTask_attributes = {
   .name = " bpmTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for forceSensorTask */
@@ -120,7 +125,7 @@ const osThreadAttr_t sessionControllerTask_attributes = {
 osThreadId_t lcdDisplayTaskHandle;
 const osThreadAttr_t lcdDisplayTask_attributes = {
   .name = "lcdDisplayTask",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for ledBlinkTask */
@@ -129,6 +134,13 @@ const osThreadAttr_t ledBlinkTask_attributes = {
   .name = "ledBlinkTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for taskMonitorTask */
+osThreadId_t taskMonitorTaskHandle;
+const osThreadAttr_t taskMonitorTask_attributes = {
+  .name = "taskMonitorTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for sessionControllerToLumexLcd */
 osMessageQueueId_t sessionControllerToLumexLcdHandle;
@@ -169,6 +181,11 @@ const osMessageQueueAttr_t sessionControllerToOpticalSensor_attributes = {
 osMessageQueueId_t sessionControllertoUsbControllerHandle;
 const osMessageQueueAttr_t sessionControllertoUsbController_attributes = {
   .name = "sessionControllertoUsbController"
+};
+/* Definitions for taskMonitorToUsbController */
+osMessageQueueId_t taskMonitorToUsbControllerHandle;
+const osMessageQueueAttr_t taskMonitorToUsbController_attributes = {
+  .name = "taskMonitorToUsbController"
 };
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
@@ -214,6 +231,7 @@ extern void opticalSensorTaskEntryFunction(void *argument);
 extern void sessionControllerTaskEntryFunction(void *argument);
 extern void lcdDisplayTaskEntryFunction(void *argument);
 extern void ledBlinkTaskEntryFunction(void *argument);
+extern void taskMonitorEntryFunction(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -315,6 +333,9 @@ int main(void)
   /* creation of sessionControllertoUsbController */
   sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
 
+  /* creation of taskMonitorToUsbController */
+  taskMonitorToUsbControllerHandle = osMessageQueueNew (50, sizeof(task_monitor_to_usb_controller), &taskMonitorToUsbController_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
 //
   /* USER CODE END RTOS_QUEUES */
@@ -343,6 +364,9 @@ int main(void)
 
   /* creation of ledBlinkTask */
   ledBlinkTaskHandle = osThreadNew(ledBlinkTaskEntryFunction, NULL, &ledBlinkTask_attributes);
+
+  /* creation of taskMonitorTask */
+  taskMonitorTaskHandle = osThreadNew(taskMonitorEntryFunction, NULL, &taskMonitorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 //  /* add threads, ... */
@@ -1269,7 +1293,7 @@ void forceSensorTaskEntryFunction(void *argument)
   #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
     #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
-    osThreadSuspend(forceSensorTaskHandle);
+    osThreadTerminate(osThreadGetId());
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1)
     forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
   #else
@@ -1280,7 +1304,7 @@ void forceSensorTaskEntryFunction(void *argument)
 void bpmTaskEntryFunction(void *argument)
 {
   #if BPM_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(bpmTaskHandle);
+    osThreadTerminate(osThreadGetId());
   #else
     bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
@@ -1290,7 +1314,7 @@ void bpmTaskEntryFunction(void *argument)
 void pidControllerTaskEntryFunction(void *argument)
 {
     #if PID_CONTROLLER_TASK_ENABLE == 0
-        osThreadSuspend(pidTaskHandle);
+        osThreadTerminate(osThreadGetId());
     #else
         pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
     #endif
@@ -1299,16 +1323,18 @@ void pidControllerTaskEntryFunction(void *argument)
 void sessionControllerTaskEntryFunction(void* argument)
 {
     #if SESSION_CONTROLLER_TASK_ENABLE == 0
-        osThreadSuspend(sessionControllerTaskHandle);
+        osThreadTerminate(osThreadGetId());
+    #elif LUMEX_LCD_TASK_ENABLE == 0
+      #error "Lumex LCD is a hard dependency of the Session Controller task. Please enable LUMEX_LCD_TASK_ENABLE."
     #else
-        session_controller_os_tasks tasks = {
-        	.usb_controller = sessionControllertoUsbControllerHandle,
-			.sd_controller = NULL,
-			.force_sensor = sessionControllerToForceSensorHandle,
-			.optical_sensor = sessionControllerToOpticalSensorHandle,
-			.bpm_controller = sessionControllerToBpmHandle,
-			.pid_controller = sessionControllerToPidControllerHandle,
-			.lumex_lcd = sessionControllerToLumexLcdHandle
+        session_controller_os_task_queues tasks = {
+            .usb_controller = sessionControllertoUsbControllerHandle,
+            .sd_controller = NULL,
+            .force_sensor = sessionControllerToForceSensorHandle,
+            .optical_sensor = sessionControllerToOpticalSensorHandle,
+            .bpm_controller = sessionControllerToBpmHandle,
+            .pid_controller = sessionControllerToPidControllerHandle,
+            .lumex_lcd = sessionControllerToLumexLcdHandle
         };
         sessioncontroller_main(&tasks);
     #endif
@@ -1317,7 +1343,7 @@ void sessionControllerTaskEntryFunction(void* argument)
 void opticalSensorTaskEntryFunction(void *argument)
 {
   #if OPTICAL_ENCODER_TASK_ENABLE == 0
-    osThreadSuspend(opticalSensorTaskHandle);
+    osThreadTerminate(osThreadGetId());
   #else
     opticalsensor_main(sessionControllerToOpticalSensorHandle);
   #endif
@@ -1327,7 +1353,7 @@ void opticalSensorTaskEntryFunction(void *argument)
 void lcdDisplayTaskEntryFunction(void *argument)
 {
   #if LUMEX_LCD_TASK_ENABLE == 0
-    osThreadSuspend(lcdDisplayTaskHandle);
+    osThreadTerminate(osThreadGetId());
   #else
     lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
@@ -1336,12 +1362,37 @@ void lcdDisplayTaskEntryFunction(void *argument)
 
 void ledBlinkTaskEntryFunction(void *argument)
 {
+  #if LED_BLINK_TASK_ENABLE == 0
+    osThreadTerminate(osThreadGetId());
+  #else 
   for(;;)
   {
     HAL_GPIO_TogglePin(ILI_SPI2_SD_CS_GPIO_Port, ILI_SPI2_SD_CS_Pin);
     osDelay(LED_TASK_OSDELAY);
   }
+  #endif 
 
+}
+
+void taskMonitorEntryFunction(void *argument)
+{
+#if TASK_MONITOR_TASK_ENABLE == 0
+	osThreadTerminate(osThreadGetId());
+#else
+  taskmonitor_osthreadids osthreadids =
+  {
+      .session_controller = sessionControllerTaskHandle,
+      .optical_sensor = opticalSensorTaskHandle,
+      .usb_controller = usbTaskHandle,
+      .sd_controller = NULL,
+      .force_sensor = forceSensorTaskHandle,
+      .optical_sensor = opticalSensorTaskHandle,
+      .bpm_controller = bpmTaskHandle,
+      .pid_controller = pidTaskHandle,
+      .lumex_lcd = lcdDisplayTaskHandle
+  } ;
+  taskmonitor_main(&osthreadids, taskMonitorToUsbControllerHandle);
+#endif
 }
 /* USER CODE END 4 */
 
@@ -1358,9 +1409,9 @@ __weak void usbTaskEntryFunction(void *argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
   #if USB_CONTROLLER_TASK_ENABLE == 0
-    osThreadSuspend(usbTaskHandle);
+    osThreadTerminate(osThreadGetId());
   #else
-    usbcontroller_main(sessionControllertoUsbControllerHandle);
+    usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle);
   #endif
   /* USER CODE END 5 */
 }

@@ -140,13 +140,12 @@ extern "C" void opticalsensor_main(osMessageQueueId_t sessionControllerToOptical
 
 	if (!opticalsensor.Init())
 	{
-		return;
+		osThreadTerminate(osThreadGetId());
 	}
 
-	while(1)
-	{
-		opticalsensor.Run();
-	}
+
+    opticalsensor.Run();
+
 }
 
 
