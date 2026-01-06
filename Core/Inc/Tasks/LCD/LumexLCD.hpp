@@ -40,6 +40,7 @@ class LumexLCD
 		bool SetCursor(uint8_t row, uint8_t column);
 		bool DisplayChar(uint8_t row, uint8_t column, uint8_t character);
 		bool DisplayString(uint8_t row, uint8_t column, const char* string, size_t size);
+		bool ToggleBlink(bool enable);
 
 		CircularBufferWriter<task_errors> _task_error_buffer_writer;
 
