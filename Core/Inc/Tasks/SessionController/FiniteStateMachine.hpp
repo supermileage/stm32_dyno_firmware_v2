@@ -22,14 +22,16 @@ struct State
 {
     enum class MainDynoState
     {
-        IDLE,
+        INIT_STATE = 0,
+        IDLE = 0,
         SETTINGS_MENU,
         IN_SESSION
     };
 
     enum class SettingsState
     {
-        USB_LOGGING_OPTION_DISPLAYED,
+        INIT_STATE = 0,
+        USB_LOGGING_OPTION_DISPLAYED = 0,
         USB_LOGGING_OPTION_EDIT,
         SD_LOGGING_OPTION_DISPLAYED,
         SD_LOGGING_OPTION_EDIT,
@@ -39,8 +41,20 @@ struct State
         PID_DESIRED_RPM_EDIT
     };
 
+    enum class DesiredRpmUnitsState
+    {
+        INIT_STATE = 0,
+        TEN_THOUSAND = 0,
+        THOUSAND,
+        HUNDRED,
+        TEN,
+        ONE,
+        NUM_STATES
+    };
+
     MainDynoState mainState;
     SettingsState settingsState;
+    DesiredRpmUnitsState desiredRpmUnitsState;
 };
 
 
@@ -93,6 +107,7 @@ private:
     void HandleButtonBrakeInput(bool isEnabled);
 
     void ConvertUserInputIntoDesiredRpm(bool positiveTick);
+    int ConvertDesiredRpmUnitsStateToIncrement();
 
     osMessageQueueId_t _sessionControllerToLumexLcdHandle;
 

@@ -98,7 +98,7 @@ void register_button_brake_input()
 
     // Get the current pin state of the brake button
     GPIO_PinState pin_state = HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port, BTN_BRAKE_Pin);
-    if (pin_state == GPIO_PIN_RESET)
+    if (pin_state == GPIO_PIN_SET)
     {
         // Turn on LED
         HAL_GPIO_WritePin(LED_BRAKE_GPIO_Port, LED_BRAKE_Pin, GPIO_PIN_RESET);

@@ -86,6 +86,18 @@ bool LumexLCD::Init()
 							return;
 						 }
                          break;
+					 case ENABLE_BLINK_ON_CURSOR:
+						 if (!SetCursor(msg.row, msg.column) && !ToggleBlink(true))
+						 {
+							 return;
+						 }
+						 break;
+					 case DISABLE_BLINK_ON_CURSOR:
+						 if (!ToggleBlink(false))
+						 {
+							 return;
+						 }
+						 break;
 
                      default:
                          break;
@@ -244,6 +256,30 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string, si
 
 }
 
+bool LumexLCD::ToggleBlink(bool enable)
+{
+    if (enable)
+    {
+        // Binary: 00001 1 1 1 = 0x0F
+		// Display ON, Cursor ON, Blink ON
+        if (!WriteCommand(0x0F))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // Display ON, Cursor OFF, Blink OFF
+        if (!WriteCommand(0x0C))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 extern "C" void lumex_lcd_timer_interrupt()
 {
 	HAL_TIM_Base_Stop_IT(lumexLcdTimer);
@@ -265,27 +301,7 @@ extern "C" void lumex_lcd_main(osMessageQueueId_t sessionControllerToLumexLcdHan
 	lcd.Run();
 }
 
-//void LumexLCD::ToggleBlink(bool enable)
-//{
-//	if (enable)
-//	{
-//		if (!WriteCommand(0x0d)) // Display ON, Cursor OFF, Blink ON
-//		{
-//			return false;
-//		}
-//	}
-//
-//	else
-//	{
-//		if (!WriteCommand(0x0c))
-//		{
-//			return false;
-//		}
-//	}
-//
-//	return true;
-//
-//}
+
 
 
 

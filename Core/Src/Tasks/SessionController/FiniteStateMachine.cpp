@@ -3,8 +3,9 @@
 FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
         _sessionControllerToLumexLcdHandle(sessionControllerToLumexLcdHandle), 
         _state{
-            State::State::MainDynoState::IDLE,
-            State::State::SettingsState::USB_LOGGING_OPTION_DISPLAYED
+            State::State::MainDynoState::INIT_STATE,
+            State::State::SettingsState::INIT_STATE,
+            State::State::DesiredRpmUnitsState::INIT_STATE
           },
         _usbLoggingEnabled(false),
         _sdLoggingEnabled(false),
@@ -13,17 +14,16 @@ FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
         _inSession(false),
         _desiredManualBpmDutyCycle(0),
         _desiredRpm(5000),
-        _desiredRpmIncrement(0),
         _fsmInputDataIndex(0)
         {
             ClearDisplay();
             IdleState();
 
             // The initial state of the brake button needs to be initialized if its pressed. If not, nothing needs to be done
-            // if (HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port, BTN_BRAKE_Pin) == GPIO_PIN_RESET)
-            // {
-            //     HandleButtonBrakeInput(true);
-            // }
+             if (HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port, BTN_BRAKE_Pin) == GPIO_PIN_SET)
+             {
+                 HandleButtonBrakeInput(true);
+             }
 
         }
 
@@ -129,31 +129,29 @@ void FSM::HandleRotaryEncoderInput(bool positiveTick)
 }
 void FSM::HandleRotaryEncoderSwInput(void)
 {
-
-    _inSession = true;
-    InSessionState();
+//  Was not working, will debug later
+//    _inSession = true;
+//    InSessionState();
     
     
-    // switch(_state.mainState)
-    // {
-    //     case State::MainDynoState::IDLE:
-    //         InSessionState();
-    //         break;
-    //     case State::MainDynoState::SETTINGS_MENU:
-    //         InSessionState();
-    //         // switch(_state.settingsState)
-    //         // {
-    //         //     case State::SettingsState::PID_DESIRED_RPM_EDIT:
-    //         //         _desiredRpmIncrement++;
-    //         //         _desiredRpmIncrement %= 5;
-    //         //         break;
-    //         //     default:
-    //         //         break;
-    //         // }
-    //         break;
-    //     case State::MainDynoState::IN_SESSION:
-    //         break;
-    // }
+//      switch(_state.mainState)
+//      {
+//          case State::MainDynoState::IDLE:
+// //             InSessionState();
+//              break;
+//          case State::MainDynoState::SETTINGS_MENU:
+// //             InSessionState();
+//               switch(_state.settingsState)
+//               {
+//                   case State::SettingsState::PID_DESIRED_RPM_EDIT:
+//                       break;
+//                   default:
+//                       break;
+//               }
+//              break;
+//          case State::MainDynoState::IN_SESSION:
+//              break;
+//      }
 
 }
 void FSM::HandleButtonBackInput(void)
@@ -187,7 +185,15 @@ void FSM::HandleButtonBackInput(void)
                     IdleState();
                     break;
                 case State::SettingsState::PID_DESIRED_RPM_EDIT:
-                    PIDDesiredRPMOptionDisplayedSettingsState();
+                    _state.desiredRpmUnitsState = static_cast<State::DesiredRpmUnitsState>((static_cast<int>(_state.desiredRpmUnitsState) - 1 + static_cast<int>(State::DesiredRpmUnitsState::NUM_STATES)) % static_cast<int>(State::DesiredRpmUnitsState::NUM_STATES));
+                    // This will occur if it loops back to State of NUM_STATES - 1
+                    if (static_cast<int>(_state.desiredRpmUnitsState) != static_cast<int>(State::DesiredRpmUnitsState::NUM_STATES) - 1) {
+                        PIDDesiredRPMOptionEditSettingsState(false);
+                    }
+                    else
+                    {
+                        PIDDesiredRPMOptionDisplayedSettingsState();
+                    }
                     break;
                 default:
                     break;
@@ -212,31 +218,46 @@ void FSM::HandleButtonSelectInput(void)
             switch(_state.settingsState)
             {
                 case State::SettingsState::USB_LOGGING_OPTION_DISPLAYED:
-                    USBLoggingOptionEditSettingsState();
-                    break;
-                case State::SettingsState::USB_LOGGING_OPTION_EDIT:
                     _usbLoggingEnabled = !_usbLoggingEnabled;
                     USBLoggingOptionEditSettingsState();
+                    // We don't actually want to change state, should remove the USB_LOGGING_OPTION_EDIT state later
+                    _state.settingsState = State::SettingsState::USB_LOGGING_OPTION_DISPLAYED;
+                    break;
+                case State::SettingsState::USB_LOGGING_OPTION_EDIT:
+                    // USBLoggingOptionEditSettingsState();
                     break;
                 case State::SettingsState::SD_LOGGING_OPTION_DISPLAYED:
-                    SDLoggingOptionEditSettingsState();
-                    break;
-                case State::SettingsState::SD_LOGGING_OPTION_EDIT:
                     _sdLoggingEnabled = !_sdLoggingEnabled;
                     SDLoggingOptionEditSettingsState();
+                    // We don't actually want to change state, should remove the SD_LOGGING_OPTION_EDIT state later
+                    _state.settingsState = State::SettingsState::SD_LOGGING_OPTION_DISPLAYED;
+                    break;
+                case State::SettingsState::SD_LOGGING_OPTION_EDIT:
+                    // SDLoggingOptionEditSettingsState();
                     break; 
                 case State::SettingsState::PID_ENABLE_DISPLAYED:
-                    PIDOptionEditSettingsState();
-                    break;
-                case State::SettingsState::PID_ENABLE_EDIT:
                     _pidOptionToggleableEnabled = !_pidOptionToggleableEnabled;
                     PIDOptionEditSettingsState();
+                    // We don't actually want to change state, should remove the PID_ENABLE_EDIT state later
+                    _state.settingsState = State::SettingsState::PID_ENABLE_DISPLAYED;
+                    break;
+                case State::SettingsState::PID_ENABLE_EDIT:
+                    // PIDOptionEditSettingsState();
                     break;
                 case State::SettingsState::PID_DESIRED_RPM_DISPLAYED:
                     PIDDesiredRPMOptionEditSettingsState(true);
                     break;
                 case State::SettingsState::PID_DESIRED_RPM_EDIT:
-                    PIDDesiredRPMOptionDisplayedSettingsState();
+                    _state.desiredRpmUnitsState = static_cast<State::DesiredRpmUnitsState>((static_cast<int>(_state.desiredRpmUnitsState) + 1) % static_cast<int>(State::DesiredRpmUnitsState::NUM_STATES));
+                    // This will occur if it loops back to State of 0
+                    if (static_cast<int>(_state.desiredRpmUnitsState) != 0) {
+                        PIDDesiredRPMOptionEditSettingsState(false);
+                    }
+                    else
+                    {
+                        PIDDesiredRPMOptionDisplayedSettingsState();
+                    }
+
                     break;
                 default:
                     break;
@@ -251,16 +272,16 @@ void FSM::HandleButtonSelectInput(void)
 
 void FSM::HandleButtonBrakeInput(bool isEnabled)
 {
-    // if (isEnabled)
-    // {
-    //     _inSession = true;
-    //     InSessionState();
-    // }
-    // else
-    // {
-    //     _inSession = false;
-    //     IdleState();
-    // }
+     if (isEnabled)
+     {
+         _inSession = true;
+         InSessionState();
+     }
+     else
+     {
+         _inSession = false;
+         IdleState();
+     }
     
     // switch(_state.mainState)
     // {
@@ -276,35 +297,33 @@ void FSM::HandleButtonBrakeInput(bool isEnabled)
     
 }
 
+int FSM::ConvertDesiredRpmUnitsStateToIncrement()
+{
+    switch (_state.desiredRpmUnitsState)
+    {
+        case State::DesiredRpmUnitsState::TEN_THOUSAND:
+            return 10000;
+        case State::DesiredRpmUnitsState::THOUSAND:
+            return 1000;
+        case State::DesiredRpmUnitsState::HUNDRED:
+            return 100;
+        case State::DesiredRpmUnitsState::TEN:
+            return 10;
+        case State::DesiredRpmUnitsState::ONE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 void FSM::ConvertUserInputIntoDesiredRpm(bool positiveTick)
 {
-    int increment = 0;
-    switch (_desiredRpmIncrement)
-    {
-        case 0:
-            increment = 10000;
-            break;
-        case 1:
-            increment = 1000;
-            break;
-        case 2:
-            increment = 100;
-            break;
-        case 3:
-            increment = 10;
-            break;
-        case 4:
-            increment = 1;
-            break;
-        default:
-            break;
-    }
+    int increment = ConvertDesiredRpmUnitsStateToIncrement();
 
     if (!positiveTick)
     {
         increment *= -1;
     }
-
 
     _desiredRpm = std::max(0, _desiredRpm + increment);
 
@@ -421,10 +440,16 @@ void FSM::PIDDesiredRPMOptionDisplayedSettingsState()
 {
     _state.mainState = State::MainDynoState::SETTINGS_MENU;
     _state.settingsState = State::SettingsState::PID_DESIRED_RPM_DISPLAYED;
+    _state.desiredRpmUnitsState = State::DesiredRpmUnitsState::INIT_STATE;
 
     ClearDisplay();
 
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY,  0, 2, "PID DES RPM1", sizeof("PID DES RPM1") - 1);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY,  0, 2, "PID DES RPM", sizeof("PID DES RPM") - 1);
+
+    char buffer[6];
+    snprintf(buffer, sizeof(buffer), "%5d", static_cast<int>(_desiredRpm));
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 5, buffer, sizeof(buffer) - 1);
 
 }
 
@@ -435,12 +460,12 @@ void FSM::PIDDesiredRPMOptionEditSettingsState(bool clearDisplay)
 
     if (clearDisplay) ClearDisplay();
 
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 0, 2, "PID DES RPM2", sizeof("PID DES RPM2") - 1);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 0, 2, "PID DES RPM", sizeof("PID DES RPM") - 1);
 
-    char buffer[6];
-    snprintf(buffer, sizeof(buffer), "%5d", static_cast<int>(_desiredRpm));
+    char buffer[12];
+    snprintf(buffer, sizeof(buffer), "%5d %5d", static_cast<int>(_desiredRpm), ConvertDesiredRpmUnitsStateToIncrement());
 
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 5, buffer, sizeof(buffer) - 1);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 2, buffer, sizeof(buffer) - 1);
 }
 
 
