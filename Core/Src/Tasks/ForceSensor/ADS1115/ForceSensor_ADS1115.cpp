@@ -2,6 +2,7 @@
 #include <Tasks/ForceSensor/ADS1115/ForceSensor_ADS1115.hpp>
 
 #define LBF_TO_NEWTON 4.44822
+#define ADS1115_VOLTAGE 5.1
 
 // Global interrupts
 static volatile bool ads1115_alert_status = false;
@@ -18,7 +19,7 @@ bool ForceSensorADS1115::Init()
     bool status = true;
     
 
-    status &= _ads1115.setMultiplexer(ADS1115_MUX_P0_N1);
+    status &= _ads1115.setMultiplexer(ADS1115_MUX_P0_NG);
 
     status &= _ads1115.setComparatorMode(ADS1115_COMP_MODE_HYSTERESIS);
     status &= _ads1115.setComparatorPolarity(ADS1115_COMP_POL_ACTIVE_LOW);
@@ -55,16 +56,16 @@ void ForceSensorADS1115::Run(void)
     {
         // Get the latest enable/disable message
         // If currently disabled, block forever; if enabled, poll non-blocking
-        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
-                                             &enableADS1115,
-                                             sizeof(enableADS1115),
-                                             enableADS1115 ? 0 : osWaitForever);
+//        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+//                                             &enableADS1115,
+//                                             sizeof(enableADS1115),
+//                                             enableADS1115 ? 0 : osWaitForever);
 
         // If the latest message says disabled, skip processing
-        if (!enableADS1115)
-        {
-            continue;
-        }
+//        if (!enableADS1115)
+//        {
+//            continue;
+//        }
 
         ads1115_alert_status = false;
 
@@ -106,8 +107,8 @@ void ForceSensorADS1115::Run(void)
 
 float ForceSensorADS1115::GetForce(uint16_t raw_value)
 {
-    // Do not poll, we will explicitly trigger the conversion
-    return static_cast<float>(raw_value) / UINT16_MAX * MAX_FORCE_LBF * LBF_TO_NEWTON;
+    // mv per count * count / 1000 to get volts / supply voltage to get ratio * max force in lbf * lbf to newton
+    return _ads1115.getMvPerCount() * raw_value  / 1000 / ADS1115_VOLTAGE * MAX_FORCE_LBF * LBF_TO_NEWTON;
 }
 
 

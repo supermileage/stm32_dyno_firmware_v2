@@ -73,7 +73,7 @@ bool ADS1115::testConnection() {
         I2C_MEMADD_SIZE_8BIT, // register address size
         _buffer,              // buffer to store the data
         2,                    // number of bytes to read
-        0         // timeout
+        ADS1115_DEFAULT_TIMEOUT_MS         // timeout
     );
 
     // HAL_OK means the device responded
@@ -138,7 +138,7 @@ bool ADS1115::getConversion(int16_t& value, bool triggerAndPoll) {
 
     // Read 2 bytes from the conversion register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONVERSION,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // or some error value
     }
 
@@ -332,7 +332,7 @@ float ADS1115::getMvPerCount() {
 bool ADS1115::isConversionReady() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, treat as not ready
     }
 
@@ -352,7 +352,7 @@ bool ADS1115::isConversionReady() {
 bool ADS1115::triggerConversion() {
     // Read current config
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -368,7 +368,7 @@ bool ADS1115::triggerConversion() {
 
     // Write updated config back to CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
     return true;
@@ -383,7 +383,7 @@ bool ADS1115::triggerConversion() {
 bool ADS1115::getMultiplexer(uint8_t& muxMode) {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -417,8 +417,10 @@ bool ADS1115::getMultiplexer(uint8_t& muxMode) {
  */
 bool ADS1115::setMultiplexer(uint8_t mux) {
     // Read current CONFIG register
-    if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+	HAL_StatusTypeDef status = HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
+            I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS);
+
+	if (status != HAL_OK) {
         return false; // Communication error
     }
 
@@ -437,7 +439,7 @@ bool ADS1115::setMultiplexer(uint8_t mux) {
 
     // Write back updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -464,7 +466,7 @@ bool ADS1115::setMultiplexer(uint8_t mux) {
 bool ADS1115::getGain(uint8_t& pgaMode) {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -489,7 +491,7 @@ bool ADS1115::getGain(uint8_t& pgaMode) {
 bool ADS1115::setGain(uint8_t gain) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -508,7 +510,7 @@ bool ADS1115::setGain(uint8_t gain) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -536,7 +538,7 @@ bool ADS1115::setGain(uint8_t gain) {
 bool ADS1115::getMode() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, assume continuous
     }
 
@@ -559,7 +561,7 @@ bool ADS1115::getMode() {
 bool ADS1115::setMode(bool mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -578,7 +580,7 @@ bool ADS1115::setMode(bool mode) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                          I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -597,7 +599,7 @@ bool ADS1115::setMode(bool mode) {
 bool ADS1115::getRate(uint8_t& rate) {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -628,7 +630,7 @@ bool ADS1115::getRate(uint8_t& rate) {
 bool ADS1115::setRate(uint8_t rate) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -647,7 +649,7 @@ bool ADS1115::setRate(uint8_t rate) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -664,7 +666,7 @@ bool ADS1115::setRate(uint8_t rate) {
 bool ADS1115::getComparatorMode() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, default to hysteresis
     }
 
@@ -686,7 +688,7 @@ bool ADS1115::getComparatorMode() {
 bool ADS1115::setComparatorMode(bool mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -705,7 +707,7 @@ bool ADS1115::setComparatorMode(bool mode) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
     return true;
@@ -722,7 +724,7 @@ bool ADS1115::setComparatorMode(bool mode) {
 bool ADS1115::getComparatorPolarity() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, default to active low
     }
 
@@ -744,7 +746,7 @@ bool ADS1115::getComparatorPolarity() {
 bool ADS1115::setComparatorPolarity(bool polarity) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -763,7 +765,7 @@ bool ADS1115::setComparatorPolarity(bool polarity) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
     return true;
@@ -780,7 +782,7 @@ bool ADS1115::setComparatorPolarity(bool polarity) {
 bool ADS1115::getComparatorLatchEnabled() {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, default to non-latching
     }
 
@@ -802,7 +804,7 @@ bool ADS1115::getComparatorLatchEnabled() {
 bool ADS1115::setComparatorLatchEnabled(bool enabled) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -821,7 +823,7 @@ bool ADS1115::setComparatorLatchEnabled(bool enabled) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -841,7 +843,7 @@ bool ADS1115::setComparatorLatchEnabled(bool enabled) {
 bool ADS1115::getComparatorQueueMode(uint8_t& mode) {
     // Read 2 bytes from CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error, default to assert 1
     }
 
@@ -867,7 +869,7 @@ bool ADS1115::getComparatorQueueMode(uint8_t& mode) {
 bool ADS1115::setComparatorQueueMode(uint8_t mode) {
     // Read current CONFIG register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -886,7 +888,7 @@ bool ADS1115::setComparatorQueueMode(uint8_t mode) {
 
     // Write updated CONFIG register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -903,7 +905,7 @@ bool ADS1115::setComparatorQueueMode(uint8_t mode) {
 bool ADS1115::getLowThreshold(int16_t& value) {
     // Read 2 bytes from LO_THRESH register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_LO_THRESH,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -924,7 +926,7 @@ bool ADS1115::setLowThreshold(int16_t threshold) {
 
     // Write 2 bytes to LO_THRESH register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_LO_THRESH,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
     return true;
@@ -937,7 +939,7 @@ bool ADS1115::setLowThreshold(int16_t threshold) {
 bool ADS1115::getHighThreshold(int16_t& value) {
     // Read 2 bytes from HI_THRESH register
     if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_HI_THRESH,
-                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                         I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
 
@@ -959,7 +961,7 @@ bool ADS1115::setHighThreshold(int16_t threshold) {
 
     // Write 2 bytes to HI_THRESH register
     if (HAL_I2C_Mem_Write(_i2cHandle, _devAddr << 1, ADS1115_RA_HI_THRESH,
-                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+                      I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
         return false; // Communication error
     }
     return true;
@@ -1023,7 +1025,7 @@ uint16_t getValueFromBits(uint16_t extractFrom, int high, int length) {
 //void ADS1115_showConfigRegister() {
 //  // Read 2 bytes from CONFIG register
 //  if (HAL_I2C_Mem_Read(_i2cHandle, _devAddr << 1, ADS1115_RA_CONFIG,
-//                        I2C_MEMADD_SIZE_8BIT, _buffer, 2, 0) != HAL_OK) {
+//                        I2C_MEMADD_SIZE_8BIT, _buffer, 2, ADS1115_DEFAULT_TIMEOUT_MS) != HAL_OK) {
 //      return; // Communication error
 //  }
 //

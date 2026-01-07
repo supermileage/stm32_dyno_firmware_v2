@@ -622,7 +622,7 @@ static void MX_I2C4_Init(void)
 
   /* USER CODE END I2C4_Init 1 */
   hi2c4.Instance = I2C4;
-  hi2c4.Init.Timing = 0x00401959;
+  hi2c4.Init.Timing = 0x00C0EAFF;
   hi2c4.Init.OwnAddress1 = 0;
   hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -1143,7 +1143,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : ADS1115_ALERT_Pin */
   GPIO_InitStruct.Pin = ADS1115_ALERT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
@@ -1293,7 +1293,7 @@ void forceSensorTaskEntryFunction(void *argument)
   #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
     #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1)
     forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
   #else
@@ -1304,7 +1304,7 @@ void forceSensorTaskEntryFunction(void *argument)
 void bpmTaskEntryFunction(void *argument)
 {
   #if BPM_CONTROLLER_TASK_ENABLE == 0
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #else
     bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
@@ -1314,7 +1314,7 @@ void bpmTaskEntryFunction(void *argument)
 void pidControllerTaskEntryFunction(void *argument)
 {
     #if PID_CONTROLLER_TASK_ENABLE == 0
-        osThreadTerminate(osThreadGetId());
+      osDelay(osWaitForever);
     #else
         pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
     #endif
@@ -1323,7 +1323,7 @@ void pidControllerTaskEntryFunction(void *argument)
 void sessionControllerTaskEntryFunction(void* argument)
 {
     #if SESSION_CONTROLLER_TASK_ENABLE == 0
-        osThreadTerminate(osThreadGetId());
+      osDelay(osWaitForever);
     #elif LUMEX_LCD_TASK_ENABLE == 0
       #error "Lumex LCD is a hard dependency of the Session Controller task. Please enable LUMEX_LCD_TASK_ENABLE."
     #else
@@ -1343,7 +1343,7 @@ void sessionControllerTaskEntryFunction(void* argument)
 void opticalSensorTaskEntryFunction(void *argument)
 {
   #if OPTICAL_ENCODER_TASK_ENABLE == 0
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #else
     opticalsensor_main(sessionControllerToOpticalSensorHandle);
   #endif
@@ -1353,7 +1353,7 @@ void opticalSensorTaskEntryFunction(void *argument)
 void lcdDisplayTaskEntryFunction(void *argument)
 {
   #if LUMEX_LCD_TASK_ENABLE == 0
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #else
     lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
@@ -1363,7 +1363,7 @@ void lcdDisplayTaskEntryFunction(void *argument)
 void ledBlinkTaskEntryFunction(void *argument)
 {
   #if LED_BLINK_TASK_ENABLE == 0
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #else 
   for(;;)
   {
@@ -1377,7 +1377,7 @@ void ledBlinkTaskEntryFunction(void *argument)
 void taskMonitorEntryFunction(void *argument)
 {
 #if TASK_MONITOR_TASK_ENABLE == 0
-	osThreadTerminate(osThreadGetId());
+	osDelay(osWaitForever);
 #else
   taskmonitor_osthreadids osthreadids =
   {
@@ -1409,7 +1409,7 @@ __weak void usbTaskEntryFunction(void *argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
   #if USB_CONTROLLER_TASK_ENABLE == 0
-    osThreadTerminate(osThreadGetId());
+    osDelay(osWaitForever);
   #else
     usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle);
   #endif

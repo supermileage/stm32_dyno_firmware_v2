@@ -133,7 +133,7 @@ extern "C" void bpm_main(osMessageQueueId_t sessionControllerToBpmHandle, osMess
 
 	if (!bpm.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 

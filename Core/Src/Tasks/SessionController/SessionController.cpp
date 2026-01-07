@@ -240,7 +240,7 @@ extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_q
 
 	if (!controller.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 

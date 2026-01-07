@@ -140,7 +140,7 @@ extern "C" void opticalsensor_main(osMessageQueueId_t sessionControllerToOptical
 
 	if (!opticalsensor.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 
