@@ -10,6 +10,8 @@
 #define ADS1115_ADDRESS_ADDR_SCL    0x4B // address pin tied to SCL pin
 #define ADS1115_DEFAULT_ADDRESS     ADS1115_ADDRESS_ADDR_GND
 
+#define ADS1115_DEFAULT_TIMEOUT_MS  1
+
 #define ADS1115_RA_CONVERSION       0x00
 #define ADS1115_RA_CONFIG           0x01
 #define ADS1115_RA_LO_THRESH        0x02

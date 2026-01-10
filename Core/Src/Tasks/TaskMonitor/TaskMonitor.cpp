@@ -108,7 +108,7 @@ extern void taskmonitor_main(taskmonitor_osthreadids* osthreadid_ptrs, osMessage
 
 	if (!monitor.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 	monitor.Run();

@@ -152,7 +152,7 @@ extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHand
 
 	if (!controller.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 
