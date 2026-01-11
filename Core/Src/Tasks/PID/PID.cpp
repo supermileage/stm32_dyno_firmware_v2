@@ -139,7 +139,13 @@ void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 
 	if (osMessageQueuePut(_pidToBpmHandle, &new_duty_cycle_percent, 0, 0) != osOK)
 	{
-		_task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL);
+		task_error_data error_data = 
+        {
+            .task_id = TASK_ID_PID_CONTROLLER,
+            .error_id = static_cast<uint32_t>(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         osDelay(TASK_WARNING_RETRY_OSDELAY);
         return;
 	}

@@ -6,12 +6,14 @@
 #include "cmsis_os2.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/messages.h"
+#include "MessagePassing/msgq_messages.h"
 #include "MessagePassing/circular_buffers.h"
 #include "MessagePassing/errors.h"
 
 #include "CircularBufferReader.hpp"
 #include "CircularBufferWriter.hpp"
+
+#include "TimeKeeping/timestamps.h"
 
 #include "Config/config.h"
 
@@ -28,7 +30,7 @@ class PIDController
 		void Run();
 	private:
 		CircularBufferReader<optical_encoder_output_data> _data_buffer_reader;
-		CircularBufferWriter<task_errors> _task_error_buffer_writer;
+		CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
 		osMessageQueueId_t _sessionControllerToPidHandle;
 		osMessageQueueId_t _pidToBpmHandle;

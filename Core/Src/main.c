@@ -39,7 +39,7 @@
 
 #include <Config/debug.h>
 
-#include <MessagePassing/messages.h>
+#include <MessagePassing/msgq_messages.h>
 
 #include <TimeKeeping/timestamps.h>
 
@@ -334,7 +334,7 @@ int main(void)
   sessionControllertoUsbControllerHandle = osMessageQueueNew (16, sizeof(uint16_t), &sessionControllertoUsbController_attributes);
 
   /* creation of taskMonitorToUsbController */
-  taskMonitorToUsbControllerHandle = osMessageQueueNew (50, sizeof(task_monitor_to_usb_controller), &taskMonitorToUsbController_attributes);
+  taskMonitorToUsbControllerHandle = osMessageQueueNew (50, sizeof(task_monitor_output_data), &taskMonitorToUsbController_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 //

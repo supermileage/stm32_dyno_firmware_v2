@@ -34,7 +34,7 @@ class SessionController
         void Run(void);
 
     private:
-        CircularBufferWriter<task_errors> _task_error_buffer_writer;
+        CircularBufferWriter<task_error_data> _task_error_buffer_writer;
         CircularBufferReader<forcesensor_output_data> _forcesensor_buffer_reader;
         CircularBufferReader<optical_encoder_output_data> _optical_encoder_buffer_reader;
 

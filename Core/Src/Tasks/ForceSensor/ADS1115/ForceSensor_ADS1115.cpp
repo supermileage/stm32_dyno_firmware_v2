@@ -41,7 +41,13 @@ bool ForceSensorADS1115::Init()
 
     if (!status)
     {
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE);
+        task_error_data error_data = 
+        {
+            .task_id = TASK_ID_FORCE_SENSOR,
+            .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
     }
 
     return status;
@@ -56,23 +62,30 @@ void ForceSensorADS1115::Run(void)
     {
         // Get the latest enable/disable message
         // If currently disabled, block forever; if enabled, poll non-blocking
-//        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
-//                                             &enableADS1115,
-//                                             sizeof(enableADS1115),
-//                                             enableADS1115 ? 0 : osWaitForever);
+        GetLatestFromQueue(_sessionControllerToForceSensorHandle,
+                                            &enableADS1115,
+                                            sizeof(enableADS1115),
+                                            enableADS1115 ? 0 : osWaitForever);
 
         // If the latest message says disabled, skip processing
-//        if (!enableADS1115)
-//        {
-//            continue;
-//        }
+        if (!enableADS1115)
+        {
+               continue;
+        }
 
         ads1115_alert_status = false;
 
         // --- Trigger conversion ---
         if (!_ads1115.triggerConversion()) 
         {
-            _task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE);
+            task_error_data error_data = 
+            {
+                .task_id = TASK_ID_FORCE_SENSOR,
+                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE),
+                .timestamp = get_timestamp()
+            };
+            
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             osDelay(TASK_WARNING_RETRY_OSDELAY);
             continue;
         }
@@ -87,7 +100,13 @@ void ForceSensorADS1115::Run(void)
         int16_t rawVal;
         if (!_ads1115.getConversion(rawVal, false)) 
         {
-            _task_error_buffer_writer.WriteElementAndIncrementIndex(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE);
+            task_error_data error_data = 
+            {
+                .task_id = TASK_ID_FORCE_SENSOR,
+                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE),
+                .timestamp = get_timestamp()
+            };
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             osDelay(TASK_WARNING_RETRY_OSDELAY);
             continue; 
         }

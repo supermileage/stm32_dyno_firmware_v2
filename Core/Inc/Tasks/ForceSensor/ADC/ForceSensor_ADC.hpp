@@ -31,7 +31,7 @@ class ForceSensorADC
 
 		// Circular Buffer for ForceSensor with template bpm_output_data
 		CircularBufferWriter<forcesensor_output_data> _data_buffer_writer;
-		CircularBufferWriter<task_errors> _task_error_buffer_writer;
+		CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
 		osMessageQueueId_t _sessionControllerToForceSensorHandle;
 		osMessageQueueId_t _forceSensorToSessionControllerHandle;

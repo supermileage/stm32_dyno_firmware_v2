@@ -8,7 +8,7 @@
 
 #include "TimeKeeping/timestamps.h"
 
-#include "MessagePassing/messages.h"
+#include "MessagePassing/msgq_messages.h"
 #include "MessagePassing/circular_buffers.h"
 #include "MessagePassing/osqueue_helpers.h"
 #include "MessagePassing/errors.h"
@@ -21,14 +21,6 @@
 class USBController
 {
     public:
-        enum class USBMessageIdentifier : uint8_t {
-            TASK_ERROR = 0,
-            TASK_WARNING = 1,
-            TASK_MONITOR = 2,
-            TASK_OPTICAL_ENCODER = 100,
-            TASK_FORCESENSOR     = 101,
-            TASK_BPM             = 102, 
-        };
         USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle);
         ~USBController() = default; // Destructor
 
@@ -36,15 +28,13 @@ class USBController
         void Run();
     private:
         void AddToBuffer(void*, size_t);    
-        void PadBuffer(size_t);
         bool BufferFull();
         void ProcessErrorsAndWarnings();
 
         template <typename T>
-        void ProcessTaskData(CircularBufferReader<T>& bufferReader, USBController::USBMessageIdentifier messageId)
-        {
+        void ProcessTaskData(CircularBufferReader<T>& bufferReader, task_ids_t messageId)
+        {            
             T data; // Temporary variable to hold the data
-
             while (bufferReader.HasData()) { // Check if data is available
                 // Ensure the buffer is not full before adding data
                 if (BufferFull()) {
@@ -55,19 +45,44 @@ class USBController
                 }
 
                 if (bufferReader.GetElementAndIncrementIndex(data)) {
-                    uint8_t op = static_cast<uint8_t>(messageId);
-                    AddToBuffer(&op, sizeof(USBController::USBMessageIdentifier));
+                    usb_msg_header_t header = 
+                    {
+                        .msg_type = USB_MSG_STREAM,
+                        .module_id = messageId,
+                        .payload_len = sizeof(T)
+                    };
+                    AddToBuffer(&header, sizeof(usb_msg_header_t));
                     AddToBuffer(&data, sizeof(T));
-
-                    size_t messageIndex = sizeof(USBController::USBMessageIdentifier) + sizeof(T);
-                    PadBuffer(messageIndex);
                 }
             }
         }
 
-        void ProcessTaskMonitorData();
+        template <typename T>
+        void ProcessTaskData(osMessageQueueId_t msgqHandle, task_ids_t messageId)
+        {            
+            T data; // Temporary variable to hold the data
+            while (osMessageQueueGet(msgqHandle, &data, 0, 0) == osOK) { // Check if data is available
+                // Ensure the buffer is not full before adding data
+                if (BufferFull()) {
+                    while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+                        osDelay(1);
+                    }
+                    _txBufferIndex = 0;
+                }
 
-        CircularBufferReader<task_errors> _task_errors_buffer_reader;
+                usb_msg_header_t header = 
+                {
+                    .msg_type = USB_MSG_STREAM,
+                    .module_id = messageId,
+                    .payload_len = sizeof(T)
+                };
+                AddToBuffer(&header, sizeof(usb_msg_header_t));
+                AddToBuffer(&data, sizeof(T));
+                
+            }
+        }
+
+        CircularBufferReader<task_error_data> _task_errors_buffer_reader;
     
         CircularBufferReader<optical_encoder_output_data> _buffer_reader_optical_encoder;
         CircularBufferReader<forcesensor_output_data> _buffer_reader_forcesensor;
@@ -76,7 +91,7 @@ class USBController
         osMessageQueueId_t _taskMonitorToUsbControllerHandle;
         osMessageQueueId_t _sessionControllerToUsbController;
 
-        const size_t _maxMsgSize;
+        const uint32_t _maxMsgSize;
 
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;

@@ -9,7 +9,7 @@
 #include "Config/config.h"
 #include "Config/debug.h" 
 
-#include "MessagePassing/messages.h"
+#include "MessagePassing/msgq_messages.h"
 #include "MessagePassing/circular_buffers.h"
 #include "MessagePassing/errors.h"
 
@@ -30,9 +30,9 @@ public:
 
     void Run();
 private:
-    void GetTaskDataAndSendToUsbController(task_monitor_task_opcode op, osThreadId_t thread_id);
+    void GetTaskDataAndSendToUsbController(task_ids_t task_id, osThreadId_t thread_id);
 
-    CircularBufferWriter<task_errors> _task_error_buffer_writer;
+    CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
     taskmonitor_osthreadids* _osThreadIdPtrs;
     osMessageQueueId_t _taskMonitorToUsbControllerHandle;

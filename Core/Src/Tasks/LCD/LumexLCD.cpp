@@ -127,7 +127,14 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 	__HAL_TIM_SET_AUTORELOAD(lumexLcdTimer, microseconds);
 	if (HAL_TIM_Base_Start_IT(lumexLcdTimer) != HAL_OK)
 	{
-		_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_LUMEX_LCD_TIMER_START_FAILURE);
+		task_error_data error_data = 
+		{
+			.task_id = TASK_ID_LUMEX_LCD,
+			.error_id = static_cast<uint32_t>(ERROR_LUMEX_LCD_TIMER_START_FAILURE),
+			.timestamp = get_timestamp()
+		};
+		
+		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 		return false;
 	}
 
@@ -294,7 +301,7 @@ extern "C" void lumex_lcd_main(osMessageQueueId_t sessionControllerToLumexLcdHan
 
 	if (!lcd.Init())
 	{
-		osThreadTerminate(osThreadGetId());
+		osDelay(osWaitForever);
 	}
 
 
