@@ -1,15 +1,14 @@
 #include <Tasks/USB/usbcontroller_main.h>
 #include <Tasks/USB/USBController.hpp>
 
-template<typename... Ts>
-constexpr size_t max_of()
-{
-    size_t result = 0;
-    ((result = (sizeof(Ts) > result ? sizeof(Ts) : result)), ...);
-    return result;
+template<typename T>
+constexpr size_t max_of() { return sizeof(T); }
+
+template<typename T, typename U, typename... Ts>
+constexpr size_t max_of() {
+    size_t rest_max = max_of<U, Ts...>();
+    return sizeof(T) > rest_max ? sizeof(T) : rest_max;
 }
-
-
 
 using usb_payload_max_t = std::integral_constant<size_t,
     max_of<
