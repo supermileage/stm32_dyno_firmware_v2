@@ -1,7 +1,7 @@
 #ifndef INC_MESSAGEPASSING_CIRCULAR_BUFFERS_H_
 #define INC_MESSAGEPASSING_CIRCULAR_BUFFERS_H_
 
-#include "messages.h"
+#include "msgq_messages.h"
 
 #include "Config/config.h"
 #include "errors.h"
@@ -20,7 +20,7 @@ extern bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
 
 extern size_t task_error_circular_buffer_index_writer;
 
-extern task_errors task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
 #ifdef __cplusplus
 }

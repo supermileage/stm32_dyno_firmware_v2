@@ -37,22 +37,28 @@ bool TaskMonitor::Init()
 		#endif
 	)
 	{
-		_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER);
+		task_error_data error_data = 
+		{
+			.task_id = TASK_ID_TASK_MONITOR,
+			.error_id = static_cast<uint32_t>(ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER),
+			.timestamp = get_timestamp()
+		};
+		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 		return false;
 	}
 	
 	return true;
 }
 
-void TaskMonitor::GetTaskDataAndSendToUsbController(task_monitor_task_opcode op, osThreadId_t thread_id)
+void TaskMonitor::GetTaskDataAndSendToUsbController(task_ids_t task_id, osThreadId_t thread_id)
 {
-	task_monitor_to_usb_controller msg{};
+	task_monitor_output_data msg{};
 	
 	msg.timestamp = get_timestamp();
-	msg.op = op;
-	msg.task_state = osThreadGetState(thread_id);
+	msg.task_id = task_id;
+	msg.task_state = static_cast<int>(osThreadGetState(thread_id));
 	UBaseType_t free_words = uxTaskGetStackHighWaterMark((TaskHandle_t)thread_id);
-	msg.free_bytes = free_words * sizeof(StackType_t);
+	msg.free_bytes = static_cast<uint32_t>(free_words) * sizeof(StackType_t);
 
 	osMessageQueuePut(_taskMonitorToUsbControllerHandle, &msg, 0, osWaitForever);
 }
@@ -63,31 +69,31 @@ void TaskMonitor::Run()
     while(1)
 	{
 		#if SESSION_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_SESSION_CONTROLLER_TASK, _osThreadIdPtrs->session_controller);
+		GetTaskDataAndSendToUsbController(TASK_ID_SESSION_CONTROLLER, _osThreadIdPtrs->session_controller);
 		#endif
 		#if USB_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_USB_CONTROLLER_TASK, _osThreadIdPtrs->usb_controller);
+		GetTaskDataAndSendToUsbController(TASK_ID_USB_CONTROLLER, _osThreadIdPtrs->usb_controller);
 		#endif
 		#if SD_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_SD_CONTROLLER_TASK, _osThreadIdPtrs->sd_controller);
+		GetTaskDataAndSendToUsbController(TASK_ID_SD_CONTROLLER, _osThreadIdPtrs->sd_controller);
 		#endif
 		#if OPTICAL_ENCODER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_OPTICAL_ENCODER_TASK, _osThreadIdPtrs->optical_sensor);
+		GetTaskDataAndSendToUsbController(TASK_ID_OPTICAL_ENCODER, _osThreadIdPtrs->optical_sensor);
 		#endif 
 		#if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_FORCE_SENSOR_TASK, _osThreadIdPtrs->force_sensor);
+		GetTaskDataAndSendToUsbController(TASK_ID_FORCE_SENSOR, _osThreadIdPtrs->force_sensor);
 		#endif 
 		#if BPM_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_BPM_CONTROLLER_TASK, _osThreadIdPtrs->bpm_controller);
+		GetTaskDataAndSendToUsbController(TASK_ID_BPM_CONTROLLER, _osThreadIdPtrs->bpm_controller);
 		#endif
 		#if PID_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_PID_CONTROLLER_TASK, _osThreadIdPtrs->pid_controller);
+		GetTaskDataAndSendToUsbController(TASK_ID_PID_CONTROLLER, _osThreadIdPtrs->pid_controller);
 		#endif
 		#if LUMEX_LCD_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_LUMEX_LCD_TASK, _osThreadIdPtrs->lumex_lcd);
+		GetTaskDataAndSendToUsbController(TASK_ID_LUMEX_LCD, _osThreadIdPtrs->lumex_lcd);
 		#endif
 
-		GetTaskDataAndSendToUsbController(TASK_MONITOR_TASK_MONITOR_TASK, osThreadGetId());
+		GetTaskDataAndSendToUsbController(TASK_ID_TASK_MONITOR, osThreadGetId());
 		
 		osDelay(TASK_MONITOR_TASK_OSDELAY);
 	}

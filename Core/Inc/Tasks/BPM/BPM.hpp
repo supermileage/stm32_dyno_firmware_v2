@@ -34,7 +34,7 @@ class BPM
 		bool TogglePWM(bool enable);
 
 		CircularBufferWriter<bpm_output_data> _data_buffer_writer;
-		CircularBufferWriter<task_errors> _task_error_buffer_writer;
+		CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
 		osMessageQueueId_t _fromSCHandle;
 		osMessageQueueId_t _fromPIDHandle;

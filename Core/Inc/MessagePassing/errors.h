@@ -7,39 +7,85 @@
 extern "C" {
 #endif
 
-// 0 - 9999: Errors
-// 10000 and above: Warnings
+#define WARNING_ENUM_OFFSET 10000
 
-// 0 - 99 : Session Controller Task Errors
-// 100 - 199 : Usb Controller Task Errors
-// 200 - 299 : SD Card Task Errors
-// 300 - 399 : Optical Encoder Task Errors
-// 400 - 499 : Force Sensor Task Errors
-// 500 - 599 : BPM Controller Task Errors
-// 600 - 699 : PID Controller Task Errors
-// 700 - 799 : Lumex LCD Task Errors
-// 800 - 899 : Task Monitor Task Errors
+typedef enum : uint32_t 
+{
+	TASK_ID_NO_TASK = 0xFFFFFFFF,
+    TASK_ID_TASK_MONITOR = 0,
+	TASK_ID_SESSION_CONTROLLER = 100,
+	TASK_ID_USB_CONTROLLER,
+	TASK_ID_SD_CONTROLLER,
+	TASK_ID_OPTICAL_ENCODER,
+	TASK_ID_FORCE_SENSOR,
+	TASK_ID_BPM_CONTROLLER,
+	TASK_ID_PID_CONTROLLER,
+	TASK_ID_LUMEX_LCD	
+} task_ids_t;
 
-// Warnings start at 10000 with same sub-ranges as errors
-
+_Static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
 
 typedef enum : uint32_t
 {
     ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE = 0,
-    ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER,
-    ERROR_FORCE_SENSOR_ADC_START_FAILURE = 400,
-    ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE,
-    ERROR_BPM_PWM_START_FAILURE = 500,
-    ERROR_BPM_PWM_STOP_FAILURE,
-    ERROR_LUMEX_LCD_TIMER_START_FAILURE = 700,
-    ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER = 800,
-    FIRST_WARNING_NUMBER = 10000,
-    WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE = 10400,
-    WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE,
-    WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = 10600,
+    ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER
+} session_controller_task_error_ids;
 
-} task_errors;
+_Static_assert(sizeof(session_controller_task_error_ids) == 4, "Size of session_controller_task_error_ids must be 4 bytes");
 
+typedef enum : uint32_t
+{
+    ERROR_FORCE_SENSOR_ADC_START_FAILURE = 0,
+    WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE = 10000,
+    WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE
+} force_sensor_adc_task_error_ids;
+
+_Static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+
+typedef enum : uint32_t
+{
+    ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE = 0
+} force_sensor_ads1115_error_ids;
+
+_Static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+
+typedef enum : uint32_t
+{
+    ERROR_BPM_PWM_START_FAILURE = 0,
+    ERROR_BPM_PWM_STOP_FAILURE
+} bpm_task_error_ids;
+
+_Static_assert(sizeof(bpm_task_error_ids) == 4, "Size of bpm_task_error_ids must be 4 bytes");
+
+typedef enum : uint32_t
+{
+    ERROR_LUMEX_LCD_TIMER_START_FAILURE = 0
+} lumex_lcd_task_error_ids;
+
+_Static_assert(sizeof(lumex_lcd_task_error_ids) == 4, "Size of lumex_lcd_task_error_ids must be 4 bytes");
+
+typedef enum : uint32_t
+{
+    ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER = 0
+} task_monitor_task_error_ids;
+
+_Static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_task_error_ids must be 4 bytes");
+    
+typedef enum : uint32_t
+{
+    WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = 10000
+} pid_controller_task_error_ids;  
+
+_Static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
+
+typedef struct __attribute__((packed))
+{
+    task_ids_t task_id;
+    uint32_t error_id;
+    uint32_t timestamp;
+} task_error_data;
+
+_Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
 
 
 #ifdef __cplusplus

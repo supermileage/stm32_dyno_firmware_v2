@@ -1,5 +1,5 @@
-#ifndef INC_MESSAGEPASSING_MESSAGES_H_
-#define INC_MESSAGEPASSING_MESSAGES_H_
+#ifndef INC_MESSAGEPASSING_MSGQ_MESSAGES_H_
+#define INC_MESSAGEPASSING_MSGQ_MESSAGES_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,6 +9,7 @@
 #include "cmsis_os2.h"
 
 #include "Config/config.h"
+#include "usb_messages.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,63 +68,9 @@ typedef struct
 
 _Static_assert(sizeof(session_controller_to_pid_controller) == 4 + 4, "Size of session_controller_to_pid_controller must be 8 bytes");
 
-// Message sent from the optical encoder to the PID controller
-typedef struct
-{
-	uint32_t timestamp;  // Timestamp of the reading 
-	float angular_velocity; // Measured angular velocity
-	uint32_t raw_value;  // In case users want to have custom implementation with it
-	float angular_acceleration; // Measured angular acceleration
-} optical_encoder_output_data;
-
-_Static_assert(sizeof(optical_encoder_output_data) == 4 + 4 + 4 + 4, "Size of optical_encoder_output_data must be 16 bytes");
-
-
-typedef struct {
-	uint32_t timestamp;
-	float force;
-	uint32_t raw_value;
-} forcesensor_output_data;
-
-_Static_assert(sizeof(forcesensor_output_data) == 4 + 4 + 4, "Size of forcesensor_output_data must be 12 bytes");
-
-typedef struct
-{
-    uint32_t timestamp;
-    float duty_cycle;
-	uint32_t raw_value; // Really just padding to match the other output data types
-} bpm_output_data;
-
-_Static_assert(sizeof(bpm_output_data) == 4 + 4 + 4, "Size of bpm_output_data must be 12 bytes");
-
-typedef enum : uint32_t 
-{
-	TASK_MONITOR_SESSION_CONTROLLER_TASK = 0,
-	TASK_MONITOR_USB_CONTROLLER_TASK,
-	TASK_MONITOR_SD_CONTROLLER_TASK,
-	TASK_MONITOR_OPTICAL_ENCODER_TASK,
-	TASK_MONITOR_FORCE_SENSOR_TASK,
-	TASK_MONITOR_BPM_CONTROLLER_TASK,
-	TASK_MONITOR_PID_CONTROLLER_TASK,
-	TASK_MONITOR_LUMEX_LCD_TASK,
-	TASK_MONITOR_TASK_MONITOR_TASK
-} task_monitor_task_opcode;
-
-_Static_assert(sizeof(task_monitor_task_opcode) == 4, "Size of task_monitor_task_opcode must be 4 bytes");
-
-typedef struct
-{
-	uint32_t timestamp;
-	task_monitor_task_opcode op;
-	osThreadState_t task_state;
-	uint32_t free_bytes;
-} task_monitor_to_usb_controller;
-
-_Static_assert(sizeof(task_monitor_to_usb_controller) == 4 + 4 + 4 + 4, "Size of task_monitor_to_usb_controller must be 16 bytes");
-
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // INC_MESSAGEPASSING_MESSAGES_H_
+#endif // INC_MESSAGEPASSING_MSGQ_MESSAGES_H_

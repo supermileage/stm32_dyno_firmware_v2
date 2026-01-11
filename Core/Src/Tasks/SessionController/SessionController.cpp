@@ -39,7 +39,13 @@ bool SessionController::CheckTaskQueuesValid()
         #endif
     )
     {
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER);
+        task_error_data error_data = 
+        {
+            .task_id = TASK_ID_SESSION_CONTROLLER,
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
 
@@ -53,7 +59,13 @@ bool SessionController::Init(void)
 
     if (start_timestamp_timer() != HAL_OK)
     {
-    	_task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE);
+    	task_error_data error_data = 
+        {
+            .task_id = TASK_ID_SESSION_CONTROLLER,
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
 

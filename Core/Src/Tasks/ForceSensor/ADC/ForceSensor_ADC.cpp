@@ -45,7 +45,14 @@ void ForceSensorADC::Run(void)
         // --- Trigger ADC conversion via interrupt ---
         if (HAL_ADC_Start_IT(forceSensorADCHandle) != HAL_OK)
         {
-            _task_error_buffer_writer.WriteElementAndIncrementIndex(ERROR_FORCE_SENSOR_ADC_START_FAILURE);
+            task_error_data error_data = 
+            {
+                .task_id = TASK_ID_FORCE_SENSOR,
+                .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADC_START_FAILURE),
+                .timestamp = get_timestamp()
+            };
+            
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             return;
         }
 

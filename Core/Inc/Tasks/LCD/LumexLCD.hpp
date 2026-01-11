@@ -13,9 +13,12 @@
 
 #include "CircularBufferWriter.hpp"
 
-#include "MessagePassing/messages.h"
+#include "MessagePassing/msgq_messages.h"
+#include "MessagePassing/errors.h"
 #include "MessagePassing/osqueue_helpers.h"
 #include "MessagePassing/circular_buffers.h"
+
+#include "TimeKeeping/timestamps.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +45,7 @@ class LumexLCD
 		bool DisplayString(uint8_t row, uint8_t column, const char* string, size_t size);
 		bool ToggleBlink(bool enable);
 
-		CircularBufferWriter<task_errors> _task_error_buffer_writer;
+		CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
 		osMessageQueueId_t _fromSCqHandle;
 };

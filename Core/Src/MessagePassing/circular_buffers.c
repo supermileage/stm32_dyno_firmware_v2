@@ -10,5 +10,5 @@ bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
 
 size_t task_error_circular_buffer_index_writer = 0;
 
-task_errors task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
