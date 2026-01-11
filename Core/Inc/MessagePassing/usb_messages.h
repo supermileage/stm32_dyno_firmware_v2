@@ -25,6 +25,8 @@ typedef enum : uint32_t {
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(usb_msg_type_t) == 4, "Size of usb_msg_type_t must be 4 bytes");
+#else
+static_assert(sizeof(usb_msg_type_t) == 4, "Size of usb_msg_type_t must be 4 bytes");
 #endif
 
 typedef struct __attribute__((packed)) {
@@ -35,6 +37,8 @@ typedef struct __attribute__((packed)) {
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be 12 bytes");
+#else
+static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be 12 bytes");
 #endif
 
 typedef struct
@@ -47,6 +51,8 @@ typedef struct
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(optical_encoder_output_data) == 4 + 4 + 4 + 4, "Size of optical_encoder_output_data must be 16 bytes");
+#else
+static_assert(sizeof(optical_encoder_output_data) == 4 + 4 + 4 + 4, "Size of optical_encoder_output_data must be 16 bytes");
 #endif
 
 typedef struct {
@@ -57,6 +63,8 @@ typedef struct {
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(forcesensor_output_data) == 4 + 4 + 4, "Size of forcesensor_output_data must be 12 bytes");
+#else
+static_assert(sizeof(forcesensor_output_data) == 4 + 4 + 4, "Size of forcesensor_output_data must be 12 bytes");
 #endif
 
 typedef struct
@@ -68,6 +76,8 @@ typedef struct
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(bpm_output_data) == 4 + 4 + 4, "Size of bpm_output_data must be 12 bytes");
+#else
+static_assert(sizeof(bpm_output_data) == 4 + 4 + 4, "Size of bpm_output_data must be 12 bytes");
 #endif
 
 typedef struct
@@ -80,6 +90,8 @@ typedef struct
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(task_monitor_output_data) == 4 + 4 + 4 + 4, "Size of task_monitor_output_data must be 16 bytes");
+#else
+static_assert(sizeof(task_monitor_output_data) == 4 + 4 + 4 + 4, "Size of task_monitor_output_data must be 16 bytes");
 #endif
 
 #ifdef __cplusplus

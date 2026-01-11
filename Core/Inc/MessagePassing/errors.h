@@ -25,6 +25,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
+#else
+static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -35,6 +37,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(session_controller_task_error_ids) == 4, "Size of session_controller_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(session_controller_task_error_ids) == 4, "Size of session_controller_task_error_ids must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -46,6 +50,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -55,6 +61,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -65,6 +73,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(bpm_task_error_ids) == 4, "Size of bpm_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(bpm_task_error_ids) == 4, "Size of bpm_task_error_ids must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -74,6 +84,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(lumex_lcd_task_error_ids) == 4, "Size of lumex_lcd_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(lumex_lcd_task_error_ids) == 4, "Size of lumex_lcd_task_error_ids must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -83,6 +95,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_task_error_ids must be 4 bytes");
 #endif
     
 typedef enum : uint32_t
@@ -92,6 +106,8 @@ typedef enum : uint32_t
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
 #endif
 
 typedef struct __attribute__((packed))
@@ -103,6 +119,8 @@ typedef struct __attribute__((packed))
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
+#else
+static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
 #endif
 
 
