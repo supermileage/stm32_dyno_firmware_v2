@@ -23,8 +23,9 @@ typedef enum : uint32_t {
     USB_MSG_WARNING,        // STM32 → PC (warning report)
 } usb_msg_type_t;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(usb_msg_type_t) == 4, "Size of usb_msg_type_t must be 4 bytes");
-
+#endif
 
 typedef struct __attribute__((packed)) {
     usb_msg_type_t msg_type;     // protocol-level intent
@@ -32,7 +33,9 @@ typedef struct __attribute__((packed)) {
     uint32_t payload_len;  // bytes following header
 } usb_msg_header_t;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be 12 bytes");
+#endif
 
 typedef struct
 {
@@ -42,7 +45,9 @@ typedef struct
 	float angular_acceleration; // Measured angular acceleration
 } optical_encoder_output_data;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(optical_encoder_output_data) == 4 + 4 + 4 + 4, "Size of optical_encoder_output_data must be 16 bytes");
+#endif
 
 typedef struct {
 	uint32_t timestamp;
@@ -50,7 +55,9 @@ typedef struct {
 	uint32_t raw_value;
 } forcesensor_output_data;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(forcesensor_output_data) == 4 + 4 + 4, "Size of forcesensor_output_data must be 12 bytes");
+#endif
 
 typedef struct
 {
@@ -59,7 +66,9 @@ typedef struct
 	uint32_t raw_value; // Really just padding to match the other output data types
 } bpm_output_data;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(bpm_output_data) == 4 + 4 + 4, "Size of bpm_output_data must be 12 bytes");
+#endif
 
 typedef struct
 {
@@ -69,7 +78,9 @@ typedef struct
 	uint32_t free_bytes;
 } task_monitor_output_data;
 
+#ifdef STM32H7xx_H
 _Static_assert(sizeof(task_monitor_output_data) == 4 + 4 + 4 + 4, "Size of task_monitor_output_data must be 16 bytes");
+#endif
 
 #ifdef __cplusplus
 }
