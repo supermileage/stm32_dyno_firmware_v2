@@ -33,6 +33,7 @@ bool SessionController::CheckTaskQueuesValid()
         #endif
         #if PID_CONTROLLER_TASK_ENABLE
         || _task_queues->pid_controller == nullptr
+        || _task_queues->pid_controller_ack == nullptr
         #endif
         #if LUMEX_LCD_TASK_ENABLE
         || _task_queues->lumex_lcd == nullptr
@@ -188,7 +189,7 @@ void SessionController::Run()
 
         if (!pidAckReceived)
         {
-            GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, 0, 0);
+            GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, sizeof(pidAckReceived), 0);
             // This should only run once PIDEnabled changes from false to true and once the ack has been received
             if (pidAckReceived && PIDEnabled)
             {

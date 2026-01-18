@@ -19,12 +19,6 @@ FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
             ClearDisplay();
             IdleState();
 
-            // The initial state of the brake button needs to be initialized if its pressed. If not, nothing needs to be done
-             if (HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port, BTN_BRAKE_Pin) == GPIO_PIN_SET)
-             {
-                 HandleButtonBrakeInput(true);
-             }
-
         }
 
 template<typename T>
@@ -116,7 +110,7 @@ void FSM::HandleRotaryEncoderInput(bool positiveTick)
             if (_pidOptionToggleableEnabled)
             {
                 float increment = 0.01f;
-                if (positiveTick)
+                if (!positiveTick)
                 {
                     increment *= -1;
                 }
@@ -265,6 +259,7 @@ void FSM::HandleButtonSelectInput(void)
             break;
         case State::MainDynoState::IN_SESSION:
             _pidEnabled = !_pidEnabled;
+            _desiredManualBpmDutyCycle = 0.0f;
             break;
     }
 }

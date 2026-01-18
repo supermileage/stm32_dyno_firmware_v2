@@ -1350,6 +1350,7 @@ void sessionControllerTaskEntryFunction(void* argument)
             .optical_sensor = sessionControllerToOpticalSensorHandle,
             .bpm_controller = sessionControllerToBpmHandle,
             .pid_controller = sessionControllerToPidControllerHandle,
+            .pid_controller_ack = pidControllerToSessionControllerAckHandle,
             .lumex_lcd = sessionControllerToLumexLcdHandle
         };
         sessioncontroller_main(&tasks);
