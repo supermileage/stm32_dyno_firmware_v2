@@ -155,7 +155,7 @@ extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbCont
 
 	if (!usb.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
 	usb.Run();

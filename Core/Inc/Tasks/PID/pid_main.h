@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
+void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t throttleControlMutex, bool initialState);
 
 #ifdef __cplusplus
 }

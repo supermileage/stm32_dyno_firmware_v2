@@ -1,6 +1,8 @@
 #include <Tasks/OpticalSensor/OpticalSensor.hpp>
 #include <Tasks/OpticalSensor/opticalsensor_main.h>
 
+extern TIM_HandleTypeDef* opticalTimer;
+
 static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;
@@ -127,7 +129,7 @@ extern "C" void opticalsensor_output_interrupt()
 
 extern "C" void opticalsensor_overflow_interrupt()
 {
-    if (numOverflows != OP_OF) {
+    if (numOverflows != OPTICAL_MAX_NUM_OVERFLOWS) {
         numOverflows++;
     } else {
         timerCounterDifference = 0;
@@ -140,7 +142,7 @@ extern "C" void opticalsensor_main(osMessageQueueId_t sessionControllerToOptical
 
 	if (!opticalsensor.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
 

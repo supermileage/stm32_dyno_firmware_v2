@@ -3,6 +3,8 @@
 
 #define LBF_TO_NEWTON 4.44822
 
+extern ADC_HandleTypeDef* forceSensorADCHandle;
+
 // Global interrupts
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t adc_value = 0;
@@ -96,7 +98,7 @@ extern "C" void forcesensor_adc_main(osMessageQueueId_t sessionControllerToForce
 
 	if (!forcesensor.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
 

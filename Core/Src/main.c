@@ -187,6 +187,16 @@ osMessageQueueId_t taskMonitorToUsbControllerHandle;
 const osMessageQueueAttr_t taskMonitorToUsbController_attributes = {
   .name = "taskMonitorToUsbController"
 };
+/* Definitions for pidControllerToSessionControllerAck */
+osMessageQueueId_t pidControllerToSessionControllerAckHandle;
+const osMessageQueueAttr_t pidControllerToSessionControllerAck_attributes = {
+  .name = "pidControllerToSessionControllerAck"
+};
+/* Definitions for usart1Mutex */
+osMutexId_t usart1MutexHandle;
+const osMutexAttr_t usart1Mutex_attributes = {
+  .name = "usart1Mutex"
+};
 /* USER CODE BEGIN PV */
 // Force sensor ADC Handle
 ADC_HandleTypeDef* forceSensorADCHandle = &hadc2;
@@ -295,6 +305,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of usart1Mutex */
+  usart1MutexHandle = osMutexNew(&usart1Mutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -335,6 +348,9 @@ int main(void)
 
   /* creation of taskMonitorToUsbController */
   taskMonitorToUsbControllerHandle = osMessageQueueNew (50, sizeof(task_monitor_output_data), &taskMonitorToUsbController_attributes);
+
+  /* creation of pidControllerToSessionControllerAck */
+  pidControllerToSessionControllerAckHandle = osMessageQueueNew (5, sizeof(bool), &pidControllerToSessionControllerAck_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 //
@@ -1293,7 +1309,7 @@ void forceSensorTaskEntryFunction(void *argument)
   #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
     #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1)
     forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
   #else
@@ -1304,7 +1320,7 @@ void forceSensorTaskEntryFunction(void *argument)
 void bpmTaskEntryFunction(void *argument)
 {
   #if BPM_CONTROLLER_TASK_ENABLE == 0
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #else
     bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
@@ -1314,16 +1330,16 @@ void bpmTaskEntryFunction(void *argument)
 void pidControllerTaskEntryFunction(void *argument)
 {
     #if PID_CONTROLLER_TASK_ENABLE == 0
-      osDelay(osWaitForever);
+       osThreadSuspend(osThreadGetId());
     #else
-        pid_main(sessionControllerToPidControllerHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
+      pid_main(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidControllerToBpmHandle, usart1MutexHandle, PID_INITIAL_STATUS);
     #endif
 }
 
 void sessionControllerTaskEntryFunction(void* argument)
 {
     #if SESSION_CONTROLLER_TASK_ENABLE == 0
-      osDelay(osWaitForever);
+       osThreadSuspend(osThreadGetId());
     #elif LUMEX_LCD_TASK_ENABLE == 0
       #error "Lumex LCD is a hard dependency of the Session Controller task. Please enable LUMEX_LCD_TASK_ENABLE."
     #else
@@ -1343,7 +1359,7 @@ void sessionControllerTaskEntryFunction(void* argument)
 void opticalSensorTaskEntryFunction(void *argument)
 {
   #if OPTICAL_ENCODER_TASK_ENABLE == 0
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #else
     opticalsensor_main(sessionControllerToOpticalSensorHandle);
   #endif
@@ -1353,7 +1369,7 @@ void opticalSensorTaskEntryFunction(void *argument)
 void lcdDisplayTaskEntryFunction(void *argument)
 {
   #if LUMEX_LCD_TASK_ENABLE == 0
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #else
     lumex_lcd_main(sessionControllerToLumexLcdHandle);
   #endif
@@ -1363,7 +1379,7 @@ void lcdDisplayTaskEntryFunction(void *argument)
 void ledBlinkTaskEntryFunction(void *argument)
 {
   #if LED_BLINK_TASK_ENABLE == 0
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #else 
   for(;;)
   {
@@ -1377,7 +1393,7 @@ void ledBlinkTaskEntryFunction(void *argument)
 void taskMonitorEntryFunction(void *argument)
 {
 #if TASK_MONITOR_TASK_ENABLE == 0
-	osDelay(osWaitForever);
+	 osThreadSuspend(osThreadGetId());
 #else
   taskmonitor_osthreadids osthreadids =
   {
@@ -1389,6 +1405,7 @@ void taskMonitorEntryFunction(void *argument)
       .optical_sensor = opticalSensorTaskHandle,
       .bpm_controller = bpmTaskHandle,
       .pid_controller = pidTaskHandle,
+      .pid_controller_ack = pidControllerToSessionControllerAckHandle
       .lumex_lcd = lcdDisplayTaskHandle
   } ;
   taskmonitor_main(&osthreadids, taskMonitorToUsbControllerHandle);
@@ -1409,7 +1426,7 @@ __weak void usbTaskEntryFunction(void *argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
   #if USB_CONTROLLER_TASK_ENABLE == 0
-    osDelay(osWaitForever);
+     osThreadSuspend(osThreadGetId());
   #else
     usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle);
   #endif

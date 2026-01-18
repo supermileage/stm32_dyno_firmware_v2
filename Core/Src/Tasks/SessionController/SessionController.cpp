@@ -77,6 +77,8 @@ void SessionController::Run()
     forcesensor_output_data force_data;
     optical_encoder_output_data optical_encoder_data;
 
+    bool pidAckReceived = false;
+
     memset(&force_data, 0, sizeof(force_data));
     memset(&optical_encoder_data, 0, sizeof(optical_encoder_data));
 
@@ -175,30 +177,44 @@ void SessionController::Run()
             session_controller_to_pid_controller pid_msg;
             pid_msg.enable_status = PIDEnabled;
             pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
+            pidAckReceived = false;
             osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, osWaitForever);
             _prevPIDEnabled = PIDEnabled;
 
 
-            _fsm.DisplayPIDEnabled();
-
         }
+
         
-        // Always run since the PID controller could be turned off while in-session
-        if (!PIDEnabled)
+
+        if (!pidAckReceived)
         {
-            
-            
-            float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
-            
-            session_controller_to_bpm bpmSettings;
-            
-            bpmSettings.op = START_PWM;
-            bpmSettings.new_duty_cycle_percent =  newDutyCycle;
-            osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
-            _fsm.DisplayManualBPMDutyCycle();
-            
+            GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, 0, 0);
+            // This should only run once PIDEnabled changes from false to true and once the ack has been received
+            if (pidAckReceived && PIDEnabled)
+            {
+                _fsm.DisplayPIDEnabled();
+
+                session_controller_to_bpm bpmSettings{};
+                bpmSettings.op = READ_FROM_PID;
+                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+            } 
         }
 
+        if (pidAckReceived) 
+        {
+            // Always run since the PID controller could be turned off while in-session
+            if (!PIDEnabled)
+            {
+                float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
+                
+                session_controller_to_bpm bpmSettings;
+                bpmSettings.op = START_PWM;
+                bpmSettings.new_duty_cycle_percent =  newDutyCycle;
+                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                _fsm.DisplayManualBPMDutyCycle();
+                
+            }
+        }
 
         // Get the most recent force sensor data
         while(_forcesensor_buffer_reader.GetElementAndIncrementIndex(force_data));
@@ -252,7 +268,7 @@ extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_q
 
 	if (!controller.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());
 	}
 
 

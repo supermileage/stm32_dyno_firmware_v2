@@ -21,6 +21,8 @@
 extern "C" {
 #endif
 
+extern TIM_HandleTypeDef* bpmTimer;
+
 class BPM
 {
 	public:

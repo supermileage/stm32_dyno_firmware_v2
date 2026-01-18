@@ -4,6 +4,8 @@
 #define LBF_TO_NEWTON 4.44822
 #define ADS1115_VOLTAGE 5.1
 
+extern I2C_HandleTypeDef* forceSensorADS1115Handle;
+
 // Global interrupts
 static volatile bool ads1115_alert_status = false;
 
@@ -143,7 +145,7 @@ extern "C" void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToF
 
 	if (!forcesensor.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
     forcesensor.Run();

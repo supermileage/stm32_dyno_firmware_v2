@@ -7,13 +7,6 @@
 extern "C" {
 #endif
 
-extern TIM_HandleTypeDef* lumexLcdTimer;
-extern TIM_HandleTypeDef* bpmTimer;
-extern TIM_HandleTypeDef* opticalTimer;
-
-extern ADC_HandleTypeDef* forceSensorADCHandle;
-
-extern I2C_HandleTypeDef* forceSensorADS1115Handle;
 
 #ifdef __cplusplus
 }

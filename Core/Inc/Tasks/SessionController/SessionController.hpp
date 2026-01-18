@@ -10,6 +10,7 @@
 
 #include "MessagePassing/circular_buffers.h"
 #include "MessagePassing/errors.h"
+#include "MessagePassing/osqueue_helpers.h"
 
 #include "CircularBufferReader.hpp"
 #include "CircularBufferWriter.hpp"

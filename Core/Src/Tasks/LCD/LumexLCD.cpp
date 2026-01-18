@@ -1,6 +1,8 @@
 #include <Tasks/LCD/LumexLCD.hpp>
 #include <Tasks/LCD/lumexlcd_main.h>
 
+extern TIM_HandleTypeDef* lumexLcdTimer;
+
 static volatile bool timerCallbackFlag = false;
 
 LumexLCD::LumexLCD(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
@@ -301,7 +303,7 @@ extern "C" void lumex_lcd_main(osMessageQueueId_t sessionControllerToLumexLcdHan
 
 	if (!lcd.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
 
