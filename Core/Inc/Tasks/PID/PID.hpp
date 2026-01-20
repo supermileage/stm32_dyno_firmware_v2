@@ -22,7 +22,7 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState);
 
 		~PIDController() = default;
 
@@ -33,7 +33,9 @@ class PIDController
 		CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 
 		osMessageQueueId_t _sessionControllerToPidHandle;
+		osMessageQueueId_t _pidControllerToSessionControllerAckHandle;
 		osMessageQueueId_t _pidToBpmHandle;
+		osMutexId_t _usart1Mutex;
 		bool _enabled;
 
 		uint32_t _curTimestamp;
@@ -48,7 +50,8 @@ class PIDController
 
 		float GetTimeDelta();
 
-		void SendDutyCycle(float new_duty_cycle_percent);
+		void SendBrakeDutyCycle(float new_duty_cycle_percent);
+		void SendThrottleDutyCycle(float new_duty_cycle_percent);
 
 		void Reset();
 

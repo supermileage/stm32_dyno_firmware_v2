@@ -4,31 +4,36 @@
 #include "ADS1115_main.h"
 
 // Voltage Reference (should be 3V3)
-#define VREF 3.3
+#define VREF 3.3f
 
 // Mechanical Power Calculation Constants
-#define DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M 1
-#define MOMENT_OF_INERTIA_KG_M2 1
+#define DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M 1.0f
+#define MOMENT_OF_INERTIA_KG_M2 1.0f
 
-// Main PID controller K_P, K_I and K_D
-#define K_P 1.0
-#define K_I 1.0
-#define K_D 1.0
+// Main PID controller parameters
+#define K_P 1.0f
+#define K_I 1.0f
+#define K_D 1.0f
+#define PID_MAX_OUTPUT 100.0f
+#define THROTTLE_GAIN 1.0f
+#define BRAKE_GAIN 1.0f
+#define HORIZONTAL_BIAS 0.0f
+#define VERTICAL_BIAS 0.0f
 
 // User Input Config (like buttons)
-#define USER_INPUT_CIRCULAR_BUFFER_SIZE 100
+#define USER_INPUT_CIRCULAR_BUFFER_SIZE 100u
 
 // Session Controller Config
-#define SESSIONCONTROLLER_TASK_OSDELAY 20
+#define SESSIONCONTROLLER_TASK_OSDELAY 20u
 
 // BPM Config
-#define MIN_DUTY_CYCLE_PERCENT 0.0
-#define MAX_DUTY_CYCLE_PERCENT 0.95
+#define MIN_DUTY_CYCLE_PERCENT 0.0f
+#define MAX_DUTY_CYCLE_PERCENT 0.95f
 #define BPM_CIRCULAR_BUFFER_SIZE 100
 #define BPM_TASK_OSDELAY 20
 
 // FORCE SENSOR Config
-#define MAX_FORCE_LBF 25
+#define MAX_FORCE_LBF 25.0f
 #define FORCESENSOR_TASK_OSDELAY 20
 #define FORCESENSOR_CIRCULAR_BUFFER_SIZE 100
 
@@ -37,7 +42,7 @@
 
 
 // Optical Encoder Config
-#define OP_OF 3 // Meant to count overflows for optical encoder
+#define OPTICAL_MAX_NUM_OVERFLOWS 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 #define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 100 // Need to evaluate maximum possible size from STM32
 #define OPTICAL_ENCODER_TASK_OSDELAY 20
@@ -48,7 +53,7 @@
 
 // USB config
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
-#define USB_TASK_OSDELAY 20 
+#define USB_TASK_OSDELAY 20
 
 // LCD config
 #define LCD_TASK_OSDELAY 20

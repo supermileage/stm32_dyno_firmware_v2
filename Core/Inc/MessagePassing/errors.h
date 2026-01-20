@@ -32,7 +32,8 @@ static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
 typedef enum : uint32_t
 {
     ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE = 0,
-    ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER
+    ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER,
+    ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER
 } session_controller_task_error_ids;
 
 #ifdef STM32H7xx_H
@@ -101,6 +102,7 @@ static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_ta
     
 typedef enum : uint32_t
 {
+    ERROR_PID_INVALID_UART1_MUTEX_POINTER = 0,
     WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = 10000
 } pid_controller_task_error_ids;  
 

@@ -4,7 +4,7 @@
 #include "main.h"
 #include "cmsis_os2.h"
 
-#include "Config/hal_instances.h"
+
 
 #include "TimeKeeping/timestamps.h"
 
@@ -20,6 +20,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern TIM_HandleTypeDef* bpmTimer;
 
 class BPM
 {

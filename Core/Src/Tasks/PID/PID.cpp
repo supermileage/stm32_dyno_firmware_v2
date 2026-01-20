@@ -1,11 +1,18 @@
 #include <Tasks/PID/pid_main.h>
 #include <Tasks/PID/PID.hpp>
 
-PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
+extern UART_HandleTypeDef huart1;
+
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
+PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState) : 
 			_data_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
             _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
             _sessionControllerToPidHandle(sessionControllerToPidControllerHandle),
+			_pidControllerToSessionControllerAckHandle(pidControllerToSessionControllerAckHandle),
 			_pidToBpmHandle(pidToBpmHandle),
+            _usart1Mutex(usart1Mutex),
 			_enabled(initialState),
 			_curTimestamp(0),
 			_prevTimestamp(0),
@@ -18,20 +25,37 @@ PIDController::PIDController(osMessageQueueId_t sessionControllerToPidController
 bool PIDController::Init()
 {
 	Reset();
+    if (_usart1Mutex == nullptr)
+    {
+        task_error_data error_data = 
+        {
+            .task_id = TASK_ID_PID_CONTROLLER,
+            .error_id = static_cast<uint32_t>(ERROR_PID_INVALID_UART1_MUTEX_POINTER),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+        return false;
+    }
 	return true;
+}
+
+static inline float Clamp(float value, float min, float max)
+{
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
 }
 
 void PIDController::Run()
 {
-    float controlValue = 0;
-    float integral = 0;
-    float derivative = 0;
+    float integral = 0.0f;
+    float derivative = 0.0f;
     uint32_t timeDelta;
     optical_encoder_output_data latestOpticalEncoderData;
 
     while (true)
     {
-        // --- Conditional blocking on instructions ---
+        // --- Check for instructions ---
         session_controller_to_pid_controller msg;
         bool gotInstruction = GetLatestFromQueue(
             _sessionControllerToPidHandle,
@@ -40,23 +64,25 @@ void PIDController::Run()
             _enabled ? 0 : osWaitForever  // poll if enabled, block if disabled
         );
 
-        // If we got a message, update PID state
         if (gotInstruction)
         {
+            bool ack = true;
+            osMessageQueuePut(_pidControllerToSessionControllerAckHandle, &ack, 0, osWaitForever);
+            
             _enabled = msg.enable_status;
             _desiredAngularVelocity = msg.desired_angular_velocity;
 
             if (_enabled)
             {
                 Reset();
+                integral = 0.0f; // reset integral too
             }
         }
 
-        // Skip processing if PID is disabled
         if (!_enabled)
         {
-            // Clear any pending BPM commands
             EmptyQueue(_pidToBpmHandle, sizeof(session_controller_to_bpm));
+            osDelay(PID_TASK_OSDELAY);
             continue;
         }
 
@@ -64,40 +90,51 @@ void PIDController::Run()
         if (!_data_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData))
         {
             // Nothing new, skip loop
+            osDelay(PID_TASK_OSDELAY);
             continue;
         }
 
-        // Drain any remaining elements to get the latest
+        // Drain buffer to get the latest
         while (_data_buffer_reader.GetElementAndIncrementIndex(latestOpticalEncoderData));
 
         // --- Update current values ---
         _curTimestamp = latestOpticalEncoderData.timestamp;
         _curAngularVelocity = latestOpticalEncoderData.angular_velocity;
 
-        // Compute time delta safely, handling timer overflow
+        // Compute time delta safely
         timeDelta = GetTimeDelta();
 
-        // PID error calculation
+        // --- PID calculations ---
         _error = static_cast<float>(_desiredAngularVelocity) - _curAngularVelocity;
         derivative = (_error - _prevError) / static_cast<float>(timeDelta);
         integral += _error * static_cast<float>(timeDelta);
 
-        // PID control output
-        controlValue = K_P * _error
-                     + K_D * derivative
-                     + K_I * integral;
+        float pidOutput = K_P * _error + K_D * derivative + K_I * integral;
 
-        // Update previous values
+        pidOutput = Clamp(pidOutput / PID_MAX_OUTPUT, -1.0f, 1.0f); // Normalize and clamp to [-1, 1]
+
+        // Linear, branchless mixing
+        float throttleOutput =
+            Clamp(THROTTLE_GAIN * (0.5f * (1.0f - (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
+        float brakeOutput =
+            Clamp(BRAKE_GAIN * (0.5f * (1.0f + (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
+
+        // PID Graph
+        // https://www.desmos.com/calculator/s3sjvmcamd
+
+        // --- Send to actuators ---
+        SendThrottleDutyCycle(throttleOutput);
+        SendBrakeDutyCycle(brakeOutput);
+
+        // --- Update previous values ---
         _prevTimestamp = _curTimestamp;
         _prevError = _error;
 
-        // Send control value to BPM
-        SendDutyCycle(controlValue);
-
-        // Yield to other tasks
+        // --- Yield to other tasks ---
         osDelay(PID_TASK_OSDELAY);
     }
 }
+
 
 
 
@@ -133,8 +170,20 @@ void PIDController::Reset()
 	_prevError = static_cast<float>(0);
 }
 
+void PIDController::SendThrottleDutyCycle(float new_duty_cycle_percent)
+{
+    osMutexAcquire(_usart1Mutex, osWaitForever);
 
-void PIDController::SendDutyCycle(float new_duty_cycle_percent)
+    uint8_t duty_cycle_255 = static_cast<uint8_t>(new_duty_cycle_percent * 255.0f);
+
+    HAL_UART_Transmit(&huart1, &duty_cycle_255, sizeof(duty_cycle_255), HAL_MAX_DELAY);
+
+    osMutexRelease(_usart1Mutex);
+    
+
+}
+
+void PIDController::SendBrakeDutyCycle(float new_duty_cycle_percent)
 {
 
 	if (osMessageQueuePut(_pidToBpmHandle, &new_duty_cycle_percent, 0, 0) != osOK)
@@ -152,13 +201,13 @@ void PIDController::SendDutyCycle(float new_duty_cycle_percent)
 
 }
 
-extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) 
+extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState) 
 {
-	PIDController controller = PIDController(sessionControllerToPidControllerHandle, pidToBpmHandle, initialState);
+	PIDController controller = PIDController(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidToBpmHandle, usart1Mutex, initialState);
 
 	if (!controller.Init())
 	{
-		osDelay(osWaitForever);
+		 osThreadSuspend(osThreadGetId());;
 	}
 
 
