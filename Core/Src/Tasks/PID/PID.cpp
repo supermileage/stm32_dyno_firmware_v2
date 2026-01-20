@@ -3,6 +3,9 @@
 
 extern UART_HandleTypeDef huart1;
 
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
 PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState) : 
 			_data_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
             _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
@@ -22,6 +25,17 @@ PIDController::PIDController(osMessageQueueId_t sessionControllerToPidController
 bool PIDController::Init()
 {
 	Reset();
+    if (_usart1Mutex == nullptr)
+    {
+        task_error_data error_data = 
+        {
+            .task_id = TASK_ID_PID_CONTROLLER,
+            .error_id = static_cast<uint32_t>(ERROR_PID_INVALID_UART1_MUTEX_POINTER),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+        return false;
+    }
 	return true;
 }
 

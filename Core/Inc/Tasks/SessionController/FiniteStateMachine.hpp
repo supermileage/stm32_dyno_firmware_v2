@@ -72,10 +72,15 @@ public:
     State GetState() const;
     bool GetUSBLoggingEnabledStatus() const;
     bool GetSDLoggingEnabledStatus() const;
-    bool GetPIDEnabledStatus() const;
+    bool GetPIDEnabledModeStatus() const;
+    bool GetPIDOptionToggleableEnabledStatus() const;
+    bool GetManualBpmModeStatus() const;
+    bool GetManualThrottleModeStatus() const;
+
     bool GetInSessionStatus() const;
 
     float GetDesiredBpmDutyCycle() const;
+    float GetDesiredThrottleDutyCycle() const;
 
     float GetDesiredRpm() const;
     float GetDesiredAngularVelocity() const;
@@ -85,6 +90,7 @@ public:
     void DisplayPower(float power);
     void DisplayPIDEnabled();
     void DisplayManualBPMDutyCycle();
+    void DisplayManualThrottleDutyCycle();
 
 private:
     // Methods which are called when a state change is done
@@ -118,8 +124,10 @@ private:
     bool _sdLoggingEnabled;
     bool _pidOptionToggleableEnabled;
     bool _pidEnabled;
+    bool _throttleControlModeEnabled;
     bool _inSession;
     float _desiredManualBpmDutyCycle;
+    float _desiredManualThrottleDutyCycle;
     int _desiredRpm;
     int _desiredRpmIncrement;
     uint32_t _fsmInputDataIndex;

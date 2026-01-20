@@ -28,7 +28,7 @@ class USBController
         void Run();
     private:
         void AddToBuffer(void*, size_t);    
-        bool BufferFull();
+        bool BufferFull(std::size_t msgSize);
         void ProcessErrorsAndWarnings();
 
         template <typename T>
@@ -37,7 +37,7 @@ class USBController
             T data; // Temporary variable to hold the data
             while (bufferReader.HasData()) { // Check if data is available
                 // Ensure the buffer is not full before adding data
-                if (BufferFull()) {
+                if (BufferFull(sizeof(T))) {
                     while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
                         osDelay(1);
                     }
@@ -63,7 +63,7 @@ class USBController
             T data; // Temporary variable to hold the data
             while (osMessageQueueGet(msgqHandle, &data, 0, 0) == osOK) { // Check if data is available
                 // Ensure the buffer is not full before adding data
-                if (BufferFull()) {
+                if (BufferFull(sizeof(T))) {
                     while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
                         osDelay(1);
                     }
@@ -90,8 +90,6 @@ class USBController
 
         osMessageQueueId_t _taskMonitorToUsbControllerHandle;
         osMessageQueueId_t _sessionControllerToUsbController;
-
-        const uint32_t _maxMsgSize;
 
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;

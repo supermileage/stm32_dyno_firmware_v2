@@ -3,16 +3,18 @@
 FSM::FSM(osMessageQueueId_t sessionControllerToLumexLcdHandle) :
         _sessionControllerToLumexLcdHandle(sessionControllerToLumexLcdHandle), 
         _state{
-            State::State::MainDynoState::INIT_STATE,
-            State::State::SettingsState::INIT_STATE,
-            State::State::DesiredRpmUnitsState::INIT_STATE
+            State::MainDynoState::INIT_STATE,
+            State::SettingsState::INIT_STATE,
+            State::DesiredRpmUnitsState::INIT_STATE,
           },
         _usbLoggingEnabled(false),
         _sdLoggingEnabled(false),
         _pidOptionToggleableEnabled(false),
         _pidEnabled(false),
+        _throttleControlModeEnabled(false),
         _inSession(false),
         _desiredManualBpmDutyCycle(0),
+        _desiredManualThrottleDutyCycle(0),
         _desiredRpm(5000),
         _fsmInputDataIndex(0)
         {
@@ -107,16 +109,20 @@ void FSM::HandleRotaryEncoderInput(bool positiveTick)
             }
             break;
         case State::MainDynoState::IN_SESSION:
-            if (_pidOptionToggleableEnabled)
+            float increment = 0.01f;
+            if (!positiveTick)
             {
-                float increment = 0.01f;
-                if (!positiveTick)
-                {
-                    increment *= -1;
-                }
-
+                increment *= -1;
+            }
+            if (_throttleControlModeEnabled)
+            {
+                _desiredManualThrottleDutyCycle = clamp(_desiredManualThrottleDutyCycle + increment, 0.0f, 1.0f);
+            }
+            else
+            {
                 _desiredManualBpmDutyCycle = clamp(_desiredManualBpmDutyCycle + increment, 0.0f, 1.0f);
             }
+
             break;
     }
 
@@ -194,8 +200,7 @@ void FSM::HandleButtonBackInput(void)
             }
             break;
         case State::MainDynoState::IN_SESSION:
-            _inSession = false;
-            IdleState();
+            
             break;
     }
 
@@ -258,8 +263,14 @@ void FSM::HandleButtonSelectInput(void)
             }
             break;
         case State::MainDynoState::IN_SESSION:
-            _pidEnabled = !_pidEnabled;
-            _desiredManualBpmDutyCycle = 0.0f;
+            if (_pidOptionToggleableEnabled)
+            {
+                _pidEnabled = !_pidEnabled;
+            }
+            else
+            {
+                _throttleControlModeEnabled = !_throttleControlModeEnabled;
+            }
             break;
     }
 }
@@ -469,6 +480,9 @@ void FSM::InSessionState()
 {
     _state.mainState = State::MainDynoState::IN_SESSION;
 
+    _desiredManualBpmDutyCycle = 0.0f;
+    _desiredManualThrottleDutyCycle = 0.0f;
+
     ClearDisplay();
     
     // The actual data will be managed in the session controller
@@ -506,18 +520,34 @@ void FSM::DisplayPower(float power)
 
 void FSM::DisplayPIDEnabled()
 {
-    
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 13, "PID", sizeof("PID") - 1);
+    const char *pid_str = _pidEnabled ? "PIDE" : "PIDD";
+
+    AddToLumexLCDMessageQueue(
+        WRITE_TO_DISPLAY,
+        1,
+        12,
+        pid_str,
+        4
+    );
 
 }
 
 void FSM::DisplayManualBPMDutyCycle()
 {
-    char buf[4]; // Enough for duty cycle with no decimals
+    char buf[5]; // Enough for duty cycle with no decimals
     uint8_t value = std::round(_desiredManualBpmDutyCycle * 100.0);
-    snprintf(buf, sizeof(buf), "%3u", value);
+    snprintf(buf, sizeof(buf), "B%3u", value);
 
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 13, buf, sizeof(buf) - 1);
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 12, buf, sizeof(buf) - 1);
+}
+
+void FSM::DisplayManualThrottleDutyCycle()
+{  
+    char buf[5]; // Enough for duty cycle with no decimals
+    uint8_t value = std::round(_desiredManualThrottleDutyCycle * 100.0);
+    snprintf(buf, sizeof(buf), "T%3u", value);
+
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 1, 12, buf, sizeof(buf) - 1);
 }
 
 
@@ -552,9 +582,24 @@ bool FSM::GetSDLoggingEnabledStatus() const
     return _sdLoggingEnabled;
 }
 
-bool FSM::GetPIDEnabledStatus() const
+bool FSM::GetPIDEnabledModeStatus() const
 {
     return _pidOptionToggleableEnabled && _pidEnabled;
+}
+
+bool FSM::GetPIDOptionToggleableEnabledStatus() const
+{
+    return _pidOptionToggleableEnabled;
+}
+
+bool FSM::GetManualBpmModeStatus() const
+{
+    return !_throttleControlModeEnabled;
+}
+
+bool FSM::GetManualThrottleModeStatus() const
+{
+    return _throttleControlModeEnabled;
 }
 
 
@@ -566,6 +611,11 @@ bool FSM::GetInSessionStatus() const
 float FSM::GetDesiredBpmDutyCycle() const
 {
     return _desiredManualBpmDutyCycle;
+}
+
+float FSM::GetDesiredThrottleDutyCycle() const
+{
+    return _desiredManualThrottleDutyCycle;
 }
 
 float FSM::GetDesiredRpm() const

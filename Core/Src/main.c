@@ -300,7 +300,7 @@ int main(void)
   MX_ADC3_Init();
   MX_I2C4_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_GPIO_WritePin(LED_BRAKE_GPIO_Port, LED_BRAKE_Pin, (GPIO_PinState)!HAL_GPIO_ReadPin(BTN_BRAKE_GPIO_Port, BTN_BRAKE_Pin));
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -1353,7 +1353,7 @@ void sessionControllerTaskEntryFunction(void* argument)
             .pid_controller_ack = pidControllerToSessionControllerAckHandle,
             .lumex_lcd = sessionControllerToLumexLcdHandle
         };
-        sessioncontroller_main(&tasks);
+        sessioncontroller_main(&tasks, usart1MutexHandle);
     #endif
 }
 

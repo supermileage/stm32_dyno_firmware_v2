@@ -3,6 +3,12 @@
 
 extern TIM_HandleTypeDef* opticalTimer;
 
+extern size_t optical_encoder_circular_buffer_index_writer;
+extern optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE];
+
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
 static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;

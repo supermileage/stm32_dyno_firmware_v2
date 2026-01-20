@@ -1,5 +1,8 @@
 #include "Tasks/TaskMonitor/TaskMonitor.hpp"
 
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
 
 TaskMonitor::TaskMonitor(taskmonitor_osthreadids* osthreadid_ptrs, osMessageQueueId_t taskMonitorToUsbControllerHandle) :
     _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),

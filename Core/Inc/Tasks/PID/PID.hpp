@@ -22,7 +22,7 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t uart1Mutex, bool initialState);
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState);
 
 		~PIDController() = default;
 

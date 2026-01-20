@@ -6,6 +6,13 @@
 
 extern I2C_HandleTypeDef* forceSensorADS1115Handle;
 
+
+extern size_t forcesensor_circular_buffer_index_writer;
+extern forcesensor_output_data forcesensor_circular_buffer[FORCESENSOR_CIRCULAR_BUFFER_SIZE];
+
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
 // Global interrupts
 static volatile bool ads1115_alert_status = false;
 

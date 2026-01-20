@@ -28,7 +28,7 @@ extern "C" {
 class SessionController
 {
     public:
-        SessionController(session_controller_os_task_queues* task_queues);
+        SessionController(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex);
         ~SessionController() = default;
 
         bool Init(void);
@@ -42,6 +42,7 @@ class SessionController
         FSM _fsm;
 
         session_controller_os_task_queues* _task_queues;
+        osMutexId_t _usart1Mutex;
 
         bool _prevUSBLoggingEnabled;
         bool _prevSDLoggingEnabled;

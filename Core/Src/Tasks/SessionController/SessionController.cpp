@@ -1,11 +1,17 @@
 #include <Tasks/SessionController/SessionController.hpp>
 
-SessionController::SessionController(session_controller_os_task_queues* task_queues) : 
+extern UART_HandleTypeDef huart1;
+
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
+SessionController::SessionController(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex) : 
                 _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
                 _forcesensor_buffer_reader(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
                 _optical_encoder_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
                 _fsm(task_queues->lumex_lcd),
                 _task_queues(task_queues),
+                _usart1Mutex(usart1Mutex),
                 _prevUSBLoggingEnabled(false),
                 _prevSDLoggingEnabled(false),
                 _prevPIDEnabled(false),
@@ -70,6 +76,18 @@ bool SessionController::Init(void)
         return false;
     }
 
+    if (_usart1Mutex == nullptr)
+    {
+        task_error_data error_data = 
+        {
+            .task_id = TASK_ID_SESSION_CONTROLLER,
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER),
+            .timestamp = get_timestamp()
+        };
+        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+        return false;
+    }
+
 	return CheckTaskQueuesValid();
 }
 
@@ -78,10 +96,18 @@ void SessionController::Run()
     forcesensor_output_data force_data;
     optical_encoder_output_data optical_encoder_data;
 
-    bool pidAckReceived = false;
+    float prevThrottleDutyCycle = 0.0f;
 
     memset(&force_data, 0, sizeof(force_data));
     memset(&optical_encoder_data, 0, sizeof(optical_encoder_data));
+
+
+    session_controller_to_pid_controller pid_msg;
+    pid_msg.enable_status = false;
+    pid_msg.desired_angular_velocity = _fsm.GetDesiredAngularVelocity();
+
+    bool pidAckReceived = false;
+    osMessageQueuePut(_task_queues->pid_controller, &pid_msg, 0, osWaitForever);
 
     while(1)
     {
@@ -170,7 +196,7 @@ void SessionController::Run()
 
         
         // Get PID enabled status and enable PID Controller
-        bool PIDEnabled = _fsm.GetPIDEnabledStatus();
+        bool PIDEnabled = _fsm.GetPIDEnabledModeStatus();
 
         // Only if the status has changed
         if (PIDEnabled ^ _prevPIDEnabled)
@@ -191,21 +217,47 @@ void SessionController::Run()
         {
             GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, sizeof(pidAckReceived), 0);
             // This should only run once PIDEnabled changes from false to true and once the ack has been received
-            if (pidAckReceived && PIDEnabled)
+            if (pidAckReceived)
             {
+                
+                if (PIDEnabled)
+                {
+                    session_controller_to_bpm bpmSettings{};
+                    bpmSettings.op = READ_FROM_PID;
+                    osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                }
                 _fsm.DisplayPIDEnabled();
-
-                session_controller_to_bpm bpmSettings{};
-                bpmSettings.op = READ_FROM_PID;
-                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                
             } 
         }
 
-        if (pidAckReceived) 
+        bool PIDOptionToggleableEnabled = _fsm.GetPIDOptionToggleableEnabledStatus();
+        if (!PIDOptionToggleableEnabled) 
         {
-            // Always run since the PID controller could be turned off while in-session
-            if (!PIDEnabled)
+        
+            if (_fsm.GetManualThrottleModeStatus())
             {
+                // Always run since the PID controller could be turned off while in-session
+                float newDutyCycle = _fsm.GetDesiredThrottleDutyCycle();
+                if (newDutyCycle != prevThrottleDutyCycle)
+                {
+                    osMutexAcquire(_usart1Mutex, osWaitForever);
+
+                    uint8_t newDutyCycle255 = static_cast<uint8_t>(newDutyCycle * 255.0f);
+
+                    HAL_UART_Transmit(&huart1, &newDutyCycle255, sizeof(newDutyCycle255), HAL_MAX_DELAY);
+
+                    osMutexRelease(_usart1Mutex);
+                }
+                
+
+                _fsm.DisplayManualThrottleDutyCycle();
+                prevThrottleDutyCycle = newDutyCycle;
+            }
+            else
+            {
+                
+                // Always run since the PID controller could be turned off while in-session
                 float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
                 
                 session_controller_to_bpm bpmSettings;
@@ -213,8 +265,10 @@ void SessionController::Run()
                 bpmSettings.new_duty_cycle_percent =  newDutyCycle;
                 osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
                 _fsm.DisplayManualBPMDutyCycle();
-                
+            
             }
+            
+
         }
 
         // Get the most recent force sensor data
@@ -263,9 +317,9 @@ float SessionController::CalculateMechanicalLosses(float angularAcceleration, fl
     return 0;
 }
 
-extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_queues)
+extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex)
 {
-    SessionController controller = SessionController(task_queues);
+    SessionController controller = SessionController(task_queues, usart1Mutex);
 
 	if (!controller.Init())
 	{
