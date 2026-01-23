@@ -29,7 +29,8 @@ OpticalSensor::OpticalSensor(osMessageQueueId_t sessionControllerToOpticalSensor
 
 bool OpticalSensor::Init()
 {
-	return true;
+	HAL_TIM_IC_Start_IT(opticalTimer, TIM_CHANNEL_1);
+    return true;
 }
 
 void OpticalSensor::Run(void)
@@ -38,6 +39,7 @@ void OpticalSensor::Run(void)
 
     while (1)
     {
+        osDelay(OPTICAL_ENCODER_TASK_OSDELAY);
         // --- Get the latest enable/disable state ---
         GetLatestFromQueue(
             _sessionControllerToOpticalSensorHandle,
@@ -49,7 +51,7 @@ void OpticalSensor::Run(void)
         // Skip processing if the latest state says disabled
         if (!_opticalEncoderEnabled)
         {
-            continue;
+        	continue;
         }
 
         // --- Copy critical data to avoid race conditions ---
@@ -75,8 +77,6 @@ void OpticalSensor::Run(void)
 
         _data_buffer_writer.WriteElementAndIncrementIndex(outputData);
 
-        // --- Yield to allow other tasks to run ---
-        osDelay(OPTICAL_ENCODER_TASK_OSDELAY);
     }
 }
 
@@ -130,16 +130,23 @@ float OpticalSensor::CalculateRPM(uint32_t timerCounterDifference)
 
 extern "C" void opticalsensor_output_interrupt()
 {
+    uint32_t newDiff;
+
     IC_Value2 = HAL_TIM_ReadCapturedValue(opticalTimer, TIM_CHANNEL_1);
     timestamp = get_timestamp();
-    timerCounterDifference = (uint32_t)(IC_Value2 - IC_Value1) +
-                              (numOverflows * (opticalTimer->Instance->ARR + 1));
-    IC_Value1 = IC_Value2;
 
-	prevTimerCounterDifference = timerCounterDifference;
+    newDiff = (uint32_t)(IC_Value2 - IC_Value1) +
+              (numOverflows * (opticalTimer->Instance->ARR + 1));
+
+    IC_Value1 = IC_Value2;
     numOverflows = 0;
+
+    prevTimerCounterDifference = timerCounterDifference;
+    timerCounterDifference = newDiff;
+
     new_data = true;
 }
+
 
 extern "C" void opticalsensor_overflow_interrupt()
 {
