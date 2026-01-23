@@ -19,9 +19,7 @@ extern "C" {
 typedef enum : uint32_t
 {
 	CLEAR_DISPLAY = 0,      // Clear the entire display
-	WRITE_TO_DISPLAY = 1,   // Write a string to a specific location on the display
-	ENABLE_BLINK_ON_CURSOR = 2,    // Enable blinking cursor
-	DISABLE_BLINK_ON_CURSOR = 3    // Disable blinking cursor
+	WRITE_TO_DISPLAY = 1   // Write a string to a specific location on the display
 } session_controller_to_lumex_lcd_opcode;
 
 _Static_assert(sizeof(session_controller_to_lumex_lcd_opcode) == 4, "Size of session_controller_to_lumex_lcd_opcode must be 4 bytes");

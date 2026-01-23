@@ -149,6 +149,9 @@ void SessionController::Run()
         bool InSessionRisingEdge = InSessionStatus && !_prevInSession;
         bool InSessionFallingEdge = !InSessionStatus && _prevInSession;
  
+        // Get PID enabled status and enable PID Controller
+        bool PIDEnabled = _fsm.GetPIDEnabledModeStatus();
+        bool PIDOptionToggleableEnabled = _fsm.GetPIDOptionToggleableEnabledStatus();
 
         // only run this code if the 'InSession' status has changed
         if (InSessionRisingEdge || InSessionFallingEdge)
@@ -161,6 +164,15 @@ void SessionController::Run()
             {
                 opticalEncoderEnable = true;
                 forceSensorEnable = true;
+
+                _fsm.DisplayRpm(0);
+
+                _fsm.DisplayTorque(0);
+                _fsm.DisplayPower(0);
+
+                if (PIDOptionToggleableEnabled) _fsm.DisplayPIDEnabled();
+                else if (_fsm.GetManualBpmModeStatus()) _fsm.DisplayManualBPMDutyCycle();
+                else _fsm.DisplayManualThrottleDutyCycle();
 
             }
             
@@ -197,10 +209,6 @@ void SessionController::Run()
             continue;
         }
 
-        
-        // Get PID enabled status and enable PID Controller
-        bool PIDEnabled = _fsm.GetPIDEnabledModeStatus();
-
         // Only if the status has changed
         if (PIDEnabled ^ _prevPIDEnabled)
         {
@@ -214,8 +222,6 @@ void SessionController::Run()
 
         }
 
-        
-        bool PIDOptionToggleableEnabled = _fsm.GetPIDOptionToggleableEnabledStatus();
         if (!pidAckReceived)
         {
             GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, sizeof(pidAckReceived), 0);

@@ -91,18 +91,6 @@ bool LumexLCD::Init()
 							return;
 						 }
                          break;
-					 case ENABLE_BLINK_ON_CURSOR:
-						 if (!SetCursor(msg.row, msg.column) && !ToggleBlink(true))
-						 {
-							 return;
-						 }
-						 break;
-					 case DISABLE_BLINK_ON_CURSOR:
-						 if (!ToggleBlink(false))
-						 {
-							 return;
-						 }
-						 break;
 
                      default:
                          break;
