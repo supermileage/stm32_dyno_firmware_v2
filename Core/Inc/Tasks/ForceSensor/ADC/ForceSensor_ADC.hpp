@@ -9,7 +9,7 @@
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/circular_buffers.hpp"
 
 #include "CircularBufferWriter.hpp"
 

@@ -11,7 +11,7 @@ static volatile uint32_t timerCounterDifference = 0;
 static volatile uint32_t prevTimerCounterDifference = 0;
 
 OpticalSensor::OpticalSensor(osMessageQueueId_t sessionControllerToOpticalSensorHandle) : 
-		// this comes directly from circular_buffers.h and config.h
+		// this comes directly from circular_buffers.hpp and config.h
 		_buffer_writer(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
 		_sessionControllerToOpticalSensorHandle(sessionControllerToOpticalSensorHandle),
 		_opticalEncoderEnabled(false)

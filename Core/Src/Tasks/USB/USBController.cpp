@@ -1,6 +1,6 @@
 #include <Tasks/USB/usb_main.h>
 #include <Tasks/USB/USBController.hpp>
-#include <MessagePassing/circular_buffers.h>
+#include <MessagePassing/circular_buffers.hpp>
 
 #include <CircularBufferReader.hpp>
 

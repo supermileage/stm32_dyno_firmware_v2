@@ -7,7 +7,7 @@
 static volatile bool ads1115_alert_status = false;
 
 ForceSensorADS1115::ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle) : 
-		// this comes directly from circular_buffers.h and config.h
+		// this comes directly from circular_buffers.hpp and config.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
         _ads1115(forceSensorADS1115Handle),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle) {}

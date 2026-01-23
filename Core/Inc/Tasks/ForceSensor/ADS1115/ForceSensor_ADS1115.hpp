@@ -8,7 +8,7 @@
 
 #include "Timekeeping/timestamps.h"
 
-#include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/circular_buffers.hpp"
 #include "CircularBufferWriter.hpp"
 
 #include "ADS1115.hpp"

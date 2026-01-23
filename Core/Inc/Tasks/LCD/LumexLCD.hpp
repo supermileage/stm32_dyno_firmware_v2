@@ -9,7 +9,7 @@
 
 #include "Config/hal_instances.h"
 
-#include "MessagePassing/messages.h"
+#include "MessagePassing/messages.hpp"
 #include "MessagePassing/osqueue_helpers.h"
 
 #ifdef __cplusplus

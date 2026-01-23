@@ -8,7 +8,7 @@ static volatile uint32_t timestamp = 0;
 static volatile uint16_t adc_value = 0;
 
 ForceSensorADC::ForceSensorADC(osMessageQueueId_t sessionControllerToForceSensorHandle) :
-		// this comes directly from circular_buffers.h and config.h
+		// this comes directly from circular_buffers.hpp and config.h
 		_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
 		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle)
 {}

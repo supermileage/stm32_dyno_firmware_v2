@@ -36,7 +36,7 @@
 #include <Tasks/USB/usb_main.h>
 
 #include <TimeKeeping/timestamps.h>
-#include <MessagePassing/messages.h>
+#include <MessagePassing/messages.hpp>
 
 /* USER CODE END Includes */
 

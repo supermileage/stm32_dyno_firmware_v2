@@ -3,7 +3,7 @@
 
 #include "cmsis_os2.h"
 #include "TimeKeeping/timestamps.h"
-#include "MessagePassing/messages.h"
+#include "MessagePassing/messages.hpp"
 #include "config.h"
 #include "CircularBufferReader.hpp"
 
