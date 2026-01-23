@@ -9,6 +9,7 @@ extern optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCOD
 extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
+static volatile bool new_data = false;
 static volatile uint32_t numOverflows = 0;
 static volatile uint32_t timestamp = 0;
 static volatile uint16_t IC_Value1 = 0;
@@ -53,9 +54,15 @@ void OpticalSensor::Run(void)
 
         // --- Copy critical data to avoid race conditions ---
         taskENTER_CRITICAL();
+        if (!new_data)
+		{
+        	taskEXIT_CRITICAL();
+        	continue;
+		}
         uint32_t timestampCopy = timestamp;
         uint32_t timerCounterDifferenceCopy = timerCounterDifference;
         uint32_t prevTimerCounterDifferenceCopy = prevTimerCounterDifference;
+        new_data = false;
         taskEXIT_CRITICAL();
 
         // --- Populate output struct ---
@@ -131,6 +138,7 @@ extern "C" void opticalsensor_output_interrupt()
 
 	prevTimerCounterDifference = timerCounterDifference;
     numOverflows = 0;
+    new_data = true;
 }
 
 extern "C" void opticalsensor_overflow_interrupt()

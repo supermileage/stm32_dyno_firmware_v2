@@ -97,6 +97,9 @@ void SessionController::Run()
     optical_encoder_output_data optical_encoder_data;
 
     float prevThrottleDutyCycle = 0.0f;
+    float prevBpmDutyCycle = 0.0f;
+    float prevForce = 0.0f;
+    float prevAngularVelocity = 0.0f;
 
     memset(&force_data, 0, sizeof(force_data));
     memset(&optical_encoder_data, 0, sizeof(optical_encoder_data));
@@ -212,7 +215,7 @@ void SessionController::Run()
         }
 
         
-
+        bool PIDOptionToggleableEnabled = _fsm.GetPIDOptionToggleableEnabledStatus();
         if (!pidAckReceived)
         {
             GetLatestFromQueue(_task_queues->pid_controller_ack, &pidAckReceived, sizeof(pidAckReceived), 0);
@@ -225,45 +228,53 @@ void SessionController::Run()
                     session_controller_to_bpm bpmSettings{};
                     bpmSettings.op = READ_FROM_PID;
                     osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                    
                 }
-                _fsm.DisplayPIDEnabled();
+
+                if (PIDOptionToggleableEnabled)
+                {
+                    _fsm.DisplayPIDEnabled();
+                }
+                
                 
             } 
         }
 
-        bool PIDOptionToggleableEnabled = _fsm.GetPIDOptionToggleableEnabledStatus();
+        
         if (!PIDOptionToggleableEnabled) 
         {
         
             if (_fsm.GetManualThrottleModeStatus())
             {
                 // Always run since the PID controller could be turned off while in-session
-                float newDutyCycle = _fsm.GetDesiredThrottleDutyCycle();
-                if (newDutyCycle != prevThrottleDutyCycle)
+                float newThrottleDutyCycle = _fsm.GetDesiredThrottleDutyCycle();
+                if (newThrottleDutyCycle != prevThrottleDutyCycle)
                 {
                     osMutexAcquire(_usart1Mutex, osWaitForever);
 
-                    uint8_t newDutyCycle255 = static_cast<uint8_t>(newDutyCycle * 255.0f);
-
+                    uint8_t newDutyCycle255 = static_cast<uint8_t>(newThrottleDutyCycle * 255.0f);
                     HAL_UART_Transmit(&huart1, &newDutyCycle255, sizeof(newDutyCycle255), HAL_MAX_DELAY);
 
                     osMutexRelease(_usart1Mutex);
-                }
-                
 
+                    prevThrottleDutyCycle = newThrottleDutyCycle;
+                }
                 _fsm.DisplayManualThrottleDutyCycle();
-                prevThrottleDutyCycle = newDutyCycle;
+                 
             }
             else
             {
                 
-                // Always run since the PID controller could be turned off while in-session
-                float newDutyCycle = _fsm.GetDesiredBpmDutyCycle();
-                
-                session_controller_to_bpm bpmSettings;
-                bpmSettings.op = START_PWM;
-                bpmSettings.new_duty_cycle_percent =  newDutyCycle;
-                osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                float newBpmDutyCycle = _fsm.GetDesiredBpmDutyCycle();
+
+                if (newBpmDutyCycle != prevBpmDutyCycle)
+                {
+                    session_controller_to_bpm bpmSettings;
+                    bpmSettings.op = START_PWM;
+                    bpmSettings.new_duty_cycle_percent =  newBpmDutyCycle;
+                    osMessageQueuePut(_task_queues->bpm_controller, &bpmSettings, 0, osWaitForever);
+                    prevBpmDutyCycle = newBpmDutyCycle;
+                } 
                 _fsm.DisplayManualBPMDutyCycle();
             
             }
@@ -285,9 +296,18 @@ void SessionController::Run()
         float torque = CalculateTorque(angularAcceleration, force, angularVelocity);
         
         
-        _fsm.DisplayTorque(torque);
-        _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
-        _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
+        if (prevAngularVelocity != angularVelocity)
+        {
+            _fsm.DisplayRpm(optical_encoder_data.angular_velocity);
+
+            if (prevForce != force)
+            {
+                _fsm.DisplayTorque(torque);
+                _fsm.DisplayPower(CalculatePower(torque, angularVelocity));
+                prevForce = force;
+            }
+            prevAngularVelocity = angularVelocity;
+        }
 
 
         
