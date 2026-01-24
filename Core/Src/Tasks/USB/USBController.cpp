@@ -12,9 +12,7 @@ extern bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
 extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
-extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
-
-
+extern uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
 
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
     : _task_errors_buffer_reader(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
@@ -37,7 +35,7 @@ void USBController::ReceiveAppAck()
     while (true)
     {
         // Attempt to receive data over USB
-        if (UserRxBufferFS[0] == 'O' && UserRxBufferFS[1] == 'K')
+        if (usb_controller_rx_buffer[0] == 'O' && usb_controller_rx_buffer[1] == 'K' && usb_controller_rx_buffer[2] == '\0')
         {
             break;
         }

@@ -94,7 +94,8 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-
+uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
+size_t usb_controller_rx_index = 0;
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -261,10 +262,12 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  memcpy(usb_controller_rx_buffer + usb_controller_rx_index, Buf, *Len);
+  usb_controller_rx_index += *Len;
+  usb_controller_rx_index %= USB_CONTROLLER_RX_BUFFER_SIZE;
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  CDC_Transmit_FS(UserRxBufferFS, *Len);
-  memset(UserRxBufferFS, '\0', *Len);
   return (USBD_OK);
   /* USER CODE END 6 */
 }
