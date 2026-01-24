@@ -12,6 +12,8 @@ extern bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
 extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
+extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
+
 
 
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
@@ -30,9 +32,26 @@ bool USBController::Init()
 	return true;
 }
 
+void USBController::ReceiveAppAck()
+{
+    while (true)
+    {
+        // Attempt to receive data over USB
+        if (UserRxBufferFS[0] == 'O' && UserRxBufferFS[1] == 'K')
+        {
+            break;
+        }
+
+        osDelay(10); // Small delay to prevent busy-waiting
+    }
+}
+
 void USBController::Run()
 {
     bool enableUSB = false;
+
+    // Wait for "OK" before starting data transmission
+    ReceiveAppAck();
 
     while (1)
     {
@@ -47,6 +66,8 @@ void USBController::Run()
         {
             continue;
         }
+
+
 
         #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
         #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
@@ -119,6 +140,10 @@ void USBController::MockMessages(const bool forever)
 
     uint32_t timestamp = 0;
     usb_msg_header_t usb_header{};
+
+    // Wait for "OK" before starting data transmission
+    ReceiveAppAck();
+    
     while(forever)
     {
         #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
@@ -134,11 +159,10 @@ void USBController::MockMessages(const bool forever)
             .angular_acceleration = angular_acceleration++
         };
         // Process optical encoder data
-        usb_header = {
-            .msg_type = USB_MSG_STREAM,
-            .module_id = TASK_ID_OPTICAL_ENCODER,
-            .payload_len = sizeof(optical_encoder_output_data)
-        };
+        usb_header.msg_type = USB_MSG_STREAM;
+        usb_header.module_id = TASK_ID_OPTICAL_ENCODER;
+        usb_header.payload_len = sizeof(optical_encoder_output_data);
+
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<optical_encoder_output_data>(&mock_data, sizeof(optical_encoder_output_data));
         #endif
@@ -153,11 +177,10 @@ void USBController::MockMessages(const bool forever)
             .force = force++,
             .raw_value = fs_raw_value++
         };
-        usb_header = {
-            .msg_type = USB_MSG_STREAM,
-            .module_id = TASK_ID_FORCE_SENSOR,
-            .payload_len = sizeof(forcesensor_output_data)
-        };
+        usb_header.msg_type = USB_MSG_STREAM;
+        usb_header.module_id = TASK_ID_FORCE_SENSOR;
+        usb_header.payload_len = sizeof(forcesensor_output_data);
+
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<forcesensor_output_data>(&mock_fs_data, sizeof(forcesensor_output_data));
         #endif
@@ -172,11 +195,9 @@ void USBController::MockMessages(const bool forever)
             .duty_cycle = duty_cycle++,
             .raw_value = bpm_raw_value++
         };
-        usb_header = {
-            .msg_type = USB_MSG_STREAM,
-            .module_id = TASK_ID_BPM_CONTROLLER,
-            .payload_len = sizeof(bpm_output_data)
-        };
+        usb_header.msg_type = USB_MSG_STREAM;
+        usb_header.module_id = TASK_ID_BPM_CONTROLLER;
+        usb_header.payload_len = sizeof(bpm_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<bpm_output_data>(&mock_bpm_data, sizeof(bpm_output_data));
         #endif
@@ -192,11 +213,9 @@ void USBController::MockMessages(const bool forever)
             .task_state = 0,
             .free_bytes = task_monitor_raw_value++
         };
-        usb_header = {
-            .msg_type = USB_MSG_STREAM,
-            .module_id = TASK_ID_TASK_MONITOR,
-            .payload_len = sizeof(task_monitor_output_data)
-        };
+        usb_header.msg_type = USB_MSG_STREAM;
+        usb_header.module_id = TASK_ID_TASK_MONITOR;
+        usb_header.payload_len = sizeof(task_monitor_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<task_monitor_output_data>(&mock_tm_data, sizeof(task_monitor_output_data));
         #endif

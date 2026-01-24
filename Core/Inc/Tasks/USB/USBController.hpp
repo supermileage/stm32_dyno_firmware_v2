@@ -6,6 +6,8 @@
 
 #include "cmsis_os2.h"
 
+#include "usbd_cdc_if.h"
+
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/msgq_messages.h"
@@ -32,6 +34,7 @@ class USBController
         void StallIfIsBufferFull(bool bufferFull);   
         bool IsBufferFull(std::size_t msgSize);
         void ProcessErrorsAndWarnings();
+        void ReceiveAppAck();
 
         template <typename T>
         void AddToBuffer(T* msg, size_t msgSize) {

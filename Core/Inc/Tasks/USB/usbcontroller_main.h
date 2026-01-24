@@ -6,8 +6,6 @@
 
 #include "main.h"
 
-#include "usbd_cdc_if.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
