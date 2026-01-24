@@ -1305,8 +1305,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void forceSensorTaskEntryFunction(void *argument)
 {
+  #if (!defined(FORCE_SENSOR_ADS1115_TASK_ENABLE) || !defined(FORCE_SENSOR_ADC_TASK_ENABLE))
+    #error "FORCE_SENSOR_ADS1115_TASK_ENABLE or FORCE_SENSOR_ADC_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
   // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
-  #if (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
+  #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
     #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
      osThreadSuspend(osThreadGetId());
@@ -1319,8 +1321,10 @@ void forceSensorTaskEntryFunction(void *argument)
 
 void bpmTaskEntryFunction(void *argument)
 {
-  #if BPM_CONTROLLER_TASK_ENABLE == 0
-     osThreadSuspend(osThreadGetId());
+  #if (!defined(BPM_CONTROLLER_TASK_ENABLE))
+  #error "BPM_CONTROLLER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #elif BPM_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(osThreadGetId());
   #else
     bpm_main(sessionControllerToBpmHandle, pidControllerToBpmHandle);
   #endif
@@ -1329,20 +1333,24 @@ void bpmTaskEntryFunction(void *argument)
 
 void pidControllerTaskEntryFunction(void *argument)
 {
-    #if PID_CONTROLLER_TASK_ENABLE == 0
-       osThreadSuspend(osThreadGetId());
-    #else
-      pid_main(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidControllerToBpmHandle, usart1MutexHandle, PID_INITIAL_STATUS);
-    #endif
+  #if (!defined(PID_CONTROLLER_TASK_ENABLE))
+  #error "PID_CONTROLLER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header." 
+  #elif PID_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(osThreadGetId());
+  #else
+    pid_main(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidControllerToBpmHandle, usart1MutexHandle, PID_INITIAL_STATUS);
+  #endif
 }
 
 void sessionControllerTaskEntryFunction(void* argument)
 {
-    #if SESSION_CONTROLLER_TASK_ENABLE == 0
-       osThreadSuspend(osThreadGetId());
-    #elif LUMEX_LCD_TASK_ENABLE == 0
-      #error "Lumex LCD is a hard dependency of the Session Controller task. Please enable LUMEX_LCD_TASK_ENABLE."
-    #else
+  #if (!defined(SESSION_CONTROLLER_TASK_ENABLE) || !defined(LUMEX_LCD_TASK_ENABLE))
+  #error "SESSION_CONTROLLER_TASK_ENABLE or LUMEX_LCD_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #elif SESSION_CONTROLLER_TASK_ENABLE == 0
+    osThreadSuspend(osThreadGetId());
+  #elif LUMEX_LCD_TASK_ENABLE == 0
+    #error "Lumex LCD is a hard dependency of the Session Controller task. Please enable LUMEX_LCD_TASK_ENABLE."
+  #else
         session_controller_os_task_queues tasks = {
             .usb_controller = sessionControllertoUsbControllerHandle,
             .sd_controller = NULL,
@@ -1354,12 +1362,14 @@ void sessionControllerTaskEntryFunction(void* argument)
             .lumex_lcd = sessionControllerToLumexLcdHandle
         };
         sessioncontroller_main(&tasks, usart1MutexHandle);
-    #endif
+  #endif
 }
 
 void opticalSensorTaskEntryFunction(void *argument)
 {
-  #if OPTICAL_ENCODER_TASK_ENABLE == 0
+  #if (!defined(OPTICAL_ENCODER_TASK_ENABLE))
+  #error "OPTICAL_ENCODER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #elif OPTICAL_ENCODER_TASK_ENABLE == 0
      osThreadSuspend(osThreadGetId());
   #else
     opticalsensor_main(sessionControllerToOpticalSensorHandle);
@@ -1369,7 +1379,9 @@ void opticalSensorTaskEntryFunction(void *argument)
 
 void lcdDisplayTaskEntryFunction(void *argument)
 {
-  #if LUMEX_LCD_TASK_ENABLE == 0
+  #if (!defined(LUMEX_LCD_TASK_ENABLE))
+  #error "LUMEX_LCD_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #elif LUMEX_LCD_TASK_ENABLE == 0
      osThreadSuspend(osThreadGetId());
   #else
     lumex_lcd_main(sessionControllerToLumexLcdHandle);
@@ -1379,11 +1391,16 @@ void lcdDisplayTaskEntryFunction(void *argument)
 
 void ledBlinkTaskEntryFunction(void *argument)
 {
-  #if LED_BLINK_TASK_ENABLE == 0
+	#if (!defined(LED_BLINK_TASK_ENABLE))
+  #error "LED_BLINK_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+	#elif LED_BLINK_TASK_ENABLE == 0
      osThreadSuspend(osThreadGetId());
   #else 
   for(;;)
   {
+    // just to check if timestamp is working. Can only be checked using the debugger
+    const uint32_t timestamp_for_testing = get_timestamp();
+    (void)timestamp_for_testing;
     HAL_GPIO_TogglePin(ILI_SPI2_SD_CS_GPIO_Port, ILI_SPI2_SD_CS_Pin);
     osDelay(LED_TASK_OSDELAY);
   }
@@ -1393,7 +1410,9 @@ void ledBlinkTaskEntryFunction(void *argument)
 
 void taskMonitorEntryFunction(void *argument)
 {
-#if TASK_MONITOR_TASK_ENABLE == 0
+#if (!defined(TASK_MONITOR_TASK_ENABLE))
+  #error "TASK_MONITOR_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+#elif TASK_MONITOR_TASK_ENABLE == 0
 	 osThreadSuspend(osThreadGetId());
 #else
   taskmonitor_osthreadids osthreadids =
@@ -1426,7 +1445,9 @@ __weak void usbTaskEntryFunction(void *argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
-  #if USB_CONTROLLER_TASK_ENABLE == 0
+  #if (!defined(USB_CONTROLLER_TASK_ENABLE))
+  #error "USB_CONTROLLER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #elif USB_CONTROLLER_TASK_ENABLE == 0
      osThreadSuspend(osThreadGetId());
   #else
     usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle);
