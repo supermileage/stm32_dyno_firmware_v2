@@ -134,7 +134,7 @@ void BPM::SetDutyCycle(float new_duty_cycle_percent)
 	else if (new_duty_cycle_percent > MAX_DUTY_CYCLE_PERCENT)
 		new_duty_cycle_percent = MAX_DUTY_CYCLE_PERCENT;
 
-	uint16_t new_duty_cycle = MAX_DUTY_CYCLE_PERCENT * __HAL_TIM_GET_AUTORELOAD(bpmTimer);
+	uint16_t new_duty_cycle = new_duty_cycle_percent * __HAL_TIM_GET_AUTORELOAD(bpmTimer);
 
 	__HAL_TIM_SET_COMPARE(bpmTimer, TIM_CHANNEL_1, new_duty_cycle);
 }
