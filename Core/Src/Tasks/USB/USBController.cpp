@@ -36,12 +36,12 @@ void USBController::Run()
 
     while (1)
     {
-        GetLatestFromQueue(
-            _sessionControllerToUsbController,
-            &enableUSB,
-            sizeof(enableUSB),
-            enableUSB ? 0 : osWaitForever
-        );
+        // GetLatestFromQueue(
+        //     _sessionControllerToUsbController,
+        //     &enableUSB,
+        //     sizeof(enableUSB),
+        //     enableUSB ? 0 : osWaitForever
+        // );
 
         if (!enableUSB)
         {
