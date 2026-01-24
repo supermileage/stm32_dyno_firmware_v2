@@ -36,12 +36,12 @@ void USBController::Run()
 
     while (1)
     {
-        // GetLatestFromQueue(
-        //     _sessionControllerToUsbController,
-        //     &enableUSB,
-        //     sizeof(enableUSB),
-        //     enableUSB ? 0 : osWaitForever
-        // );
+        GetLatestFromQueue(
+            _sessionControllerToUsbController,
+            &enableUSB,
+            sizeof(enableUSB),
+            enableUSB ? 0 : osWaitForever
+        );
 
         if (!enableUSB)
         {
@@ -57,9 +57,11 @@ void USBController::Run()
         // Process BPM data
         ProcessTaskData(_buffer_reader_bpm, TASK_ID_BPM_CONTROLLER);
 
-        #if TASK_MONITOR_TASK_ENABLE
+        #if !defined(TASK_MONITOR_TASK_ENABLE)
+        #error "TASK_MONITOR_TASK_ENABLE must be defined"
+        #elif (TASK_MONITOR_TASK_ENABLE == 1)
         // Process Task Monitor data
-        ProcessTaskData(_taskMonitorToUsbControllerHandle, TASK_ID_TASK_MONITOR);
+        ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_ID_TASK_MONITOR);
         #endif
 
         ProcessErrorsAndWarnings();
