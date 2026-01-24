@@ -48,14 +48,26 @@ void USBController::Run()
             continue;
         }
 
+        #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
+        #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
+        #elif (OPTICAL_ENCODER_TASK_ENABLE == 1)
         // Process optical encoder data
         ProcessTaskData(_buffer_reader_optical_encoder, TASK_ID_OPTICAL_ENCODER);
+        #endif 
 
+        #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
+        #error "FORCE_SENSOR_TASK_ENABLE must be defined"
+        #elif (FORCE_SENSOR_TASK_ENABLE == 1)
         // Process force sensor data
         ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR);
+        #endif 
 
+        #if !defined(BPM_CONTROLLER_TASK_ENABLE)
+        #error "BPM_CONTROLLER_TASK_ENABLE must be defined"
+        #elif (BPM_CONTROLLER_TASK_ENABLE == 1)
         // Process BPM data
         ProcessTaskData(_buffer_reader_bpm, TASK_ID_BPM_CONTROLLER);
+        #endif
 
         #if !defined(TASK_MONITOR_TASK_ENABLE)
         #error "TASK_MONITOR_TASK_ENABLE must be defined"
@@ -102,16 +114,108 @@ void USBController::Run()
 
 // }
 
+void USBController::MockMessages(const bool forever)
+{
+
+    uint32_t timestamp = 0;
+    usb_msg_header_t usb_header{};
+    while(forever)
+    {
+        #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
+        #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
+        #elif (OPTICAL_ENCODER_TASK_ENABLE == 1)
+        static float angular_velocity = 0.0f;
+        static uint32_t optical_raw_value = 0;
+        static float angular_acceleration = 0.0f;
+        optical_encoder_output_data mock_data = {
+            .timestamp = timestamp++,
+            .angular_velocity = angular_velocity++,
+            .raw_value = optical_raw_value++,
+            .angular_acceleration = angular_acceleration++
+        };
+        // Process optical encoder data
+        usb_header = {
+            .msg_type = USB_MSG_STREAM,
+            .module_id = TASK_ID_OPTICAL_ENCODER,
+            .payload_len = sizeof(optical_encoder_output_data)
+        };
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
+        AddToBuffer<optical_encoder_output_data>(&mock_data, sizeof(optical_encoder_output_data));
+        #endif
+
+        #if !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE) || !defined(FORCE_SENSOR_ADC_TASK_ENABLE)
+        #error "FORCE_SENSOR_TASK_ENABLE must be defined"
+        #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
+        static float force = 0.0f;
+        static uint32_t fs_raw_value = 0;
+        forcesensor_output_data mock_fs_data = {
+            .timestamp = timestamp++,
+            .force = force++,
+            .raw_value = fs_raw_value++
+        };
+        usb_header = {
+            .msg_type = USB_MSG_STREAM,
+            .module_id = TASK_ID_FORCE_SENSOR,
+            .payload_len = sizeof(forcesensor_output_data)
+        };
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
+        AddToBuffer<forcesensor_output_data>(&mock_fs_data, sizeof(forcesensor_output_data));
+        #endif
+
+        #if !defined(BPM_CONTROLLER_TASK_ENABLE)
+        #error "BPM_CONTROLLER_TASK_ENABLE must be defined"
+        #elif (BPM_CONTROLLER_TASK_ENABLE == 1)
+        static float duty_cycle = 0.0f;
+        static uint32_t bpm_raw_value = 0;
+        bpm_output_data mock_bpm_data = {
+            .timestamp = timestamp++,
+            .duty_cycle = duty_cycle++,
+            .raw_value = bpm_raw_value++
+        };
+        usb_header = {
+            .msg_type = USB_MSG_STREAM,
+            .module_id = TASK_ID_BPM_CONTROLLER,
+            .payload_len = sizeof(bpm_output_data)
+        };
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
+        AddToBuffer<bpm_output_data>(&mock_bpm_data, sizeof(bpm_output_data));
+        #endif
+
+        #if !defined(TASK_MONITOR_TASK_ENABLE)
+        #error "TASK_MONITOR_TASK_ENABLE must be defined"
+        #elif (TASK_MONITOR_TASK_ENABLE == 1)
+        static uint32_t task_monitor_raw_value = 0;
+
+        task_monitor_output_data mock_tm_data = {
+            .timestamp = timestamp++,
+            .task_id = TASK_ID_NO_TASK,
+            .task_state = 0,
+            .free_bytes = task_monitor_raw_value++
+        };
+        usb_header = {
+            .msg_type = USB_MSG_STREAM,
+            .module_id = TASK_ID_TASK_MONITOR,
+            .payload_len = sizeof(task_monitor_output_data)
+        };
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
+        AddToBuffer<task_monitor_output_data>(&mock_tm_data, sizeof(task_monitor_output_data));
+        #endif
+
+        if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+            continue;
+        }
+        _txBufferIndex = 0;
+
+        osDelay(USB_TASK_OSDELAY);
+    }
+}
+
 void USBController::ProcessErrorsAndWarnings()
 {
-    while(_task_errors_buffer_reader.HasData()) {
-        // Ensure the buffer is not full before adding data
-        if (BufferFull(sizeof(task_error_data))) {
-            while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-                osDelay(1);
-            }
-            _txBufferIndex = 0;
-        }
+    while(_task_errors_buffer_reader.HasData()) 
+    {
+
+        StallIfIsBufferFull(IsBufferFull(sizeof(task_error_data)));
 
         task_error_data error_data;
         if (_task_errors_buffer_reader.GetElementAndIncrementIndex(error_data)) {
@@ -122,19 +226,24 @@ void USBController::ProcessErrorsAndWarnings()
                 .payload_len = sizeof(task_error_data)
             };
 
-            AddToBuffer(&header, sizeof(header));
-            AddToBuffer(&error_data, sizeof(task_error_data));
+            AddToBuffer<usb_msg_header_t>(&header, sizeof(header));
+            AddToBuffer<task_error_data>(&error_data, sizeof(task_error_data));
         }
     }
 }
 
-void USBController::AddToBuffer(void* msg, size_t msgSize) {
-	memcpy(_txBuffer + _txBufferIndex, msg, msgSize); 
-	_txBufferIndex += msgSize;
+void USBController::StallIfIsBufferFull(bool bufferFull)
+{
+    // Ensure the buffer is not full before adding data
+    if (bufferFull) {
+        while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
+            osDelay(1);
+        }
+        _txBufferIndex = 0;
+    }
 }
 
-
-bool USBController::BufferFull(std::size_t msgSize)
+bool USBController::IsBufferFull(std::size_t msgSize)
 {   
     if (_txBufferIndex + sizeof(usb_msg_header_t) + msgSize >= USB_TX_BUFFER_SIZE) {
         return true;   
@@ -152,5 +261,11 @@ extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbCont
 		 osThreadSuspend(osThreadGetId());;
 	}
 
+    #if !defined(DEBUG_USB_CONTROLLER_MOCK_MESSAGES)
+    #error "DEBUG_USB_CONTROLLER_MOCK_MESSAGES must be defined"
+    #elif (DEBUG_USB_CONTROLLER_MOCK_MESSAGES == 1)
+    usb.MockMessages();
+    #else
 	usb.Run();
+    #endif
 }
