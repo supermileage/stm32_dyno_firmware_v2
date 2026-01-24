@@ -263,6 +263,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  CDC_Transmit_FS(UserRxBufferFS, *Len);
+  memset(UserRxBufferFS, '\0', *Len);
   return (USBD_OK);
   /* USER CODE END 6 */
 }
@@ -316,7 +318,10 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
-
+void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
+{
+	
+}
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**
