@@ -27,10 +27,17 @@ class USBController
 
         bool Init();
         void Run();
+        void MockMessages(const bool forever = true);
     private:
-        void AddToBuffer(void*, size_t);    
-        bool BufferFull(std::size_t msgSize);
+        void StallIfIsBufferFull(bool bufferFull);   
+        bool IsBufferFull(std::size_t msgSize);
         void ProcessErrorsAndWarnings();
+
+        template <typename T>
+        void AddToBuffer(T* msg, size_t msgSize) {
+            memcpy(_txBuffer + _txBufferIndex, msg, msgSize); 
+            _txBufferIndex += msgSize;
+        }
 
         template <typename T>
         void ProcessTaskData(CircularBufferReader<T>& bufferReader, task_ids_t messageId)
@@ -38,12 +45,7 @@ class USBController
             T data; // Temporary variable to hold the data
             while (bufferReader.HasData()) { // Check if data is available
                 // Ensure the buffer is not full before adding data
-                if (BufferFull(sizeof(T))) {
-                    while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-                        osDelay(1);
-                    }
-                    _txBufferIndex = 0;
-                }
+                StallIfIsBufferFull(IsBufferFull(sizeof(T)));
 
                 if (bufferReader.GetElementAndIncrementIndex(data)) {
                     usb_msg_header_t header = 
@@ -52,8 +54,8 @@ class USBController
                         .module_id = messageId,
                         .payload_len = sizeof(T)
                     };
-                    AddToBuffer(&header, sizeof(usb_msg_header_t));
-                    AddToBuffer(&data, sizeof(T));
+                    AddToBuffer<usb_msg_header_t>(&header, sizeof(usb_msg_header_t));
+                    AddToBuffer<T>(&data, sizeof(T));
                 }
             }
         }
@@ -64,12 +66,7 @@ class USBController
             T data; // Temporary variable to hold the data
             while (osMessageQueueGet(msgqHandle, &data, 0, 0) == osOK) { // Check if data is available
                 // Ensure the buffer is not full before adding data
-                if (BufferFull(sizeof(T))) {
-                    while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-                        osDelay(1);
-                    }
-                    _txBufferIndex = 0;
-                }
+                StallIfIsBufferFull(IsBufferFull(sizeof(T)));
 
                 usb_msg_header_t header = 
                 {
@@ -77,8 +74,8 @@ class USBController
                     .module_id = messageId,
                     .payload_len = sizeof(T)
                 };
-                AddToBuffer(&header, sizeof(usb_msg_header_t));
-                AddToBuffer(&data, sizeof(T));
+                AddToBuffer<usb_msg_header_t>(&header, sizeof(usb_msg_header_t));
+                AddToBuffer<T>(&data, sizeof(T));
                 
             }
         }
