@@ -1406,7 +1406,7 @@ void taskMonitorEntryFunction(void *argument)
       .optical_sensor = opticalSensorTaskHandle,
       .bpm_controller = bpmTaskHandle,
       .pid_controller = pidTaskHandle,
-      .pid_controller_ack = pidControllerToSessionControllerAckHandle
+      .pid_controller_ack = pidControllerToSessionControllerAckHandle,
       .lumex_lcd = lcdDisplayTaskHandle
   } ;
   taskmonitor_main(&osthreadids, taskMonitorToUsbControllerHandle);

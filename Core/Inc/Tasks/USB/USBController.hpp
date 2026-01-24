@@ -14,6 +14,7 @@
 #include "MessagePassing/errors.h"
 
 #include "Config/config.h"
+#include "Config/debug.h"
 #include "CircularBufferReader.hpp"
 
 

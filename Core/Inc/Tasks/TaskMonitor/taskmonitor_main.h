@@ -16,6 +16,7 @@ typedef struct
     osThreadId_t optical_sensor;
     osThreadId_t bpm_controller;
     osThreadId_t pid_controller;
+    osThreadId_t pid_controller_ack;
     osThreadId_t lumex_lcd;
 } taskmonitor_osthreadids;
 
