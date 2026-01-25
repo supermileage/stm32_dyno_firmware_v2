@@ -261,14 +261,38 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
+  
   /* USER CODE BEGIN 6 */
-  memcpy(usb_controller_rx_buffer + usb_controller_rx_index, Buf, *Len);
-  usb_controller_rx_index += *Len;
-  usb_controller_rx_index %= USB_CONTROLLER_RX_BUFFER_SIZE;
 
+  uint8_t status = USBD_OK;
+  if (*Len > USB_CONTROLLER_RX_BUFFER_SIZE) 
+  {
+    // drop packet or set error flag
+    status = USBD_FAIL;
+    goto complete_transfer;
+  }
+
+  uint32_t len = *Len;
+  uint32_t idx = usb_controller_rx_index;
+
+  uint32_t space_to_end = USB_CONTROLLER_RX_BUFFER_SIZE - idx;
+
+  if (len <= space_to_end)
+  {
+    memcpy(&usb_controller_rx_buffer[idx], Buf, len);
+  }
+  else
+  {
+    memcpy(&usb_controller_rx_buffer[idx], Buf, space_to_end);
+    memcpy(&usb_controller_rx_buffer[0], Buf + space_to_end, len - space_to_end);
+  }
+
+  usb_controller_rx_index = (idx + len) % USB_CONTROLLER_RX_BUFFER_SIZE;
+
+complete_transfer:
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (USBD_OK);
+  return (status); 
   /* USER CODE END 6 */
 }
 
