@@ -76,7 +76,7 @@ void USBController::Run()
 
         #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
         #error "FORCE_SENSOR_TASK_ENABLE must be defined"
-        #elif (FORCE_SENSOR_TASK_ENABLE == 1)
+        #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
         // Process force sensor data
         ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR);
         #endif 
