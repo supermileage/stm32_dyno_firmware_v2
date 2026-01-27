@@ -147,8 +147,6 @@ extern "C" void opticalsensor_output_interrupt()
     new_data = true;
 }
 
-syntax error
-
 extern "C" void opticalsensor_overflow_interrupt()
 {
     if (numOverflows != OPTICAL_MAX_NUM_OVERFLOWS) {
