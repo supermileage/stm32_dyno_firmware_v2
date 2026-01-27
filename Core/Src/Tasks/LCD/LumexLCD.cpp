@@ -112,8 +112,6 @@ bool LumexLCD::Init()
 //}
 
 
-test
-
 bool LumexLCD::StartTimer(uint8_t microseconds)
 {
 	__HAL_TIM_SET_COUNTER(lumexLcdTimer, 0);

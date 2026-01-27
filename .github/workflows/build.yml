@@ -9,7 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: xanderhendriks/action-build-stm32cubeide@v16.0
+
+      # Build Debug
+      - name: Build Debug
+        uses: xanderhendriks/action-build-stm32cubeide@v16.0
         with:
           project-path: '.'
           project-target: 'stm32_dyno_firmware_v2/Debug'
+
+      # Build Release
+      - name: Build Release
+        uses: xanderhendriks/action-build-stm32cubeide@v16.0
+        with:
+          project-path: '.'
+          project-target: 'stm32_dyno_firmware_v2/Release'
