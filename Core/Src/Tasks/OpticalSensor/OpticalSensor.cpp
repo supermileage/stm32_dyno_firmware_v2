@@ -147,11 +147,10 @@ extern "C" void opticalsensor_output_interrupt()
     new_data = true;
 }
 
-
 extern "C" void opticalsensor_overflow_interrupt()
 {
     if (numOverflows != OPTICAL_MAX_NUM_OVERFLOWS) {
-        numOverflows++;
+        numOverflows = numOverflows + 1;
     } else {
         timerCounterDifference = 0;
     }
