@@ -40,12 +40,11 @@ bool TaskMonitor::Init()
 		#endif
 	)
 	{
-		task_error_data error_data = 
-		{
-			.timestamp = get_timestamp(),
-			.task_id = TASK_ID_TASK_MONITOR,
-			.error_id = static_cast<uint32_t>(ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER)
-		};
+		task_error_data error_data = PopulateTaskErrorDataStruct(
+			get_timestamp(),
+			TASK_ID_TASK_MONITOR,
+			static_cast<uint32_t>(ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER)
+		);
 		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 		return false;
 	}

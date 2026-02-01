@@ -118,12 +118,11 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 	__HAL_TIM_SET_AUTORELOAD(lumexLcdTimer, microseconds);
 	if (HAL_TIM_Base_Start_IT(lumexLcdTimer) != HAL_OK)
 	{
-		task_error_data error_data = 
-		{
-			.timestamp = get_timestamp(),
-			.task_id = TASK_ID_LUMEX_LCD,
-			.error_id = static_cast<uint32_t>(ERROR_LUMEX_LCD_TIMER_START_FAILURE),
-		};
+		task_error_data error_data = PopulateTaskErrorDataStruct(
+			get_timestamp(),
+			TASK_ID_LUMEX_LCD,
+			static_cast<uint32_t>(ERROR_LUMEX_LCD_TIMER_START_FAILURE)
+		);
 		
 		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 		return false;

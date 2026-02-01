@@ -50,12 +50,11 @@ bool ForceSensorADS1115::Init()
 
     if (!status)
     {
-        task_error_data error_data = 
-        {
-            .timestamp = get_timestamp(),
-            .task_id = TASK_ID_FORCE_SENSOR,
-            .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE)
-        };
+        task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_FORCE_SENSOR,
+            static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
     }
 
@@ -87,12 +86,11 @@ void ForceSensorADS1115::Run(void)
         // --- Trigger conversion ---
         if (!_ads1115.triggerConversion()) 
         {
-            task_error_data error_data = 
-            {
-                .timestamp = get_timestamp(),
-                .task_id = TASK_ID_FORCE_SENSOR,
-                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE)
-            };
+            task_error_data error_data = PopulateTaskErrorDataStruct(
+                get_timestamp(),
+                TASK_ID_FORCE_SENSOR,
+                static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE)
+            );
             
             _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             osDelay(TASK_WARNING_RETRY_OSDELAY);
@@ -109,12 +107,11 @@ void ForceSensorADS1115::Run(void)
         int16_t rawVal;
         if (!_ads1115.getConversion(rawVal, false)) 
         {
-            task_error_data error_data = 
-            {
-                .timestamp = get_timestamp(),
-                .task_id = TASK_ID_FORCE_SENSOR,
-                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE)
-            };
+            task_error_data error_data = PopulateTaskErrorDataStruct(
+                get_timestamp(),
+                TASK_ID_FORCE_SENSOR,
+                static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE)
+            );
             _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             osDelay(TASK_WARNING_RETRY_OSDELAY);
             continue; 
