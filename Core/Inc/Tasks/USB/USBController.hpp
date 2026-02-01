@@ -43,7 +43,7 @@ class USBController
         }
 
         template <typename T>
-        void ProcessTaskData(CircularBufferReader<T>& bufferReader, task_ids_t messageId)
+        void ProcessTaskData(CircularBufferReader<T>& bufferReader, task_ids_t taskId)
         {            
             T data; // Temporary variable to hold the data
             while (bufferReader.HasData()) { // Check if data is available
@@ -54,7 +54,7 @@ class USBController
                     usb_msg_header_t header = 
                     {
                         .msg_type = USB_MSG_STREAM,
-                        .module_id = messageId,
+                        .task_id = taskId,
                         .payload_len = sizeof(T)
                     };
                     AddToBuffer<usb_msg_header_t>(&header, sizeof(usb_msg_header_t));
@@ -64,7 +64,7 @@ class USBController
         }
 
         template <typename T>
-        void ProcessTaskData(osMessageQueueId_t msgqHandle, task_ids_t messageId)
+        void ProcessTaskData(osMessageQueueId_t msgqHandle, task_ids_t taskId)
         {            
             T data; // Temporary variable to hold the data
             while (osMessageQueueGet(msgqHandle, &data, 0, 0) == osOK) { // Check if data is available
@@ -74,7 +74,7 @@ class USBController
                 usb_msg_header_t header = 
                 {
                     .msg_type = USB_MSG_STREAM,
-                    .module_id = messageId,
+                    .task_id = taskId,
                     .payload_len = sizeof(T)
                 };
                 AddToBuffer<usb_msg_header_t>(&header, sizeof(usb_msg_header_t));

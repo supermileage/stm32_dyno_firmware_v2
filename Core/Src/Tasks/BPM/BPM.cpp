@@ -95,12 +95,12 @@ bool BPM::TogglePWM(bool enable)
 	{
 		if (HAL_TIM_PWM_Start(bpmTimer, TIM_CHANNEL_1) != HAL_OK)
 		{
-			task_error_data error_data = 
-			{
-				.task_id = TASK_ID_BPM_CONTROLLER,
-				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_START_FAILURE),
-				.timestamp = get_timestamp()
-			};
+			task_error_data error_data = PopulateTaskErrorDataStruct(
+				get_timestamp(),
+				TASK_ID_BPM_CONTROLLER,
+				static_cast<uint32_t>(ERROR_BPM_PWM_START_FAILURE)
+			);
+
 			_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 			return false;
 		}
@@ -110,12 +110,11 @@ bool BPM::TogglePWM(bool enable)
 	{
 		if (HAL_TIM_PWM_Stop(bpmTimer, TIM_CHANNEL_1) != HAL_OK)
 		{
-			task_error_data error_data = 
-			{
-				.task_id = TASK_ID_BPM_CONTROLLER,
-				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_STOP_FAILURE),
-				.timestamp = get_timestamp()
-			};
+			task_error_data error_data = PopulateTaskErrorDataStruct(
+				get_timestamp(),
+				TASK_ID_BPM_CONTROLLER,
+				static_cast<uint32_t>(ERROR_BPM_PWM_STOP_FAILURE)
+			);
 			_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 			return false;
 		}

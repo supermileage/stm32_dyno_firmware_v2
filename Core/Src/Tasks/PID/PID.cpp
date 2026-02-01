@@ -27,12 +27,11 @@ bool PIDController::Init()
 	Reset();
     if (_usart1Mutex == nullptr)
     {
-        task_error_data error_data = 
-        {
-            .task_id = TASK_ID_PID_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_PID_INVALID_UART1_MUTEX_POINTER),
-            .timestamp = get_timestamp()
-        };
+        task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_PID_CONTROLLER,
+            static_cast<uint32_t>(ERROR_PID_INVALID_UART1_MUTEX_POINTER)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
@@ -188,12 +187,11 @@ void PIDController::SendBrakeDutyCycle(float new_duty_cycle_percent)
 
 	if (osMessageQueuePut(_pidToBpmHandle, &new_duty_cycle_percent, 0, 0) != osOK)
 	{
-		task_error_data error_data = 
-        {
-            .task_id = TASK_ID_PID_CONTROLLER,
-            .error_id = static_cast<uint32_t>(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL),
-            .timestamp = get_timestamp()
-        };
+		task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_PID_CONTROLLER,
+            static_cast<uint32_t>(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         osDelay(TASK_WARNING_RETRY_OSDELAY);
         return;
