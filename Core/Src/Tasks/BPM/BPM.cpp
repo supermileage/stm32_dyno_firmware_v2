@@ -97,9 +97,9 @@ bool BPM::TogglePWM(bool enable)
 		{
 			task_error_data error_data = 
 			{
+				.timestamp = get_timestamp(),
 				.task_id = TASK_ID_BPM_CONTROLLER,
-				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_START_FAILURE),
-				.timestamp = get_timestamp()
+				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_START_FAILURE)
 			};
 			_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 			return false;
@@ -112,9 +112,9 @@ bool BPM::TogglePWM(bool enable)
 		{
 			task_error_data error_data = 
 			{
+				.timestamp = get_timestamp(),
 				.task_id = TASK_ID_BPM_CONTROLLER,
-				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_STOP_FAILURE),
-				.timestamp = get_timestamp()
+				.error_id = static_cast<uint32_t>(ERROR_BPM_PWM_STOP_FAILURE)
 			};
 			_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 			return false;

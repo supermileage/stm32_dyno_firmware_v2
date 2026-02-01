@@ -120,9 +120,9 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 	{
 		task_error_data error_data = 
 		{
+			.timestamp = get_timestamp(),
 			.task_id = TASK_ID_LUMEX_LCD,
 			.error_id = static_cast<uint32_t>(ERROR_LUMEX_LCD_TIMER_START_FAILURE),
-			.timestamp = get_timestamp()
 		};
 		
 		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);

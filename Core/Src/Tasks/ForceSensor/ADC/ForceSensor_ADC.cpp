@@ -55,9 +55,9 @@ void ForceSensorADC::Run(void)
         {
             task_error_data error_data = 
             {
+                .timestamp = get_timestamp(),
                 .task_id = TASK_ID_FORCE_SENSOR,
                 .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADC_START_FAILURE),
-                .timestamp = get_timestamp()
             };
             
             _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);

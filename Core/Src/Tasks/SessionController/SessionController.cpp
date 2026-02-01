@@ -48,9 +48,9 @@ bool SessionController::CheckTaskQueuesValid()
     {
         task_error_data error_data = 
         {
+            .timestamp = get_timestamp(),
             .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER),
-            .timestamp = get_timestamp()
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER)
         };
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
@@ -68,9 +68,9 @@ bool SessionController::Init(void)
     {
     	task_error_data error_data = 
         {
+            .timestamp = get_timestamp(),
             .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE),
-            .timestamp = get_timestamp()
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE)
         };
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
@@ -80,9 +80,9 @@ bool SessionController::Init(void)
     {
         task_error_data error_data = 
         {
+            .timestamp = get_timestamp(),
             .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER),
-            .timestamp = get_timestamp()
+            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER)
         };
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;

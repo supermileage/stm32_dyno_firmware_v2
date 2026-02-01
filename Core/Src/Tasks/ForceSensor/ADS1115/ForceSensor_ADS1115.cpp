@@ -52,9 +52,9 @@ bool ForceSensorADS1115::Init()
     {
         task_error_data error_data = 
         {
+            .timestamp = get_timestamp(),
             .task_id = TASK_ID_FORCE_SENSOR,
-            .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE),
-            .timestamp = get_timestamp()
+            .error_id = static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE)
         };
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
     }
@@ -89,9 +89,9 @@ void ForceSensorADS1115::Run(void)
         {
             task_error_data error_data = 
             {
+                .timestamp = get_timestamp(),
                 .task_id = TASK_ID_FORCE_SENSOR,
-                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE),
-                .timestamp = get_timestamp()
+                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE)
             };
             
             _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
@@ -111,9 +111,9 @@ void ForceSensorADS1115::Run(void)
         {
             task_error_data error_data = 
             {
+                .timestamp = get_timestamp(),
                 .task_id = TASK_ID_FORCE_SENSOR,
-                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE),
-                .timestamp = get_timestamp()
+                .error_id = static_cast<uint32_t>(WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE)
             };
             _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
             osDelay(TASK_WARNING_RETRY_OSDELAY);

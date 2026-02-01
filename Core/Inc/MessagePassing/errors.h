@@ -114,9 +114,9 @@ static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controlle
 
 typedef struct __attribute__((packed))
 {
+    uint32_t timestamp;
     task_ids_t task_id;
     uint32_t error_id;
-    uint32_t timestamp;
 } task_error_data;
 
 #ifdef STM32H7xx_H
