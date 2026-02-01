@@ -509,7 +509,6 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
   */
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
   if(htim_base->Instance==TIM1)
   {
     /* USER CODE BEGIN TIM1_MspInit 0 */
@@ -546,32 +545,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
     /* USER CODE END TIM13_MspInit 1 */
   }
-  else if(htim_base->Instance==TIM14)
-  {
-    /* USER CODE BEGIN TIM14_MspInit 0 */
-
-    /* USER CODE END TIM14_MspInit 0 */
-    /* Peripheral clock enable */
-    __HAL_RCC_TIM14_CLK_ENABLE();
-
-    __HAL_RCC_GPIOF_CLK_ENABLE();
-    /**TIM14 GPIO Configuration
-    PF9     ------> TIM14_CH1
-    */
-    GPIO_InitStruct.Pin = OP_IN_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    GPIO_InitStruct.Alternate = GPIO_AF9_TIM14;
-    HAL_GPIO_Init(OP_IN_GPIO_Port, &GPIO_InitStruct);
-
-    /* TIM14 interrupt Init */
-    HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(TIM8_TRG_COM_TIM14_IRQn);
-    /* USER CODE BEGIN TIM14_MspInit 1 */
-
-    /* USER CODE END TIM14_MspInit 1 */
-  }
   else if(htim_base->Instance==TIM16)
   {
     /* USER CODE BEGIN TIM16_MspInit 0 */
@@ -601,7 +574,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
     */
     GPIO_InitStruct.Pin = BPM_CTRL_MCU_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM16;
     HAL_GPIO_Init(BPM_CTRL_MCU_GPIO_Port, &GPIO_InitStruct);
@@ -655,25 +628,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
     /* USER CODE BEGIN TIM13_MspDeInit 1 */
 
     /* USER CODE END TIM13_MspDeInit 1 */
-  }
-  else if(htim_base->Instance==TIM14)
-  {
-    /* USER CODE BEGIN TIM14_MspDeInit 0 */
-
-    /* USER CODE END TIM14_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_TIM14_CLK_DISABLE();
-
-    /**TIM14 GPIO Configuration
-    PF9     ------> TIM14_CH1
-    */
-    HAL_GPIO_DeInit(OP_IN_GPIO_Port, OP_IN_Pin);
-
-    /* TIM14 interrupt DeInit */
-    HAL_NVIC_DisableIRQ(TIM8_TRG_COM_TIM14_IRQn);
-    /* USER CODE BEGIN TIM14_MspDeInit 1 */
-
-    /* USER CODE END TIM14_MspDeInit 1 */
   }
   else if(htim_base->Instance==TIM16)
   {

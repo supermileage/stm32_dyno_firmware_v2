@@ -74,7 +74,6 @@ SPI_HandleTypeDef hspi2;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim13;
-TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
@@ -207,10 +206,8 @@ I2C_HandleTypeDef* forceSensorADS1115Handle = &hi2c4;
 TIM_HandleTypeDef* timestampTimer = &htim2;
 
 TIM_HandleTypeDef* lumexLcdTimer = &htim13;
-TIM_HandleTypeDef* opticalTimer = &htim14;
 
 TIM_TypeDef* lumexLcdTimInstance = TIM13;
-TIM_TypeDef* opticalTimInstance = TIM14;
 
 TIM_HandleTypeDef* bpmTimer = &htim16;
 
@@ -224,7 +221,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_TIM14_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
@@ -290,7 +286,6 @@ int main(void)
   MX_TIM16_Init();
   MX_SDMMC1_SD_Init();
   MX_USART1_UART_Init();
-  MX_TIM14_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
   MX_TIM1_Init();
@@ -423,7 +418,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -435,7 +430,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 2;
-  RCC_OscInitStruct.PLL.PLLN = 32;
+  RCC_OscInitStruct.PLL.PLLN = 64;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
@@ -454,13 +449,13 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -873,7 +868,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 200-1;
+  htim2.Init.Prescaler = 400-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -917,7 +912,7 @@ static void MX_TIM13_Init(void)
 
   /* USER CODE END TIM13_Init 1 */
   htim13.Instance = TIM13;
-  htim13.Init.Prescaler = 200-1;
+  htim13.Init.Prescaler = 400-1;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim13.Init.Period = 40-1;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -929,53 +924,6 @@ static void MX_TIM13_Init(void)
   /* USER CODE BEGIN TIM13_Init 2 */
 
   /* USER CODE END TIM13_Init 2 */
-
-}
-
-/**
-  * @brief TIM14 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM14_Init(void)
-{
-
-  /* USER CODE BEGIN TIM14_Init 0 */
-  #if STM32_PERIPHERAL_TIM14_ENABLE == 0
-    return;
-  #endif
-  /* USER CODE END TIM14_Init 0 */
-
-  TIM_IC_InitTypeDef sConfigIC = {0};
-
-  /* USER CODE BEGIN TIM14_Init 1 */
-
-  /* USER CODE END TIM14_Init 1 */
-  htim14.Instance = TIM14;
-  htim14.Init.Prescaler = 200-1;
-  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 65535;
-  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_IC_Init(&htim14) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim14, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM14_Init 2 */
-
-  /* USER CODE END TIM14_Init 2 */
 
 }
 
@@ -1000,7 +948,7 @@ static void MX_TIM16_Init(void)
 
   /* USER CODE END TIM16_Init 1 */
   htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 100-1;
+  htim16.Init.Prescaler = 200-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim16.Init.Period = 200-1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1162,6 +1110,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ADS1115_ALERT_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : OP_IN_Pin */
+  GPIO_InitStruct.Pin = OP_IN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(OP_IN_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LUMEX_LCD_D0_Pin LUMEX_LCD_D1_Pin LUMEX_LCD_D2_Pin LUMEX_LCD_D3_Pin
                            LUMEX_LCD_D4_Pin LUMEX_LCD_D5_Pin LUMEX_LCD_D6_Pin LUMEX_LCD_D7_Pin */
   GPIO_InitStruct.Pin = LUMEX_LCD_D0_Pin|LUMEX_LCD_D1_Pin|LUMEX_LCD_D2_Pin|LUMEX_LCD_D3_Pin
@@ -1289,18 +1243,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       break;
     case ILI_TOUCH_IRQ_Pin:
       break;
+    case OP_IN_Pin:
+      opticalsensor_input_interrupt();
+      break;
     default:
       break;
   }
-}
-
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-    #if OPTICAL_ENCODER_TASK_ENABLE == 1
-      if (htim->Instance == opticalTimInstance) {
-        opticalsensor_output_interrupt();
-      }
-    #endif
 }
 
 void forceSensorTaskEntryFunction(void *argument)
@@ -1505,10 +1453,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   else if (htim->Instance == lumexLcdTimInstance)
   {
 	  lumex_lcd_timer_interrupt(htim);
-  }
-  else if (htim->Instance == opticalTimInstance)
-  {
-	  opticalsensor_overflow_interrupt();
   }
 
   /* USER CODE END Callback 1 */

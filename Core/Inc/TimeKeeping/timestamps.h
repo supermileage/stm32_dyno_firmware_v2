@@ -23,9 +23,10 @@ inline HAL_StatusTypeDef start_timestamp_timer()
 	return HAL_TIM_Base_Start(timestampTimer);
 }
 
-const uint32_t get_apb1_timer_clock(void);
-const uint32_t get_apb2_timer_clock(void);
-const uint32_t get_timer_clock(TIM_TypeDef* TIMx);
+uint32_t get_timestamp_scale(void);
+uint32_t get_apb1_timer_clock(void);
+uint32_t get_apb2_timer_clock(void);
+uint32_t get_timer_clock(TIM_TypeDef* TIMx);
 
 #ifdef __cplusplus
 }
