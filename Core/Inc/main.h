@@ -82,6 +82,7 @@ void Error_Handler(void);
 #define ADC3_BPM_FB_GPIO_Port GPIOF
 #define OP_IN_Pin GPIO_PIN_9
 #define OP_IN_GPIO_Port GPIOF
+#define OP_IN_EXTI_IRQn EXTI9_5_IRQn
 #define ILI_SPI2_MOSI_Pin GPIO_PIN_1
 #define ILI_SPI2_MOSI_GPIO_Port GPIOC
 #define ILI_SPI2_MISO_Pin GPIO_PIN_2

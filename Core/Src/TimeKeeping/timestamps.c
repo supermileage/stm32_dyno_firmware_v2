@@ -1,5 +1,10 @@
 #include "TimeKeeping/timestamps.h"
 
+uint32_t get_timestamp_scale()
+{
+    return get_timer_clock(timestampTimer->Instance) / (timestampTimer->Instance->PSC + 1);
+}
+
 uint32_t get_apb1_timer_clock(void) {
     uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
     uint32_t pre = (RCC->D2CFGR & RCC_D2CFGR_D2PPRE1) >> RCC_D2CFGR_D2PPRE1_Pos;

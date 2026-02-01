@@ -13,8 +13,7 @@
 extern "C" {
 #endif
 
-void opticalsensor_output_interrupt();
-void opticalsensor_overflow_interrupt();
+void opticalsensor_input_interrupt();
 void opticalsensor_main(osMessageQueueId_t sessionControllerToForceSensorADCHandle);
 
 #ifdef __cplusplus

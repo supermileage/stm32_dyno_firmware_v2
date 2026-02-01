@@ -23,9 +23,9 @@ public:
     void Run();
     
 private:
-    float CalculateRPM(uint32_t timerCounterDifference);
-    float CalculateAngularVelocity(uint32_t timerCounterDifference);
-    float CalculateAngularAcceleration(uint32_t timerCounterDifference, uint32_t prevTimerCounterDifference);
+    float CalculateRPM(uint32_t numCounts, uint32_t prevTimestamp, uint32_t currTimestamp);
+    float CalculateAngularVelocity(uint32_t numCounts, uint32_t prevTimestamp, uint32_t currTimestamp);
+    float CalculateAngularAcceleration(float prevAngularVelocity, float currAngularVelocity, uint32_t prevTimestamp, uint32_t currTimestamp);
 
 
 	void ToggleOpticalEncoder(bool enable);
@@ -34,7 +34,7 @@ private:
 
     osMessageQueueId_t _sessionControllerToOpticalSensorHandle;
 
-    const uint32_t _clockSpeed;
+    const uint32_t _timestampClockSpeedFreq;
 
     bool _opticalEncoderEnabled;
 };

@@ -24,17 +24,17 @@
 #define USER_INPUT_CIRCULAR_BUFFER_SIZE 100u
 
 // Session Controller Config
-#define SESSIONCONTROLLER_TASK_OSDELAY 20u
+#define SESSIONCONTROLLER_TASK_OSDELAY 5
 
 // BPM Config
 #define MIN_DUTY_CYCLE_PERCENT 0.0f
 #define MAX_DUTY_CYCLE_PERCENT 0.95f
 #define BPM_CIRCULAR_BUFFER_SIZE 100
-#define BPM_TASK_OSDELAY 20
+#define BPM_TASK_OSDELAY 3
 
 // FORCE SENSOR Config
 #define MAX_FORCE_LBF 25.0f
-#define FORCESENSOR_TASK_OSDELAY 20
+#define FORCESENSOR_TASK_OSDELAY 1
 #define FORCESENSOR_CIRCULAR_BUFFER_SIZE 100
 
 // ADS1115 I2C Config
@@ -45,15 +45,15 @@
 #define OPTICAL_MAX_NUM_OVERFLOWS 3 // Meant to count overflows for optical encoder
 #define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
 #define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 100 // Need to evaluate maximum possible size from STM32
-#define OPTICAL_ENCODER_TASK_OSDELAY 20
+#define OPTICAL_ENCODER_TASK_OSDELAY 2
 
 // PID config
 #define PID_INITIAL_STATUS false
-#define PID_TASK_OSDELAY 20
+#define PID_TASK_OSDELAY 10
 
 // USB config
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
-#define USB_TASK_OSDELAY 20
+#define USB_TASK_OSDELAY 5
 
 // LCD config
 #define LCD_TASK_OSDELAY 20
