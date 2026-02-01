@@ -158,7 +158,7 @@ void USBController::MockMessages(const bool forever)
         };
         // Process optical encoder data
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.module_id = TASK_ID_OPTICAL_ENCODER;
+        usb_header.task_id = TASK_ID_OPTICAL_ENCODER;
         usb_header.payload_len = sizeof(optical_encoder_output_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
@@ -176,7 +176,7 @@ void USBController::MockMessages(const bool forever)
             .raw_value = fs_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.module_id = TASK_ID_FORCE_SENSOR;
+        usb_header.task_id = TASK_ID_FORCE_SENSOR;
         usb_header.payload_len = sizeof(forcesensor_output_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
@@ -194,7 +194,7 @@ void USBController::MockMessages(const bool forever)
             .raw_value = bpm_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.module_id = TASK_ID_BPM_CONTROLLER;
+        usb_header.task_id = TASK_ID_BPM_CONTROLLER;
         usb_header.payload_len = sizeof(bpm_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<bpm_output_data>(&mock_bpm_data, sizeof(bpm_output_data));
@@ -212,17 +212,46 @@ void USBController::MockMessages(const bool forever)
             .free_bytes = task_monitor_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.module_id = TASK_ID_TASK_MONITOR;
+        usb_header.task_id = TASK_ID_TASK_MONITOR;
         usb_header.payload_len = sizeof(task_monitor_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<task_monitor_output_data>(&mock_tm_data, sizeof(task_monitor_output_data));
         #endif
+
+        task_error_data mock_error_data = 
+        PopulateTaskErrorDataStruct(
+            timestamp++,
+            TASK_ID_SESSION_CONTROLLER,
+            ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE
+        );
+
+        usb_header.msg_type = USB_MSG_ERROR;
+        usb_header.task_id = TASK_ID_SESSION_CONTROLLER;
+        usb_header.payload_len = sizeof(task_error_data);
+
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));
+        AddToBuffer<task_error_data>(&mock_error_data, sizeof(mock_error_data));
+
+        task_error_data mock_warning_data = PopulateTaskErrorDataStruct(
+            timestamp++,
+            TASK_ID_FORCE_SENSOR,
+            WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE
+        );
+
+        usb_header.msg_type = USB_MSG_WARNING;
+        usb_header.task_id = TASK_ID_FORCE_SENSOR;
+        usb_header.payload_len = sizeof(task_error_data);
+
+        AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));
+        AddToBuffer<task_error_data>(&mock_warning_data, sizeof(mock_warning_data));
+
 
         if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
             continue;
         }
         _txBufferIndex = 0;
 
+       
         osDelay(USB_TASK_OSDELAY);
     }
 }
@@ -239,7 +268,7 @@ void USBController::ProcessErrorsAndWarnings()
             usb_msg_header_t header = 
             {
                 .msg_type = (error_data.error_id >= WARNING_ENUM_OFFSET) ? USB_MSG_WARNING : USB_MSG_ERROR,
-                .module_id = TASK_ID_NO_TASK,
+                .task_id = error_data.task_id,
                 .payload_len = sizeof(task_error_data)
             };
 

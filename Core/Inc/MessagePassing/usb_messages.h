@@ -31,7 +31,7 @@ static_assert(sizeof(usb_msg_type_t) == 4, "Size of usb_msg_type_t must be 4 byt
 
 typedef struct __attribute__((packed)) {
     usb_msg_type_t msg_type;     // protocol-level intent
-    task_ids_t  module_id;    // which module owns payload
+    task_ids_t  task_id;    // which module owns payload
     uint32_t payload_len;  // bytes following header
 } usb_msg_header_t;
 

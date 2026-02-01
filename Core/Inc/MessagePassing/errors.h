@@ -23,6 +23,28 @@ typedef enum : uint32_t
 	TASK_ID_LUMEX_LCD	
 } task_ids_t;
 
+typedef struct __attribute__((packed))
+{
+    uint32_t timestamp;
+    task_ids_t task_id;
+    uint32_t error_id;
+} task_error_data;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
+#else
+static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
+#endif
+
+inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_ids_t task_id, uint32_t error_id)
+{
+    task_error_data error_data;
+    error_data.timestamp = timestamp;
+    error_data.task_id = task_id;
+    error_data.error_id = error_id;
+    return error_data;
+}
+
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
 #else
@@ -110,19 +132,6 @@ typedef enum : uint32_t
 _Static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
 #else
 static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
-#endif
-
-typedef struct __attribute__((packed))
-{
-    task_ids_t task_id;
-    uint32_t error_id;
-    uint32_t timestamp;
-} task_error_data;
-
-#ifdef STM32H7xx_H
-_Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
-#else
-static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
 #endif
 
 

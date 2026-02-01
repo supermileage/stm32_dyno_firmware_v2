@@ -46,12 +46,11 @@ bool SessionController::CheckTaskQueuesValid()
         #endif
     )
     {
-        task_error_data error_data = 
-        {
-            .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER),
-            .timestamp = get_timestamp()
-        };
+        task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_SESSION_CONTROLLER,
+            static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
@@ -66,24 +65,22 @@ bool SessionController::Init(void)
 
     if (start_timestamp_timer() != HAL_OK)
     {
-    	task_error_data error_data = 
-        {
-            .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE),
-            .timestamp = get_timestamp()
-        };
+    	task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_SESSION_CONTROLLER,
+            static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
 
     if (_usart1Mutex == nullptr)
     {
-        task_error_data error_data = 
-        {
-            .task_id = TASK_ID_SESSION_CONTROLLER,
-            .error_id = static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER),
-            .timestamp = get_timestamp()
-        };
+        task_error_data error_data = PopulateTaskErrorDataStruct(
+            get_timestamp(),
+            TASK_ID_SESSION_CONTROLLER,
+            static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER)
+        );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
     }
