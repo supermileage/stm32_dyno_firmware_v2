@@ -1,0 +1,3 @@
+[submodule "stm32_dyno_firmware_sensor_board"]
+	path = stm32_dyno_firmware_sensor_board
+	url = git@github.com:supermileage/stm32_dyno_firmware_sensor_board.git

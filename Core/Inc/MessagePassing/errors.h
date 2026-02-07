@@ -66,30 +66,6 @@ static_assert(sizeof(session_controller_task_error_ids) == 4, "Size of session_c
 
 typedef enum : uint32_t
 {
-    ERROR_FORCE_SENSOR_ADC_START_FAILURE = 0,
-    WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE = 10000,
-    WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE
-} force_sensor_adc_task_error_ids;
-
-#ifdef STM32H7xx_H
-_Static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
-#else
-static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
-#endif
-
-typedef enum : uint32_t
-{
-    ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE = 0
-} force_sensor_ads1115_error_ids;
-
-#ifdef STM32H7xx_H
-_Static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
-#else
-static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
-#endif
-
-typedef enum : uint32_t
-{
     ERROR_BPM_PWM_START_FAILURE = 0,
     ERROR_BPM_PWM_STOP_FAILURE
 } bpm_task_error_ids;
