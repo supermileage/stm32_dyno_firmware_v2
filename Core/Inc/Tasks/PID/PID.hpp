@@ -6,9 +6,8 @@
 #include "cmsis_os2.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/msgq_messages.h"
-#include "MessagePassing/circular_buffers.h"
-#include "MessagePassing/errors.h"
+#include "MessagePassing/messages_private.h"
+#include "MessagePassing/messages_public.h"
 
 #include "CircularBufferReader.hpp"
 #include "CircularBufferWriter.hpp"

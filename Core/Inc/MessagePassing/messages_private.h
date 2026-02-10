@@ -1,5 +1,5 @@
-#ifndef INC_MESSAGEPASSING_MSGQ_MESSAGES_H_
-#define INC_MESSAGEPASSING_MSGQ_MESSAGES_H_
+#ifndef INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PRIVATE_H_
+#define INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PRIVATE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,7 +9,7 @@
 #include "cmsis_os2.h"
 
 #include "Config/config.h"
-#include "usb_messages.h"
+#include "messages_public.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,9 +66,8 @@ typedef struct
 
 _Static_assert(sizeof(session_controller_to_pid_controller) == 4 + 4, "Size of session_controller_to_pid_controller must be 8 bytes");
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif // INC_MESSAGEPASSING_MSGQ_MESSAGES_H_
+#endif /* INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PRIVATE_H_ */

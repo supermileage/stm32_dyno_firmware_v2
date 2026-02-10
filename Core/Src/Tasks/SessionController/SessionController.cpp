@@ -1,17 +1,22 @@
 #include <Tasks/SessionController/SessionController.hpp>
 
-extern UART_HandleTypeDef huart1;
+
 
 extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
-SessionController::SessionController(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex) : 
+extern size_t optical_encoder_circular_buffer_index_writer;
+extern optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE];
+
+extern size_t forcesensor_circular_buffer_index_writer;
+extern forcesensor_output_data forcesensor_circular_buffer[FORCESENSOR_CIRCULAR_BUFFER_SIZE];
+
+SessionController::SessionController(session_controller_os_task_queues* task_queues) : 
                 _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
                 _forcesensor_buffer_reader(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
                 _optical_encoder_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
                 _fsm(task_queues->lumex_lcd),
                 _task_queues(task_queues),
-                _usart1Mutex(usart1Mutex),
                 _prevUSBLoggingEnabled(false),
                 _prevSDLoggingEnabled(false),
                 _prevPIDEnabled(false),
@@ -69,17 +74,6 @@ bool SessionController::Init(void)
             get_timestamp(),
             TASK_ID_SESSION_CONTROLLER,
             static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE)
-        );
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
-        return false;
-    }
-
-    if (_usart1Mutex == nullptr)
-    {
-        task_error_data error_data = PopulateTaskErrorDataStruct(
-            get_timestamp(),
-            TASK_ID_SESSION_CONTROLLER,
-            static_cast<uint32_t>(ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER)
         );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         return false;
@@ -153,15 +147,12 @@ void SessionController::Run()
         // only run this code if the 'InSession' status has changed
         if (InSessionRisingEdge || InSessionFallingEdge)
         {
-            bool opticalEncoderEnable;
-            bool forceSensorEnable;
+            bool sensorBoardControllerEnable;
 
             // enable things
             if (InSessionRisingEdge)
             {
-                opticalEncoderEnable = true;
-                forceSensorEnable = true;
-
+                sensorBoardControllerEnable = true;
                 _fsm.DisplayRpm(0);
 
                 _fsm.DisplayTorque(0);
@@ -177,8 +168,7 @@ void SessionController::Run()
             else if (InSessionFallingEdge)
             {
                 
-                opticalEncoderEnable = false;
-                forceSensorEnable = false;
+                sensorBoardControllerEnable = false;
 
                 
                 session_controller_to_bpm bpmSettings;
@@ -190,9 +180,7 @@ void SessionController::Run()
             }
              
             // Send enable or disable messages
-            osMessageQueuePut(_task_queues->optical_sensor, &opticalEncoderEnable, 0, osWaitForever);
-
-            osMessageQueuePut(_task_queues->force_sensor, &forceSensorEnable, 0, osWaitForever);
+            osMessageQueuePut(_task_queues->sensor_board_controller, &sensorBoardControllerEnable, 0, osWaitForever);
             
 
             _prevInSession = InSessionStatus;
@@ -253,12 +241,7 @@ void SessionController::Run()
                 float newThrottleDutyCycle = _fsm.GetDesiredThrottleDutyCycle();
                 if (newThrottleDutyCycle != prevThrottleDutyCycle)
                 {
-                    osMutexAcquire(_usart1Mutex, osWaitForever);
-
-                    uint8_t newDutyCycle255 = static_cast<uint8_t>(newThrottleDutyCycle * 255.0f);
-                    HAL_UART_Transmit(&huart1, &newDutyCycle255, sizeof(newDutyCycle255), HAL_MAX_DELAY);
-
-                    osMutexRelease(_usart1Mutex);
+                    // need to send to motor controller to control throttle
 
                     prevThrottleDutyCycle = newThrottleDutyCycle;
                 }
@@ -340,9 +323,9 @@ float SessionController::CalculateMechanicalLosses(float angularAcceleration, fl
     return 0;
 }
 
-extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex)
+extern "C" void sessioncontroller_main(session_controller_os_task_queues* task_queues)
 {
-    SessionController controller = SessionController(task_queues, usart1Mutex);
+    SessionController controller = SessionController(task_queues);
 
 	if (!controller.Init())
 	{
