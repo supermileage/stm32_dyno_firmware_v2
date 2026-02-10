@@ -56,7 +56,6 @@
 
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
-extern ADC_HandleTypeDef hadc2;
 extern TIM_HandleTypeDef htim13;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern TIM_HandleTypeDef htim17;
@@ -206,20 +205,6 @@ void DMA1_Stream0_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles ADC1 and ADC2 global interrupts.
-  */
-void ADC_IRQHandler(void)
-{
-  /* USER CODE BEGIN ADC_IRQn 0 */
-
-  /* USER CODE END ADC_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc2);
-  /* USER CODE BEGIN ADC_IRQn 1 */
-
-  /* USER CODE END ADC_IRQn 1 */
-}
-
-/**
   * @brief This function handles EXTI line[9:5] interrupts.
   */
 void EXTI9_5_IRQHandler(void)
@@ -230,7 +215,6 @@ void EXTI9_5_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(BTN_SELECT_Pin);
   HAL_GPIO_EXTI_IRQHandler(BTN_BACK_Pin);
   HAL_GPIO_EXTI_IRQHandler(BTN_BRAKE_Pin);
-  HAL_GPIO_EXTI_IRQHandler(OP_IN_Pin);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
   /* USER CODE END EXTI9_5_IRQn 1 */
@@ -244,7 +228,6 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
 
   /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(ADS1115_ALERT_Pin);
   HAL_GPIO_EXTI_IRQHandler(ILI_TOUCH_IRQ_Pin);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
