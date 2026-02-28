@@ -402,7 +402,7 @@ HAL_StatusTypeDef SensorBoardController::HAL_UART_Transmission_WithMutex(UART_Ha
 
 bool SensorBoardController::HasError(child_board_task_error_data& error_data)
 {
-    if (error_data.task_id != CHILD_BOARD_TASK_INVALID_TASK_ID)
+    if (error_data.task_id == CHILD_BOARD_TASK_INVALID_TASK_ID)
     {
         return false;
     }

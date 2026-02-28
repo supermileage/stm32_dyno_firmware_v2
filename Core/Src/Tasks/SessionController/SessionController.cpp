@@ -238,9 +238,9 @@ void SessionController::Run()
                 float newThrottleDutyCycle = _fsm.GetDesiredThrottleDutyCycle();
                 if (newThrottleDutyCycle != prevThrottleDutyCycle)
                 {
-                    // need to send to motor controller to control throttle
-
-                    prevThrottleDutyCycle = newThrottleDutyCycle;
+                    // TODO: send newThrottleDutyCycle to motor controller to control throttle
+                    // Note: prevThrottleDutyCycle is intentionally not updated here until
+                    // the concrete motor-controller transmission path is implemented.
                 }
                 _fsm.DisplayManualThrottleDutyCycle();
                  
