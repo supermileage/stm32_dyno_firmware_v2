@@ -1,0 +1,79 @@
+@startuml PID Brake Control Block Diagram
+
+title PID Brake Controller – Control Block Diagram
+
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam rectangle {
+    BackgroundColor #E8F4FD
+    BorderColor #2C7BB6
+    RoundCorner 8
+    FontSize 13
+}
+skinparam arrow {
+    Color #1A5276
+    FontSize 11
+    FontColor #1A5276
+}
+
+left to right direction
+
+' ── Inputs / Reference ─────────────────────────────
+rectangle "ω_desired\n──────────\nDesired\nAngular\nVelocity" as REF #D5F5E3
+
+' ── Error summing junction ─────────────────────────
+rectangle "  **Σ**  " as ESUM #FFF9C4
+
+' ── PID parallel branches ──────────────────────────
+rectangle "**Proportional**\n──────────\nK_P × e(t)\n\nK_P = 1.0" as P_BLOCK
+rectangle "**Integral**\n──────────\nK_I × Σ e(t)·Δt\n\nK_I = 1.0" as I_BLOCK
+rectangle "**Derivative**\n──────────\nK_D × Δe(t)/Δt\n\nK_D = 1.0" as D_BLOCK
+
+' ── Output summing junction ────────────────────────
+rectangle "  **Σ**  " as PIDSUM #FFF9C4
+
+' ── Actuator ───────────────────────────────────────
+rectangle "**Brake Actuator**\n──────────────\nBPM Task\npidToBpm queue\nSendBrakeDutyCycle()" as BRAKE
+
+' ── Plant ──────────────────────────────────────────
+rectangle "**Plant**\n──────────\nDyno /\nEngine" as PLANT #FDEBD0
+
+' ── Sensor ─────────────────────────────────────────
+rectangle "**Optical Encoder**\n──────────────\nω_actual\n(angular_velocity\n + timestamp)" as SENSOR #F9EBEA
+
+' ── Forward path ───────────────────────────────────
+REF          -->  ESUM      : ω_desired\n(+)
+ESUM         -->  P_BLOCK   : e(t)
+ESUM         -->  I_BLOCK   : e(t)
+ESUM         -->  D_BLOCK   : e(t)
+P_BLOCK      -->  PIDSUM
+I_BLOCK      -->  PIDSUM
+D_BLOCK      -->  PIDSUM
+PIDSUM       -->  BRAKE     : pidOutput\n= K_P·e + K_I·∫e·dt\n  + K_D·(de/dt)
+BRAKE        -->  PLANT     : brake\nduty cycle
+
+' ── Feedback path ──────────────────────────────────
+PLANT        -down->  SENSOR  : rotation
+SENSOR       -left->  ESUM    : ω_actual\n(−)
+
+note bottom of ESUM
+  e(t) = ω_desired − ω_actual
+end note
+
+note bottom of I_BLOCK
+  Discretised:
+  integral += e(t) × Δt
+end note
+
+note bottom of D_BLOCK
+  Discretised:
+  derivative = (e(t) − e(t-1)) / Δt
+  Δt handles 32-bit wraparound
+end note
+
+note bottom of BRAKE
+  Clamped by BPM task:
+  duty ∈ [0%, 95%]
+end note
+
+@enduml

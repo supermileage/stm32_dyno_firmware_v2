@@ -8,8 +8,7 @@
 
 #include "FiniteStateMachine.hpp"
 
-#include "MessagePassing/circular_buffers.h"
-#include "MessagePassing/errors.h"
+#include "MessagePassing/messages_public.h"
 #include "MessagePassing/osqueue_helpers.h"
 
 #include "CircularBufferReader.hpp"
@@ -28,7 +27,7 @@ extern "C" {
 class SessionController
 {
     public:
-        SessionController(session_controller_os_task_queues* task_queues, osMutexId_t usart1Mutex);
+        SessionController(session_controller_os_task_queues* task_queues);
         ~SessionController() = default;
 
         bool Init(void);
@@ -42,7 +41,6 @@ class SessionController
         FSM _fsm;
 
         session_controller_os_task_queues* _task_queues;
-        osMutexId_t _usart1Mutex;
 
         bool _prevUSBLoggingEnabled;
         bool _prevSDLoggingEnabled;

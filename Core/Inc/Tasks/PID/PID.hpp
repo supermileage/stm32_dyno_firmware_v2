@@ -6,9 +6,8 @@
 #include "cmsis_os2.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/msgq_messages.h"
-#include "MessagePassing/circular_buffers.h"
-#include "MessagePassing/errors.h"
+#include "MessagePassing/messages_private.h"
+#include "MessagePassing/messages_public.h"
 
 #include "CircularBufferReader.hpp"
 #include "CircularBufferWriter.hpp"
@@ -22,7 +21,7 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState);
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
 
 		~PIDController() = default;
 
@@ -35,7 +34,6 @@ class PIDController
 		osMessageQueueId_t _sessionControllerToPidHandle;
 		osMessageQueueId_t _pidControllerToSessionControllerAckHandle;
 		osMessageQueueId_t _pidToBpmHandle;
-		osMutexId_t _usart1Mutex;
 		bool _enabled;
 
 		uint32_t _curTimestamp;
