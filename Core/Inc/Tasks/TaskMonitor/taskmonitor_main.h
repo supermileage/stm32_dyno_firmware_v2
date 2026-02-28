@@ -12,8 +12,7 @@ typedef struct
     osThreadId_t session_controller;
     osThreadId_t usb_controller;
     osThreadId_t sd_controller;
-    osThreadId_t force_sensor;
-    osThreadId_t optical_sensor;
+    osThreadId_t sensor_board_controller;
     osThreadId_t bpm_controller;
     osThreadId_t pid_controller;
     osThreadId_t pid_controller_ack;

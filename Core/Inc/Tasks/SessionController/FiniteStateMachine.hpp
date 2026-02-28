@@ -9,7 +9,7 @@
 
 #include "cmsis_os2.h"
 
-#include "MessagePassing/msgq_messages.h"
+#include "MessagePassing/messages_private.h"
 
 #include "input_manager_interrupts.h"
 

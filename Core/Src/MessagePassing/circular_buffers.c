@@ -1,4 +1,6 @@
-#include "MessagePassing/circular_buffers.h"
+#include "MessagePassing/messages_public.h"
+#include "Config/config.h"
+#include <stddef.h>
 
 size_t optical_encoder_circular_buffer_index_writer = 0;
 size_t forcesensor_circular_buffer_index_writer = 0;

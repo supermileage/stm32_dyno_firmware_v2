@@ -9,8 +9,8 @@
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/circular_buffers.h"
-#include "MessagePassing/errors.h"
+#include "MessagePassing/messages_public.h"
+#include "MessagePassing/messages_private.h"
 
 #include "CircularBufferWriter.hpp"
 

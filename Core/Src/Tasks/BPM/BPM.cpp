@@ -1,8 +1,14 @@
 #include "Tasks/BPM/bpm_main.h"
 #include "Tasks/BPM/BPM.hpp"
 
+extern size_t bpm_circular_buffer_index_writer;
+extern bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
+
+extern size_t task_error_circular_buffer_index_writer;
+extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
+
 BPM::BPM(osMessageQueueId_t sessionControllerToBpmHandle, osMessageQueueId_t pidToBpmHandle)
-    : // this comes directly from circular_buffers.h and config.h
+    : 
 	_data_buffer_writer(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
 	_task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
 	  _fromSCHandle(sessionControllerToBpmHandle),

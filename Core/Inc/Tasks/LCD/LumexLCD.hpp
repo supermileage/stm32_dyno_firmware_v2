@@ -13,10 +13,9 @@
 
 #include "CircularBufferWriter.hpp"
 
-#include "MessagePassing/msgq_messages.h"
-#include "MessagePassing/errors.h"
+#include "MessagePassing/messages_private.h"
+#include "MessagePassing/messages_public.h"
 #include "MessagePassing/osqueue_helpers.h"
-#include "MessagePassing/circular_buffers.h"
 
 #include "TimeKeeping/timestamps.h"
 
