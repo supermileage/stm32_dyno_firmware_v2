@@ -1106,7 +1106,7 @@ void pidControllerTaskEntryFunction(void *argument)
   #if (!defined(PID_CONTROLLER_TASK_ENABLE))
   #error "PID_CONTROLLER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header." 
   #elif PID_CONTROLLER_TASK_ENABLE == 1
-    pid_main(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidControllerToBpmHandle, usart1MutexHandle, PID_INITIAL_STATUS);
+    pid_main(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidControllerToBpmHandle, PID_INITIAL_STATUS);
   #endif
   osThreadSuspend(osThreadGetId());
 }

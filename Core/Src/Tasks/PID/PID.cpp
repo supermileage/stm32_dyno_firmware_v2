@@ -9,13 +9,12 @@ extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZ
 extern size_t optical_encoder_circular_buffer_index_writer;
 extern optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE];
 
-PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState) : 
+PIDController::PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) : 
 			_data_buffer_reader(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),			
             _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
             _sessionControllerToPidHandle(sessionControllerToPidControllerHandle),
 			_pidControllerToSessionControllerAckHandle(pidControllerToSessionControllerAckHandle),
 			_pidToBpmHandle(pidToBpmHandle),
-            _usart1Mutex(usart1Mutex),
 			_enabled(initialState),
 			_curTimestamp(0),
 			_prevTimestamp(0),
@@ -28,16 +27,6 @@ PIDController::PIDController(osMessageQueueId_t sessionControllerToPidController
 bool PIDController::Init()
 {
 	Reset();
-    if (_usart1Mutex == nullptr)
-    {
-        task_error_data error_data = PopulateTaskErrorDataStruct(
-            get_timestamp(),
-            TASK_ID_PID_CONTROLLER,
-            static_cast<uint32_t>(ERROR_PID_INVALID_UART1_MUTEX_POINTER)
-        );
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
-        return false;
-    }
 	return true;
 }
 
@@ -113,20 +102,21 @@ void PIDController::Run()
 
         float pidOutput = K_P * _error + K_D * derivative + K_I * integral;
 
-        pidOutput = Clamp(pidOutput / PID_MAX_OUTPUT, -1.0f, 1.0f); // Normalize and clamp to [-1, 1]
+        // TODO: Figure out how to merge this single input duo output PID controller
+        // pidOutput = Clamp(pidOutput / PID_MAX_OUTPUT, -1.0f, 1.0f); // Normalize and clamp to [-1, 1]
 
-        // Linear, branchless mixing
-        float throttleOutput =
-            Clamp(THROTTLE_GAIN * (0.5f * (1.0f - (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
-        float brakeOutput =
-            Clamp(BRAKE_GAIN * (0.5f * (1.0f + (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
+        // // Linear, branchless mixing
+        // float throttleOutput =
+        //     Clamp(THROTTLE_GAIN * (0.5f * (1.0f - (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
+        // float brakeOutput =
+        //     Clamp(BRAKE_GAIN * (0.5f * (1.0f + (pidOutput-HORIZONTAL_BIAS)) - VERTICAL_BIAS), 0.0f, 1.0f);
 
         // PID Graph
         // https://www.desmos.com/calculator/s3sjvmcamd
 
         // --- Send to actuators ---
-        SendThrottleDutyCycle(throttleOutput);
-        SendBrakeDutyCycle(brakeOutput);
+        // SendThrottleDutyCycle(throttleOutput);
+        SendBrakeDutyCycle(pidOutput);
 
         // --- Update previous values ---
         _prevTimestamp = _curTimestamp;
@@ -174,13 +164,7 @@ void PIDController::Reset()
 
 void PIDController::SendThrottleDutyCycle(float new_duty_cycle_percent)
 {
-    osMutexAcquire(_usart1Mutex, osWaitForever);
-
-    uint8_t duty_cycle_255 = static_cast<uint8_t>(new_duty_cycle_percent * 255.0f);
-
-    HAL_UART_Transmit(&huart1, &duty_cycle_255, sizeof(duty_cycle_255), HAL_MAX_DELAY);
-
-    osMutexRelease(_usart1Mutex);
+    // TODO (Send Throttle Duty Cycle to Motor Controller)
     
 
 }
@@ -202,9 +186,9 @@ void PIDController::SendBrakeDutyCycle(float new_duty_cycle_percent)
 
 }
 
-extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState) 
+extern "C" void pid_main(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, bool initialState) 
 {
-	PIDController controller = PIDController(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidToBpmHandle, usart1Mutex, initialState);
+	PIDController controller = PIDController(sessionControllerToPidControllerHandle, pidControllerToSessionControllerAckHandle, pidToBpmHandle, initialState);
 
 	if (!controller.Init())
 	{

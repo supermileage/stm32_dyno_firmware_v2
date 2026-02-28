@@ -21,7 +21,7 @@
 class PIDController
 {
 	public:
-		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, osMutexId_t usart1Mutex, bool initialState);
+		PIDController(osMessageQueueId_t sessionControllerToPidControllerHandle, osMessageQueueId_t pidControllerToSessionControllerAckHandle, osMessageQueueId_t pidToBpmHandle, bool initialState);
 
 		~PIDController() = default;
 
@@ -34,7 +34,6 @@ class PIDController
 		osMessageQueueId_t _sessionControllerToPidHandle;
 		osMessageQueueId_t _pidControllerToSessionControllerAckHandle;
 		osMessageQueueId_t _pidToBpmHandle;
-		osMutexId_t _usart1Mutex;
 		bool _enabled;
 
 		uint32_t _curTimestamp;

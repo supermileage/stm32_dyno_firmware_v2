@@ -106,7 +106,6 @@ static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_ta
     
 typedef enum : uint32_t
 {
-    ERROR_PID_INVALID_UART1_MUTEX_POINTER = 0,
     WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = 10000
 } pid_controller_task_error_ids;  
 
