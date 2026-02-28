@@ -1,7 +1,7 @@
 #ifndef INC_CONFIG_CONFIG_H_
 #define INC_CONFIG_CONFIG_H_
 
-#include "../../../../stm32_dyno_firmware_sensor_board/Drivers/ADS1115/ADS1115_defines.h"
+#include "ADS1115_defines.h"
 
 // Voltage Reference (should be 3V3)
 #define VREF 3.3f
