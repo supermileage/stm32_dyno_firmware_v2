@@ -340,6 +340,11 @@ bool SensorBoardController::InitForceSensorADS1115()
 float SensorBoardController::GetAngularVelocity(uint32_t num_posedges, uint32_t timer_counter_value)
 {
     // number of posedges / num apertures to get number of revolutions divided by microseconds * 10^6 to get seconds = revolutions per second. Multiply by 2 * pi to get radians per second.
+    _Static_assert(NUM_APERTURES > 0, "NUM_APERTURES must be greater than 0 to avoid division by zero in GetAngularVelocity");
+    if (timer_counter_value == 0)
+    {
+        return 0.0f; // to avoid division by zero, if timer counter value is zero then angular velocity is effectively zero
+    }
     return (static_cast<float>(num_posedges) / NUM_APERTURES) / (static_cast<float>(timer_counter_value) / 1000000.0f) * 2 * M_PI;
 }
 
