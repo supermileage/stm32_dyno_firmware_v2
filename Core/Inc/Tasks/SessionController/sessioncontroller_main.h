@@ -12,8 +12,6 @@ typedef struct
 {
     osMessageQueueId_t usb_controller;
     osMessageQueueId_t sd_controller;
-    osMessageQueueId_t force_sensor;
-    osMessageQueueId_t optical_sensor;
     osMessageQueueId_t bpm_controller;
     osMessageQueueId_t pid_controller;
     osMessageQueueId_t pid_controller_ack;

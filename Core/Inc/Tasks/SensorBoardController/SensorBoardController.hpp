@@ -33,7 +33,10 @@ class SensorBoardController
         bool InitForceSensorADC();
         bool InitForceSensorADS1115();
 
-        HAL_StatusTypeDef HAL_UART_Transmit_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+        // Overloaded methods for UART transmission and reception with mutex protection
+        HAL_StatusTypeDef HAL_UART_Transmission_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout, HAL_StatusTypeDef (*uartFunc)(UART_HandleTypeDef *, uint8_t *, uint16_t, uint32_t));
+        HAL_StatusTypeDef HAL_UART_Transmission_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, HAL_StatusTypeDef (*uartFunc)(UART_HandleTypeDef *, uint8_t *, uint16_t));
+
         bool HasError(child_board_task_error_data& error_data);
 
         float GetForce(uint16_t raw_value);

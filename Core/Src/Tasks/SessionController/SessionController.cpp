@@ -33,12 +33,6 @@ bool SessionController::CheckTaskQueuesValid()
         #if SD_CONTROLLER_TASK_ENABLE
         || _task_queues->sd_controller == nullptr
         #endif
-        #if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
-        || _task_queues->force_sensor == nullptr
-        #endif
-        #if OPTICAL_ENCODER_TASK_ENABLE
-        || _task_queues->optical_sensor == nullptr
-        #endif
         #if BPM_CONTROLLER_TASK_ENABLE
         || _task_queues->bpm_controller == nullptr
         #endif
@@ -48,6 +42,9 @@ bool SessionController::CheckTaskQueuesValid()
         #endif
         #if LUMEX_LCD_TASK_ENABLE
         || _task_queues->lumex_lcd == nullptr
+        #endif
+        #if (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE || OPTICAL_ENCODER_TASK_ENABLE)
+        || _task_queues->sensor_board_controller == nullptr
         #endif
     )
     {
@@ -147,7 +144,7 @@ void SessionController::Run()
         // only run this code if the 'InSession' status has changed
         if (InSessionRisingEdge || InSessionFallingEdge)
         {
-            bool sensorBoardControllerEnable;
+            bool sensorBoardControllerEnable = false;
 
             // enable things
             if (InSessionRisingEdge)

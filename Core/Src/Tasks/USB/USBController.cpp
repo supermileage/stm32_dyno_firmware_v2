@@ -241,7 +241,7 @@ void USBController::MockMessages(const bool forever)
         );
 
         usb_header.msg_type = USB_MSG_WARNING;
-        usb_header.task_id = TASK_ID_FORCE_SENSOR_ADC;
+        usb_header.task_id = TASK_ID_FORCE_SENSOR_ADS1115;
         usb_header.payload_len = sizeof(task_error_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));

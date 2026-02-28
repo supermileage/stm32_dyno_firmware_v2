@@ -73,7 +73,6 @@ TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
-DMA_HandleTypeDef hdma_usart1_rx;
 
 /* Definitions for usbTask */
 osThreadId_t usbTaskHandle;
@@ -176,6 +175,11 @@ osMutexId_t usart1MutexHandle;
 const osMutexAttr_t usart1Mutex_attributes = {
   .name = "usart1Mutex"
 };
+/* Definitions for sensorBoardUsartSemaphore */
+osSemaphoreId_t sensorBoardUsartSemaphoreHandle;
+const osSemaphoreAttr_t sensorBoardUsartSemaphore_attributes = {
+  .name = "sensorBoardUsartSemaphore"
+};
 /* USER CODE BEGIN PV */
 
 TIM_HandleTypeDef* timestampTimer = &htim2;
@@ -193,7 +197,6 @@ void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 static void MX_USART1_UART_Init(void);
@@ -256,7 +259,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_TIM16_Init();
   MX_SDMMC1_SD_Init();
   MX_USART1_UART_Init();
@@ -279,6 +281,10 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of sensorBoardUsartSemaphore */
+  sensorBoardUsartSemaphoreHandle = osSemaphoreNew(1, 1, &sensorBoardUsartSemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -891,22 +897,6 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -1088,14 +1078,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 void sensorBoardControllerTaskEntryFunction(void *argument)
 {
-  #if (!defined(FORCE_SENSOR_ADS1115_TASK_ENABLE) || !defined(FORCE_SENSOR_ADC_TASK_ENABLE)) || (!defined(OPTICAL_ENCODER_TASK_ENABLE)) || !defined(SESSION_CONTROLLER_TASK_ENABLE)
-    #error "FORCE_SENSOR_ADS1115_TASK_ENABLE or FORCE_SENSOR_ADC_TASK_ENABLE or OPTICAL_ENCODER_TASK_ENABLE or SESSION_CONTROLLER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
+  #if (!defined(FORCE_SENSOR_ADS1115_TASK_ENABLE) || !defined(FORCE_SENSOR_ADC_TASK_ENABLE)) || (!defined(OPTICAL_ENCODER_TASK_ENABLE))
+    #error "FORCE_SENSOR_ADS1115_TASK_ENABLE or FORCE_SENSOR_ADC_TASK_ENABLE or OPTICAL_ENCODER_TASK_ENABLE is not defined. Please define it as 0 or 1 in the configuration header."
   // Ensure both ADS1115 and ADC tasks can't be enabled at once. Has to be one or the other
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1) && (FORCE_SENSOR_ADC_TASK_ENABLE == 1)
     #error "Cannot enable both ADS1115 and ADC Force Sensor modules at the same time!"
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0) && (OPTICAL_ENCODER_TASK_ENABLE == 0)
      osThreadSuspend(osThreadGetId());
-  #elif (SESSION_CONTROLLER_TASK_ENABLE == 1)
+  #else
     sensorboardcontroller_main(sessionControllerToSensorBoardControllerHandle, usart1MutexHandle);
   #endif
   osThreadSuspend(osThreadGetId());

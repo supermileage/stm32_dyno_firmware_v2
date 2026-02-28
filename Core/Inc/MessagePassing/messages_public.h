@@ -42,7 +42,7 @@ _Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data mu
 static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
 #endif
 
-inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_ids_t task_id, uint32_t error_id)
+static inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_ids_t task_id, uint32_t error_id)
 {
     task_error_data error_data;
     error_data.timestamp = timestamp;
@@ -118,11 +118,14 @@ static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controlle
 
 typedef enum : uint32_t
 {
-    ERROR_SENSOR_BOARD_CONTROLLER_UART_DMA_START_FAILURE = 0,
+    ERROR_SENSOR_BOARD_CONTROLLER_UART_INTERRUPT_START_FAILURE = 0,
     ERROR_SENSOR_BOARD_CONTROLLER_INVALID_TASK_ID_RECEIVED,
     WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_WRITE_FAILURE = 10000,
+    WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_ACK_FAILURE,
     WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_WRITE_FAILURE,
+    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_ACK_FAILURE,
     WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE,
+    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_ACK_FAILURE
 } sensor_board_controller_task_error_ids;
 
 

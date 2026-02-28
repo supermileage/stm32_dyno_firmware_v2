@@ -1,6 +1,15 @@
 #include "Tasks/SensorBoardController/sensorboardcontroller_main.h"
 #include "Tasks/SensorBoardController/SensorBoardController.hpp"
 
+#include <cstring>
+#include "semphr.h"
+
+// Wrapper to match uint8_t* function pointer signature (HAL_UART_Transmit uses const uint8_t*)
+static HAL_StatusTypeDef HAL_UART_Transmit_Wrapper(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+{
+    return HAL_UART_Transmit(huart, pData, Size, Timeout);
+}
+
 #define LBF_TO_NEWTONS 4.44822f
 
 extern UART_HandleTypeDef huart1;
@@ -12,6 +21,8 @@ extern optical_encoder_output_data optical_encoder_circular_buffer[OPTICAL_ENCOD
 extern size_t forcesensor_circular_buffer_index_writer;
 extern forcesensor_output_data forcesensor_circular_buffer[FORCESENSOR_CIRCULAR_BUFFER_SIZE];
 
+extern osSemaphoreId_t sensorBoardUsartSemaphoreHandle;
+
 child_board_usart_combined_data_t usart_input_data{};
 
 SensorBoardController::SensorBoardController(osMessageQueueId_t sessionControllerToSensorBoardControllerHandle, osMutexId_t usart1Mutex) : 
@@ -22,6 +33,24 @@ SensorBoardController::SensorBoardController(osMessageQueueId_t sessionControlle
                                             _usart1Mutex(usart1Mutex),
                                             _enabled(false)
 {
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+        // Wake task waiting for UART data
+        xSemaphoreGiveFromISR(
+            (SemaphoreHandle_t)sensorBoardUsartSemaphoreHandle,
+            &xHigherPriorityTaskWoken
+        );
+
+        HAL_UART_Receive_IT(&huart1, (uint8_t*) &usart_input_data, sizeof(usart_input_data));
+
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 
 bool SensorBoardController::Init()
@@ -53,9 +82,9 @@ bool SensorBoardController::Init()
         }
     #endif 
 
-    if (HAL_UART_Receive_DMA(&huart1, (uint8_t*)&usart_input_data, sizeof(usart_input_data)) != HAL_OK)
+    if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&usart_input_data, sizeof(usart_input_data), HAL_UART_Receive_IT) != HAL_OK)
     {
-        task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(ERROR_SENSOR_BOARD_CONTROLLER_UART_DMA_START_FAILURE));
+        task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(ERROR_SENSOR_BOARD_CONTROLLER_UART_INTERRUPT_START_FAILURE));
 
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 
@@ -88,6 +117,12 @@ void SensorBoardController::Run()
             osDelay(TASK_WARNING_RETRY_OSDELAY);
         }
 
+        // Only process data if there is new data from the child board
+        if (osSemaphoreAcquire(sensorBoardUsartSemaphoreHandle, osWaitForever) != osOK)
+        {
+            continue;
+        }
+
         optical_encoder_output_data optical_data = 
         {
             .timestamp = get_timestamp(),
@@ -113,20 +148,54 @@ void SensorBoardController::Run()
 
 bool SensorBoardController::InitOpticalSensor()
 {
-    mother_board_to_child_board_usart_command_header_t received_command_header = 
+    uint32_t num_ack_retries = 0;
+    bool ack_received = false;
+    
+    mother_board_to_child_board_usart_command_header_t command_header = 
     {
-        .task_id = CHILD_BOARD_TASK_ID_OPTICAL_ENCODER,
+        .task_id = CHILD_BOARD_TASK_ID_OPTICAL_SENSOR,
         .enable = true,
         .command_payload_length = 0
     };
 
-    if (HAL_UART_Transmit_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), HAL_MAX_DELAY) != HAL_OK)
+    while (ack_received == false)
     {
-        task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_WRITE_FAILURE));
-
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
         
-        return false;
+        if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&command_header, sizeof(command_header), HAL_MAX_DELAY, HAL_UART_Transmit_Wrapper) != HAL_OK)
+        {
+            task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_WRITE_FAILURE));
+
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+            
+            return false;
+        }
+
+        mother_board_to_child_board_usart_command_header_t received_command_header = 
+        {
+            .task_id = CHILD_BOARD_TASK_INVALID_TASK_ID,
+            .enable = false,
+            .command_payload_length = 0
+        };
+
+        num_ack_retries = 0;
+
+        while (num_ack_retries < OPTICAL_SENSOR_ACK_MAX_RETRIES)
+        {
+            if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), TASK_WARNING_RETRY_OSDELAY, HAL_UART_Receive) != HAL_OK)
+            {
+                task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_ACK_FAILURE));
+
+                _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+                num_ack_retries++;
+            }
+            else if (std::memcmp(&command_header, &received_command_header, sizeof(command_header)) == 0)
+            {
+                ack_received = true;
+                break;
+            }
+            
+        }
+
     }
 
     return true;
@@ -135,14 +204,20 @@ bool SensorBoardController::InitOpticalSensor()
 
 bool SensorBoardController::InitForceSensorADC()
 {
-    mother_board_to_child_board_usart_command_header_t received_command_header = 
+    uint32_t num_ack_retries = 0;
+    bool ack_received = false;
+    
+    mother_board_to_child_board_usart_command_header_t command_header = 
     {
         .task_id = CHILD_BOARD_TASK_ID_FORCE_SENSOR_ADC,
         .enable = true,
         .command_payload_length = 0
     };
 
-    if (HAL_UART_Transmit_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), HAL_MAX_DELAY) != HAL_OK)
+    while(ack_received == false)
+    {
+
+    if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&command_header, sizeof(command_header), HAL_MAX_DELAY, HAL_UART_Transmit_Wrapper) != HAL_OK)
     {
         task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_WRITE_FAILURE));
 
@@ -151,11 +226,42 @@ bool SensorBoardController::InitForceSensorADC()
         return false;
     }
 
+    mother_board_to_child_board_usart_command_header_t received_command_header = 
+    {
+        .task_id = CHILD_BOARD_TASK_INVALID_TASK_ID,
+        .enable = false,
+        .command_payload_length = 0
+
+    };
+
+    num_ack_retries = 0;
+
+    while(num_ack_retries < FORCE_SENSOR_ADC_ACK_MAX_RETRIES)
+    {
+        if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), TASK_WARNING_RETRY_OSDELAY, HAL_UART_Receive) != HAL_OK)
+        {
+            task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_ACK_FAILURE));
+
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+            num_ack_retries++;
+        }
+        else if (std::memcmp(&command_header, &received_command_header, sizeof(command_header)) == 0)
+        {
+            ack_received = true;
+            break;
+        }
+    }
+
+    }
+
     return true;
 }
 
 bool SensorBoardController::InitForceSensorADS1115()
 {
+    
+    uint32_t num_ack_retries = 0;
+    bool ack_received = false;
     
     child_board_force_sensor_ads1115_settings settings = 
     {
@@ -170,29 +276,62 @@ bool SensorBoardController::InitForceSensorADS1115()
         .gain = ADS1115_DEFAULT_GAIN 
     };
     
-    mother_board_to_child_board_usart_command_header_t received_command_header = 
+    mother_board_to_child_board_usart_command_header_t command_header = 
     {
         .task_id = CHILD_BOARD_TASK_ID_FORCE_SENSOR_ADS1115,
         .enable = true,
         .command_payload_length = sizeof(settings)
     };
 
-    if (HAL_UART_Transmit_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), HAL_MAX_DELAY) != HAL_OK)
+    while(ack_received == false)
     {
-        task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE));
 
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+        if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&command_header, sizeof(command_header), HAL_MAX_DELAY, HAL_UART_Transmit_Wrapper) != HAL_OK)
+        {
+            task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE));
 
-        return false;
-    }
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
 
-    if (HAL_UART_Transmit_WithMutex(&huart1, (uint8_t*)&settings, sizeof(settings), HAL_MAX_DELAY) != HAL_OK)
-    {
-        task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE));
+            return false;
+        }
 
-        _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+        if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&settings, sizeof(settings), HAL_MAX_DELAY, HAL_UART_Transmit_Wrapper) != HAL_OK)
+        {
+            task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE));
 
-        return false;
+            _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+
+            return false;
+        }
+
+        mother_board_to_child_board_usart_command_header_t received_command_header = 
+        {
+            .task_id = CHILD_BOARD_TASK_INVALID_TASK_ID,
+            .enable = false,
+            .command_payload_length = 0
+        };
+
+        num_ack_retries = 0;
+
+        while(num_ack_retries < ADS1115_ACK_MAX_RETRIES)
+        {
+
+            if (HAL_UART_Transmission_WithMutex(&huart1, (uint8_t*)&received_command_header, sizeof(received_command_header), TASK_WARNING_RETRY_OSDELAY, HAL_UART_Receive) != HAL_OK)
+            {
+                task_error_data error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_SENSOR_BOARD_CONTROLLER, static_cast<uint32_t>(WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_ACK_FAILURE));
+
+                _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
+
+                num_ack_retries++;
+            }
+            else if (std::memcmp(&command_header, &received_command_header, sizeof(command_header)) == 0)
+            {
+                ack_received = true;
+                break;
+            }
+
+        }
+
     }
 
     return true;
@@ -239,12 +378,23 @@ float SensorBoardController::GetForce(uint16_t raw_value)
 
 
 
-HAL_StatusTypeDef SensorBoardController::HAL_UART_Transmit_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+HAL_StatusTypeDef SensorBoardController::HAL_UART_Transmission_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout, HAL_StatusTypeDef (*uartFunc)(UART_HandleTypeDef *, uint8_t *, uint16_t, uint32_t))
 {
     HAL_StatusTypeDef status;
 
     osMutexAcquire(_usart1Mutex, osWaitForever);
-    status = HAL_UART_Transmit(huart, pData, Size, Timeout);
+    status = uartFunc(huart, pData, Size, Timeout);
+    osMutexRelease(_usart1Mutex);
+
+    return status;
+}
+
+HAL_StatusTypeDef SensorBoardController::HAL_UART_Transmission_WithMutex(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, HAL_StatusTypeDef (*uartFunc)(UART_HandleTypeDef *, uint8_t *, uint16_t))
+{
+    HAL_StatusTypeDef status;
+
+    osMutexAcquire(_usart1Mutex, osWaitForever);
+    status = uartFunc(huart, pData, Size);
     osMutexRelease(_usart1Mutex);
 
     return status;
@@ -261,7 +411,7 @@ bool SensorBoardController::HasError(child_board_task_error_data& error_data)
 
     switch (error_data.task_id)
     {
-        case CHILD_BOARD_TASK_ID_OPTICAL_ENCODER:
+        case CHILD_BOARD_TASK_ID_OPTICAL_SENSOR:
             motherboard_error_data = PopulateTaskErrorDataStruct(get_timestamp(), TASK_ID_OPTICAL_ENCODER, error_data.error_id);
             break;
         case CHILD_BOARD_TASK_ID_FORCE_SENSOR_ADC:
