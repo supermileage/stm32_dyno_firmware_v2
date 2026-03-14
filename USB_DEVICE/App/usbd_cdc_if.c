@@ -255,45 +255,50 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   *         it will result in receiving more data while previous ones are still
   *         not sent.
   *
-  * @param  Buf: Buffer of data to be received
-  * @param  Len: Number of data received (in bytes)
+  * @param  cdc_buf: Buffer of data to be received
+  * @param  length: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
-{
+static int8_t CDC_Receive_FS(uint8_t* cdc_buf, uint32_t *length) {
   /* USER CODE BEGIN 6 */
+  uint32_t len = *length; // More efficient to store immediate rather than load/store each time
 
   uint8_t status = USBD_OK;
-  if (*Len > USB_CONTROLLER_RX_BUFFER_SIZE) 
+  if (len > USB_CONTROLLER_RX_BUFFER_SIZE) 
   {
     // drop packet or set error flag
     status = USBD_FAIL;
     goto complete_transfer;
   }
 
-  uint32_t len = *Len;
-  uint32_t idx = usb_controller_rx_index;
-
-  uint32_t space_to_end = USB_CONTROLLER_RX_BUFFER_SIZE - idx;
-
-  if (len <= space_to_end)
-  {
-    memcpy(&usb_controller_rx_buffer[idx], Buf, len);
-  }
-  else
-  {
-    memcpy(&usb_controller_rx_buffer[idx], Buf, space_to_end);
-    memcpy(&usb_controller_rx_buffer[0], Buf + space_to_end, len - space_to_end);
+  if (len <= USB_CONTROLLER_RX_BUFFER_SIZE - usb_controller_rx_index) {
+      memcpy(&usb_controller_rx_buffer[usb_controller_rx_index], cdc_buf, len);
+      usb_controller_rx_index += len;
+    } else {
+      // memcpy(&usb_controller_rx_buffer[idx], Buf, space_to_end);
+      // memcpy(&usb_controller_rx_buffer[0], Buf + space_to_end, len - space_to_end);
+      memcpy(&usb_controller_rx_buffer[0], cdc_buf, len);
+      usb_controller_rx_index = len;  // Idea is for usb_controller_rx_index to be at the first AVAILABLE index past everything before
   }
 
-  usb_controller_rx_index = (idx + len) % USB_CONTROLLER_RX_BUFFER_SIZE;
+  
 
 complete_transfer:
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &cdc_buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (status); 
   /* USER CODE END 6 */
 }
+
+// static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
+// {
+//   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+//   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+//   USB_CDC_RxHandler(UserRxBufferFS, *Len);
+//   memset(UserRxBufferFS, '\0', *Len);
+//   return (USBD_OK);
+
+// }
 
 /**
   * @brief  CDC_Transmit_FS

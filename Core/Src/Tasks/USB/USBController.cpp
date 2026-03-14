@@ -13,6 +13,7 @@ extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
 extern uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
+extern size_t usb_controller_rx_index;
 
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
     : _task_errors_buffer_reader(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
@@ -22,7 +23,8 @@ USBController::USBController(osMessageQueueId_t sessionControllerToUsbController
       _taskMonitorToUsbControllerHandle(taskMonitorToUsbControllerHandle),
       _sessionControllerToUsbController(sessionControllerToUsbController),
       _txBuffer{},
-      _txBufferIndex(0)
+      _txBufferIndex(0),
+      _rxBufferIndex(0)
 {}
 
 bool USBController::Init()
@@ -32,27 +34,44 @@ bool USBController::Init()
 
 void USBController::ReceiveAppAck()
 {
-    while (true)
-    {
-        // Attempt to receive data over USB
-        if (usb_controller_rx_buffer[0] == 'O' && usb_controller_rx_buffer[1] == 'K' && usb_controller_rx_buffer[2] == '\0')
+    int usb_rx_index_copy = usb_controller_rx_index;
+        
+        // Attempt to receive data over USB 
+        while (true)
         {
-            break;
-        }
-
-        osDelay(10); // Small delay to prevent busy-waiting
-    }
+            if (_rxBufferIndex == usb_rx_index_copy)
+            {
+                return;
+            }
+            else if (_rxBufferIndex > usb_rx_index_copy) // Checks if usb_controller_rx_index
+            {
+                _rxBufferIndex = 0;
+            }
+            
+            /* Might want to consider a critical section if: 
+                - buffer size is too small to fit many messages
+                - USBController.cpp isn't run very frequently
+               
+               KEEP IN MIND... NOTHING ELSE CAN RUN DURING A CRITICAL SECTION. These should be used
+               sparingly and for very small sections of code. Interrupts and context switches cannot
+               occur during a critical section, which would have to be "locked" using mutexes or 
+               taskENTER_CRITICAL followed by taskEXIT_CRITICAL from FreeRTOS.
+            */
+            if (usb_controller_rx_buffer[_rxBufferIndex] == 'O' && usb_controller_rx_buffer[_rxBufferIndex + 1] == 'K' && usb_controller_rx_buffer[_rxBufferIndex + 2] == '\0')
+            {
+                _txBufferIndex = 0; // Resets the microcontroller buffer after reading from the CDC buffer
+            }
+            _rxBufferIndex += 3 * sizeof(char);
+        }  
 }
 
 void USBController::Run()
 {
     bool enableUSB = false;
 
-    // Wait for "OK" before starting data transmission
-    ReceiveAppAck();
-
     while (1)
     {
+        
         GetLatestFromQueue(
             _sessionControllerToUsbController,
             &enableUSB,
@@ -64,6 +83,8 @@ void USBController::Run()
         {
             continue;
         }
+
+        ReceiveAppAck();
 
 
 
@@ -97,9 +118,7 @@ void USBController::Run()
         ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_ID_TASK_MONITOR);
         #endif
 
-        ProcessErrorsAndWarnings();
-
-        
+        ProcessErrorsAndWarnings();        
 
         if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
             continue;
