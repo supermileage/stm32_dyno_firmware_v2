@@ -92,6 +92,7 @@ class USBController
 
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
+        int _rxBufferIndex = 0;
 };
 
 #endif // INC_TASKS_USB_USBCONTROLLER_HPP_
