@@ -35,13 +35,15 @@ Additional, only if you need them:
 
 ## Building the Project
 
-### Using the scripts (recommended)
+### Native build (CMake)
+The same commands work on Linux, macOS and Windows:
 ```bash
-./Scripts/build.sh            # Debug (default)
-./Scripts/build.sh Release    # Release
-./Scripts/clean.sh            # remove build output
+cmake --preset Debug            # configure (use Release for the release build)
+cmake --build --preset Debug    # build
+rm -rf build                    # clean
 ```
-On Windows use the `.bat` equivalents in `Scripts/`.
+Presets (`Debug`, `Release`) are defined in `CMakePresets.json`; the Arm toolchain
+file is `cmake/gcc-arm-none-eabi.cmake`.
 
 Build output is written to `build/<CONFIG>/`:
 - `stm32_dyno_firmware_v2.elf`
@@ -49,15 +51,7 @@ Build output is written to `build/<CONFIG>/`:
 - `stm32_dyno_firmware_v2.bin`
 - `stm32_dyno_firmware_v2.map`
 
-### Using CMake directly
-```bash
-cmake --preset Debug
-cmake --build --preset Debug
-```
-Presets (`Debug`, `Release`) are defined in `CMakePresets.json`; the Arm toolchain
-file is `cmake/gcc-arm-none-eabi.cmake`.
-
-### Using Docker (reproducible, matches CI exactly)
+### Reproducible build (Docker)
 Requires only Docker — no host toolchain. The `Dockerfile` pins the Arm GNU
 toolchain, CMake and Ninja, and CI builds inside this same image:
 ```bash
@@ -74,9 +68,10 @@ STM32CubeMX, click **Generate Code** to refresh the HAL/driver sources and
 `cmake/stm32cubemx/CMakeLists.txt`. Your edits in the top-level `CMakeLists.txt`
 (and inside `USER CODE BEGIN/END` blocks) are preserved.
 
-To regenerate headlessly from the command line, set `CUBEMX` before building:
+To regenerate headlessly from the command line, drive STM32CubeMX with a script:
 ```bash
-CUBEMX="/path/to/STM32CubeMX" ./Scripts/build.sh Debug
+printf 'config load %s/stm32_dyno_firmware_v2.ioc\nproject generate\nexit\n' "$PWD" > /tmp/gen.txt
+/path/to/STM32CubeMX -q /tmp/gen.txt
 ```
 
 ## Flashing the Firmware
