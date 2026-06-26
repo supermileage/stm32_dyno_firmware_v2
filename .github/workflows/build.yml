@@ -7,21 +7,44 @@ on:
 
 jobs:
   build:
-    name: build
+    name: build (${{ matrix.config }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Build Debug
-        uses: xanderhendriks/action-build-stm32cubeide@v16.0
-        with:
-          project-path: '.'
-          project-target: 'stm32_dyno_firmware_v2/Debug'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build Release
-        uses: xanderhendriks/action-build-stm32cubeide@v16.0
+      - name: Build toolchain image
+        uses: docker/build-push-action@v6
         with:
-          project-path: '.'
-          project-target: 'stm32_dyno_firmware_v2/Release'
+          context: .
+          load: true
+          tags: stm32-dyno-builder:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build ${{ matrix.config }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/work:z" -w /work \
+            --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            stm32-dyno-builder:latest \
+            bash -lc "cmake --preset ${{ matrix.config }} && cmake --build --preset ${{ matrix.config }}"
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.config }}
+          path: |
+            build/${{ matrix.config }}/*.elf
+            build/${{ matrix.config }}/*.hex
+            build/${{ matrix.config }}/*.bin
+            build/${{ matrix.config }}/*.map
+          if-no-files-found: error

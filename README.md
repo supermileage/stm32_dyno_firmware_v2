@@ -1,57 +1,94 @@
 # STM32 Dyno Firmware v2
 
 ## Overview
-This repository contains the firmware for the STM32-based dynamometer project. It is designed to work with the STM32H743IITX microcontroller and leverages FreeRTOS for real-time task management.
+This repository contains the firmware for the STM32-based dynamometer project. It
+targets the **STM32H743IITx** microcontroller and uses FreeRTOS for real-time task
+management. The project is built with **CMake + Ninja** and the Arm GNU toolchain
+(`arm-none-eabi-gcc`); code is generated from the `.ioc` with **STM32CubeMX**.
 
 ## Cloning the Repository
-To clone this repository, ensure you include all submodules:
+Include all submodules when cloning:
 
 ```bash
 git clone --recurse-submodules <repository-url>
 ```
 
-If you forget to use the `--recurse-submodules` flag, you can initialize and update the submodules later with:
+If you forgot the flag, initialize the submodules afterwards:
 
 ```bash
 git submodule update --init --recursive
 ```
 
 ## Requirements
-1. **STM32CubeIDE**: Download and install STM32CubeIDE from [ST's official website](https://www.st.com/en/development-tools/stm32cubeide.html).
-2. **Windows OS**: The `build.bat` script is designed to work only on Windows.
+You only need these to **build**:
+
+| Tool | Purpose | Install (Fedora) | Install (Ubuntu/Debian) |
+|------|---------|------------------|--------------------------|
+| Arm GNU toolchain | Compiler/linker | `sudo dnf install arm-none-eabi-gcc-cs arm-none-eabi-newlib` | `sudo apt install gcc-arm-none-eabi` |
+| CMake (≥ 3.22) | Build system | `sudo dnf install cmake` | `sudo apt install cmake` |
+| Ninja | Build backend | `sudo dnf install ninja-build` | `sudo apt install ninja-build` |
+
+Additional, only if you need them:
+- **STM32CubeMX** — to regenerate code after editing `stm32_dyno_firmware_v2.ioc`
+  ([download](https://www.st.com/en/development-tools/stm32cubemx.html)).
+- **STM32CubeProgrammer** or **stlink** — to flash the board.
 
 ## Building the Project
-### Using STM32CubeIDE
-1. Open STM32CubeIDE.
-2. Import the project into your workspace.
-3. Build the project using the desired configuration (Debug/Release).
 
-### Using `build.bat` (Windows Only)
-If you do not need to modify the `.ioc` file for code generation, you can build the project without opening STM32CubeIDE:
+### Native build (CMake)
+The same commands work on Linux, macOS and Windows:
+```bash
+cmake --preset Debug            # configure (use Release for the release build)
+cmake --build --preset Debug    # build
+rm -rf build                    # clean
+```
+Presets (`Debug`, `Release`) are defined in `CMakePresets.json`; the Arm toolchain
+file is `cmake/gcc-arm-none-eabi.cmake`.
 
-1. Close STM32CubeIDE if it is running.
-2. Run the `build.bat` script:
+Build output is written to `build/<CONFIG>/`:
+- `stm32_dyno_firmware_v2.elf`
+- `stm32_dyno_firmware_v2.hex`
+- `stm32_dyno_firmware_v2.bin`
+- `stm32_dyno_firmware_v2.map`
 
-   ```cmd
-   build.bat <CUBEIDE_PATH> <WORKSPACE_PATH> [CONFIG] [clean]
-   ```
+### Reproducible build (Docker)
+Requires only Docker — no host toolchain. The `Dockerfile` pins the Arm GNU
+toolchain, CMake and Ninja, and CI builds inside this same image:
+```bash
+./Scripts/build-docker.sh            # Debug
+./Scripts/build-docker.sh Release
+```
+The repo is bind-mounted, so output still lands in `build/<CONFIG>/` on the host.
+On Windows run it from Git Bash/WSL. (On SELinux hosts the script adds the
+required `:z` mount option automatically.)
 
-   - Replace `<CUBEIDE_PATH>` with the path to `stm32cubeide.exe`.
-   - Replace `<WORKSPACE_PATH>` with the path to your workspace directory.
-   - `[CONFIG]` is optional and can be `Debug` (default) or `Release`.
-   - `[clean]` is optional and performs a clean build.
+## Regenerating Code from the `.ioc`
+The toolchain in the `.ioc` is set to **CMake**. After editing the design in
+STM32CubeMX, click **Generate Code** to refresh the HAL/driver sources and
+`cmake/stm32cubemx/CMakeLists.txt`. Your edits in the top-level `CMakeLists.txt`
+(and inside `USER CODE BEGIN/END` blocks) are preserved.
 
-   Example:
-
-   ```cmd
-   build.bat "C:\STM32CubeIDE\STM32CubeIDE_1.14.1\STM32CubeIDE\stm32cubeide.exe" "C:\STM32CubeIDE\Projects" Debug clean
-   ```
-
-3. The build log will be saved to `build_log.txt`.
+To regenerate headlessly from the command line, drive STM32CubeMX with a script:
+```bash
+printf 'config load %s/stm32_dyno_firmware_v2.ioc\nproject generate\nexit\n' "$PWD" > /tmp/gen.txt
+/path/to/STM32CubeMX -q /tmp/gen.txt
+```
 
 ## Flashing the Firmware
-Flashing via the command line interface (CLI) will be added in a future update.
+Flash to address `0x08000000` over SWD/ST-Link. With **stlink**:
+```bash
+st-flash write build/Debug/stm32_dyno_firmware_v2.bin 0x08000000
+```
+Or with **STM32CubeProgrammer**:
+```bash
+STM32_Programmer_CLI -c port=SWD -d build/Debug/stm32_dyno_firmware_v2.elf -rst
+```
+
+## Continuous Integration
+`.github/workflows/build.yml` builds both `Debug` and `Release` with CMake on every
+push/PR and uploads the resulting firmware as workflow artifacts.
 
 ## Notes
-- Ensure all submodules are initialized and updated before building the project.
-- The `build.bat` script is only compatible with Windows systems.
+- Ensure all submodules are initialized and updated before building.
+- The build is IDE-independent. The project can still be opened in STM32CubeIDE
+  1.15+ via **File → Import → Import CMake Project**, but that is optional.

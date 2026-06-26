@@ -10,6 +10,9 @@ debug/
 Release/
 release/
 
+# CMake build output
+build/
+
 # build log
 build_log.txt
 
