@@ -86,10 +86,18 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
-# Print size and emit flashable .hex / .bin next to the .elf
+# Print size and emit flashable .hex / .bin next to the .elf. Use absolute output
+# paths (and declare them as byproducts) so artifact locations are deterministic
+# regardless of the build tool's working directory. CMAKE_CURRENT_BINARY_DIR is
+# where the executable is placed; target-referencing generator expressions such
+# as $<TARGET_FILE_DIR:...> are not allowed in BYPRODUCTS.
+set(FW_HEX ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex)
+set(FW_BIN ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin)
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    BYPRODUCTS ${FW_HEX} ${FW_BIN}
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-    COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.hex
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${FW_HEX}
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${FW_BIN}
     COMMENT "Generating ${CMAKE_PROJECT_NAME}.hex and ${CMAKE_PROJECT_NAME}.bin"
+    VERBATIM
 )

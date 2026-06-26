@@ -8,6 +8,9 @@ FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 # Arm GNU toolchain release (same one CI pins). Override with --build-arg.
 ARG ARM_TOOLCHAIN_VERSION=13.3.rel1
+# SHA256 of arm-gnu-toolchain-${VERSION}-x86_64-arm-none-eabi.tar.xz.
+# Update alongside ARM_TOOLCHAIN_VERSION.
+ARG ARM_TOOLCHAIN_SHA256=95c011cee430e64dd6087c75c800f04b9c49832cc1000127a92a97f9c8d83af4
 
 # Host build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget -q \
         "https://developer.arm.com/-/media/Files/downloads/gnu/${ARM_TOOLCHAIN_VERSION}/binrel/arm-gnu-toolchain-${ARM_TOOLCHAIN_VERSION}-x86_64-arm-none-eabi.tar.xz" \
         -O /tmp/arm-toolchain.tar.xz \
+    && echo "${ARM_TOOLCHAIN_SHA256}  /tmp/arm-toolchain.tar.xz" | sha256sum -c - \
     && mkdir -p /opt/arm-toolchain \
     && tar -xf /tmp/arm-toolchain.tar.xz -C /opt/arm-toolchain --strip-components=1 \
     && rm /tmp/arm-toolchain.tar.xz

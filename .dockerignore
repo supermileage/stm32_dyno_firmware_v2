@@ -1,6 +1,6 @@
-# The Dockerfile copies nothing; the repo is bind-mounted at run time.
-# Keep the build context tiny.
-build/
-.git/
-.github/
-Docs/
+# The Dockerfile copies nothing (the repo is bind-mounted at run time), so the
+# build context only needs the Dockerfile itself. Ignore everything else to keep
+# the context minimal.
+**
+!Dockerfile
+!.dockerignore
