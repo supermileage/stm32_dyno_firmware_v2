@@ -28,8 +28,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
+# Enable CMake support for ASM, C and C++ languages
+enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -42,14 +42,33 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
-# Add sources to executable
+# Application sources (not managed by STM32CubeMX). CubeMX only generates files
+# directly under Core/Src, so globbing the application subdirectories is safe
+# from duplicates and picks up new task files automatically.
+file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/Core/Src/Tasks/*.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/Tasks/*.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Src/MessagePassing/*.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/MessagePassing/*.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Src/TimeKeeping/*.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/TimeKeeping/*.cpp
+    ${CMAKE_SOURCE_DIR}/Middlewares/CircularBuffer/Src/*.cpp
+)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+    ${CMAKE_SOURCE_DIR}/Core/Src/interrupts.c
+    ${APP_SOURCES}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
+    # Application headers, plus shared message/driver headers from the
+    # sensor-board submodule (the sensor board is a separate firmware; only
+    # its headers are shared with the main board).
+    ${CMAKE_SOURCE_DIR}/Core/Inc
+    ${CMAKE_SOURCE_DIR}/Middlewares/CircularBuffer/Inc
+    ${CMAKE_SOURCE_DIR}/stm32_dyno_firmware_sensor_board/Core/Inc/Messages
+    ${CMAKE_SOURCE_DIR}/stm32_dyno_firmware_sensor_board/Drivers/ADS1115
 )
 
 # Add project symbols (macros)
@@ -65,4 +84,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+
+# Print size and emit flashable .hex / .bin next to the .elf
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+    COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.bin
+    COMMENT "Generating ${CMAKE_PROJECT_NAME}.hex and ${CMAKE_PROJECT_NAME}.bin"
 )
