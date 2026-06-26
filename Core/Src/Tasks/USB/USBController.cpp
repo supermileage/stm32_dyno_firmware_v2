@@ -1,6 +1,14 @@
 #include <Tasks/USB/usbcontroller_main.h>
 #include <Tasks/USB/USBController.hpp>
 
+// The ADC and ADS1115 force sensors share one data buffer; report whichever
+// variant is compiled in (exactly one is enabled, enforced in main.c).
+#if FORCE_SENSOR_ADS1115_TASK_ENABLE
+#define ACTIVE_FORCE_SENSOR_TASK_OFFSET TASK_OFFSET_FORCE_SENSOR_ADS1115
+#elif FORCE_SENSOR_ADC_TASK_ENABLE
+#define ACTIVE_FORCE_SENSOR_TASK_OFFSET TASK_OFFSET_FORCE_SENSOR_ADC
+#endif
+
 extern size_t optical_encoder_circular_buffer_index_writer;
 extern size_t forcesensor_circular_buffer_index_writer;
 extern size_t bpm_circular_buffer_index_writer;
@@ -71,28 +79,28 @@ void USBController::Run()
         #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
         #elif (OPTICAL_ENCODER_TASK_ENABLE == 1)
         // Process optical encoder data
-        ProcessTaskData(_buffer_reader_optical_encoder, TASK_ID_OPTICAL_ENCODER);
+        ProcessTaskData(_buffer_reader_optical_encoder, TASK_OFFSET_OPTICAL_ENCODER);
         #endif 
 
         #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
         #error "FORCE_SENSOR_TASK_ENABLE must be defined"
         #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
         // Process force sensor data
-        ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR);
+        ProcessTaskData(_buffer_reader_forcesensor, ACTIVE_FORCE_SENSOR_TASK_OFFSET);
         #endif 
 
         #if !defined(BPM_CONTROLLER_TASK_ENABLE)
         #error "BPM_CONTROLLER_TASK_ENABLE must be defined"
         #elif (BPM_CONTROLLER_TASK_ENABLE == 1)
         // Process BPM data
-        ProcessTaskData(_buffer_reader_bpm, TASK_ID_BPM_CONTROLLER);
+        ProcessTaskData(_buffer_reader_bpm, TASK_OFFSET_BPM_CONTROLLER);
         #endif
 
         #if !defined(TASK_MONITOR_TASK_ENABLE)
         #error "TASK_MONITOR_TASK_ENABLE must be defined"
         #elif (TASK_MONITOR_TASK_ENABLE == 1)
         // Process Task Monitor data
-        ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_ID_TASK_MONITOR);
+        ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_OFFSET_TASK_MONITOR);
         #endif
 
         ProcessErrorsAndWarnings();
@@ -158,7 +166,7 @@ void USBController::MockMessages(const bool forever)
         };
         // Process optical encoder data
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.task_id = TASK_ID_OPTICAL_ENCODER;
+        usb_header.task_offset = TASK_OFFSET_OPTICAL_ENCODER;
         usb_header.payload_len = sizeof(optical_encoder_output_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
@@ -176,7 +184,7 @@ void USBController::MockMessages(const bool forever)
             .raw_value = fs_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.task_id = TASK_ID_FORCE_SENSOR;
+        usb_header.task_offset = ACTIVE_FORCE_SENSOR_TASK_OFFSET;
         usb_header.payload_len = sizeof(forcesensor_output_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
@@ -194,7 +202,7 @@ void USBController::MockMessages(const bool forever)
             .raw_value = bpm_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.task_id = TASK_ID_BPM_CONTROLLER;
+        usb_header.task_offset = TASK_OFFSET_BPM_CONTROLLER;
         usb_header.payload_len = sizeof(bpm_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<bpm_output_data>(&mock_bpm_data, sizeof(bpm_output_data));
@@ -207,12 +215,12 @@ void USBController::MockMessages(const bool forever)
 
         task_monitor_output_data mock_tm_data = {
             .timestamp = timestamp++,
-            .task_id = TASK_ID_NO_TASK,
+            .task_offset = TASK_OFFSET_NO_TASK,
             .task_state = 0,
             .free_bytes = task_monitor_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.task_id = TASK_ID_TASK_MONITOR;
+        usb_header.task_offset = TASK_OFFSET_TASK_MONITOR;
         usb_header.payload_len = sizeof(task_monitor_output_data);
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
         AddToBuffer<task_monitor_output_data>(&mock_tm_data, sizeof(task_monitor_output_data));
@@ -221,12 +229,12 @@ void USBController::MockMessages(const bool forever)
         task_error_data mock_error_data = 
         PopulateTaskErrorDataStruct(
             timestamp++,
-            TASK_ID_SESSION_CONTROLLER,
+            TASK_OFFSET_SESSION_CONTROLLER,
             ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE
         );
 
         usb_header.msg_type = USB_MSG_ERROR;
-        usb_header.task_id = TASK_ID_SESSION_CONTROLLER;
+        usb_header.task_offset = TASK_OFFSET_SESSION_CONTROLLER;
         usb_header.payload_len = sizeof(task_error_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));
@@ -234,12 +242,12 @@ void USBController::MockMessages(const bool forever)
 
         task_error_data mock_warning_data = PopulateTaskErrorDataStruct(
             timestamp++,
-            TASK_ID_FORCE_SENSOR,
+            TASK_OFFSET_FORCE_SENSOR_ADS1115,
             WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE
         );
 
         usb_header.msg_type = USB_MSG_WARNING;
-        usb_header.task_id = TASK_ID_FORCE_SENSOR;
+        usb_header.task_offset = TASK_OFFSET_FORCE_SENSOR_ADS1115;
         usb_header.payload_len = sizeof(task_error_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));
@@ -267,8 +275,8 @@ void USBController::ProcessErrorsAndWarnings()
         if (_task_errors_buffer_reader.GetElementAndIncrementIndex(error_data)) {
             usb_msg_header_t header = 
             {
-                .msg_type = (error_data.error_id >= WARNING_ENUM_OFFSET) ? USB_MSG_WARNING : USB_MSG_ERROR,
-                .task_id = error_data.task_id,
+                .msg_type = (error_data.error_code & WARNING_FLAG) ? USB_MSG_WARNING : USB_MSG_ERROR,
+                .task_offset = (task_offset_t)(error_data.error_code & TASK_OFFSET_MASK),
                 .payload_len = sizeof(task_error_data)
             };
 

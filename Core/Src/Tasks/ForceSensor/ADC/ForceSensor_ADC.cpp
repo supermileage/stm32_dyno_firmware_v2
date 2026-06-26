@@ -55,7 +55,7 @@ void ForceSensorADC::Run(void)
         {
             task_error_data error_data = PopulateTaskErrorDataStruct(
                 get_timestamp(),
-                TASK_ID_FORCE_SENSOR,
+                TASK_OFFSET_FORCE_SENSOR_ADC,
                 static_cast<uint32_t>(ERROR_FORCE_SENSOR_ADC_START_FAILURE)
             );
             
