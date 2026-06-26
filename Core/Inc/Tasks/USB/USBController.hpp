@@ -1,6 +1,9 @@
 #ifndef INC_TASKS_USB_USBCONTROLLER_HPP_
 #define INC_TASKS_USB_USBCONTROLLER_HPP_
 
+#include <array>
+#include <algorithm>
+
 #include "cmsis_os2.h"
 
 #include "usbd_cdc_if.h"
@@ -8,14 +11,13 @@
 #include "TimeKeeping/timestamps.h"
 
 #include "MessagePassing/messages_private.h"
+#include "MessagePassing/messages_public.h"
 #include "MessagePassing/osqueue_helpers.h"
 #include "MessagePassing/messages_public.h"
 
 #include "Config/config.h"
 #include "Config/debug.h"
 #include "CircularBufferReader.hpp"
-
-#include "../../../../stm32_dyno_firmware_sensor_board/Core/Inc/Messages/messages_public.h"
 
 
 

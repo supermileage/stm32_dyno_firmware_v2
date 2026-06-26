@@ -20,10 +20,8 @@ typedef enum : uint32_t
 	TASK_ID_SESSION_CONTROLLER = 100,
 	TASK_ID_USB_CONTROLLER,
 	TASK_ID_SD_CONTROLLER,
-	TASK_ID_SENSOR_BOARD_CONTROLLER,
-    TASK_ID_OPTICAL_ENCODER,
-    TASK_ID_FORCE_SENSOR_ADC,
-    TASK_ID_FORCE_SENSOR_ADS1115,
+	TASK_ID_OPTICAL_ENCODER,
+	TASK_ID_FORCE_SENSOR,
 	TASK_ID_BPM_CONTROLLER,
 	TASK_ID_PID_CONTROLLER,
 	TASK_ID_LUMEX_LCD	
@@ -117,15 +115,27 @@ static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controlle
 
 typedef enum : uint32_t
 {
-    ERROR_SENSOR_BOARD_CONTROLLER_UART_INTERRUPT_START_FAILURE = 0,
-    ERROR_SENSOR_BOARD_CONTROLLER_INVALID_TASK_ID_RECEIVED,
-    WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_WRITE_FAILURE = 10000,
-    WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_ACK_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_WRITE_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_ACK_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_ACK_FAILURE
-} sensor_board_controller_task_error_ids;
+    ERROR_FORCE_SENSOR_ADC_START_FAILURE = 0,
+    WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE = 10000,
+    WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE
+} force_sensor_adc_task_error_ids;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+#endif
+
+typedef enum : uint32_t
+{
+    ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE = 0
+} force_sensor_ads1115_error_ids;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+#endif
 
 
 // ****************************************************

@@ -26,11 +26,17 @@
 // ===== SDMMC / STORAGE =====
 #define STM32_PERIPHERAL_SDMMC1_ENABLE    0
 
-// Force Sensor ADC + ADS1115 Task
-#define FORCE_SENSOR_ADC_TASK_ENABLE 0
+// ===== I2C =====
+#define STM32_PERIPHERAL_I2C4_ENABLE      1
+
+
+// Task enable/disables
 #define FORCE_SENSOR_ADS1115_TASK_ENABLE 1
 
-// Optical Encoder Task
+// Force Sensor ADC Task
+#define FORCE_SENSOR_ADC_TASK_ENABLE 0
+
+// Force Sensor Task
 #define OPTICAL_ENCODER_TASK_ENABLE 1
 
 // Session Controller Task

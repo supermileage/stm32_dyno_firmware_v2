@@ -16,9 +16,9 @@ extern uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
 
 USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
     : _task_errors_buffer_reader(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
-        _buffer_reader_optical_encoder(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
+        _buffer_reader_optical_encoder(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_forcesensor(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
-      _buffer_reader_bpm(bpm_circular_buffer, &bpm_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
+      _buffer_reader_bpm(bpm_circular_buffer, &bpm_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
       _taskMonitorToUsbControllerHandle(taskMonitorToUsbControllerHandle),
       _sessionControllerToUsbController(sessionControllerToUsbController),
       _txBuffer{},
@@ -76,11 +76,9 @@ void USBController::Run()
 
         #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
         #error "FORCE_SENSOR_TASK_ENABLE must be defined"
-        #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE)
+        #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
         // Process force sensor data
-        ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR_ADS1115);
-        #elif (FORCE_SENSOR_ADC_TASK_ENABLE)
-        ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR_ADC);
+        ProcessTaskData(_buffer_reader_forcesensor, TASK_ID_FORCE_SENSOR);
         #endif 
 
         #if !defined(BPM_CONTROLLER_TASK_ENABLE)
@@ -178,7 +176,7 @@ void USBController::MockMessages(const bool forever)
             .raw_value = fs_raw_value++
         };
         usb_header.msg_type = USB_MSG_STREAM;
-        usb_header.task_id = TASK_ID_FORCE_SENSOR_ADS1115;
+        usb_header.task_id = TASK_ID_FORCE_SENSOR;
         usb_header.payload_len = sizeof(forcesensor_output_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_msg_header_t));
@@ -236,12 +234,12 @@ void USBController::MockMessages(const bool forever)
 
         task_error_data mock_warning_data = PopulateTaskErrorDataStruct(
             timestamp++,
-            TASK_ID_FORCE_SENSOR_ADS1115,
+            TASK_ID_FORCE_SENSOR,
             WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE
         );
 
         usb_header.msg_type = USB_MSG_WARNING;
-        usb_header.task_id = TASK_ID_FORCE_SENSOR_ADS1115;
+        usb_header.task_id = TASK_ID_FORCE_SENSOR;
         usb_header.payload_len = sizeof(task_error_data);
 
         AddToBuffer<usb_msg_header_t>(&usb_header, sizeof(usb_header));

@@ -57,18 +57,16 @@ file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Core/Src/interrupts.c
+    ${CMAKE_SOURCE_DIR}/Drivers/ADS1115/ADS1115.cpp
     ${APP_SOURCES}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Application headers, plus shared message/driver headers from the
-    # sensor-board submodule (the sensor board is a separate firmware; only
-    # its headers are shared with the main board).
+    # Application headers and the on-board ADS1115 force-sensor driver headers.
     ${CMAKE_SOURCE_DIR}/Core/Inc
     ${CMAKE_SOURCE_DIR}/Middlewares/CircularBuffer/Inc
-    ${CMAKE_SOURCE_DIR}/stm32_dyno_firmware_sensor_board/Core/Inc/Messages
-    ${CMAKE_SOURCE_DIR}/stm32_dyno_firmware_sensor_board/Drivers/ADS1115
+    ${CMAKE_SOURCE_DIR}/Drivers/ADS1115
 )
 
 # Add project symbols (macros)

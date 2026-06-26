@@ -11,6 +11,7 @@
 
 #include "MessagePassing/messages_private.h"
 #include "MessagePassing/messages_public.h"
+#include "MessagePassing/messages_public.h"
 
 #include "TimeKeeping/timestamps.h"
 

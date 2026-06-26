@@ -23,8 +23,11 @@ bool TaskMonitor::Init()
 		#if SD_CONTROLLER_TASK_ENABLE
 		|| _osThreadIdPtrs->sd_controller == nullptr
 		#endif
-		#if SENSOR_BOARD_CONTROLLER_TASK_ENABLE
-		|| _osThreadIdPtrs->sensor_board_controller == nullptr
+		#if OPTICAL_ENCODER_TASK_ENABLE
+		|| _osThreadIdPtrs->optical_sensor == nullptr
+		#endif
+		#if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
+		|| _osThreadIdPtrs->force_sensor == nullptr
 		#endif
 		#if BPM_CONTROLLER_TASK_ENABLE
 		|| _osThreadIdPtrs->bpm_controller == nullptr
@@ -76,8 +79,11 @@ void TaskMonitor::Run()
 		#if SD_CONTROLLER_TASK_ENABLE
 		GetTaskDataAndSendToUsbController(TASK_ID_SD_CONTROLLER, _osThreadIdPtrs->sd_controller);
 		#endif
-		#if SENSOR_BOARD_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_SENSOR_BOARD_CONTROLLER, _osThreadIdPtrs->sensor_board_controller);
+		#if OPTICAL_ENCODER_TASK_ENABLE
+		GetTaskDataAndSendToUsbController(TASK_ID_OPTICAL_ENCODER, _osThreadIdPtrs->optical_sensor);
+		#endif 
+		#if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
+		GetTaskDataAndSendToUsbController(TASK_ID_FORCE_SENSOR, _osThreadIdPtrs->force_sensor);
 		#endif 
 		#if BPM_CONTROLLER_TASK_ENABLE
 		GetTaskDataAndSendToUsbController(TASK_ID_BPM_CONTROLLER, _osThreadIdPtrs->bpm_controller);
