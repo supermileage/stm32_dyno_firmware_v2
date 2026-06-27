@@ -36,6 +36,9 @@
 #define MAX_FORCE_LBF 25.0f
 #define FORCESENSOR_TASK_OSDELAY 1
 #define FORCESENSOR_CIRCULAR_BUFFER_SIZE 100
+// Bounded wait (ms) on the enable queue while disabled, so USB setting commands
+// are still serviced when the sensor is idle (instead of blocking forever).
+#define FORCESENSOR_COMMAND_POLL_OSDELAY 50
 
 // ADS1115 I2C Config
 #define ADS1115_SAMPLE_SPEED ADS1115_RATE_475

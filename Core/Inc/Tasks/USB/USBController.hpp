@@ -24,7 +24,10 @@
 class USBController
 {
     public:
-        USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle);
+        USBController(osMessageQueueId_t sessionControllerToUsbController,
+                      osMessageQueueId_t taskMonitorToUsbControllerHandle,
+                      osMessageQueueId_t forceSensorCommandQueue,
+                      osMessageQueueId_t taskCompletionQueue);
         ~USBController() = default; // Destructor
 
         bool Init();
@@ -34,7 +37,32 @@ class USBController
         void StallIfIsBufferFull(bool bufferFull);   
         bool IsBufferFull(std::size_t msgSize);
         void ProcessErrorsAndWarnings();
-        void ReceiveAppAck();
+
+        // Pulls one complete, CRC-validated inbound frame out of the USB RX ring.
+        // Returns true and fills header/payload/payloadLen when a frame is ready;
+        // returns false when no complete frame is available yet (non-blocking).
+        // Garbage / corrupt bytes are skipped so the stream resyncs after an overflow.
+        bool TryReadFrame(usb_msg_header_t& header, uint8_t* payload, size_t payloadCapacity, size_t& payloadLen);
+
+        // Drain every complete inbound frame and route it. Safe to call each loop
+        // regardless of logging state, so the host can configure at any time.
+        void ProcessIncomingFrames();
+        void DispatchFrame(const usb_msg_header_t& header, const uint8_t* payload, size_t payloadLen);
+        void HandleUsbLocalCommand(const usb_cmd_header_t& cmd, const uint8_t* body, size_t bodyLen);
+
+        // Maps a frame's task_offset to the owning task's command queue, or NULL if
+        // that module has no command route. The USB task stays a pure router.
+        osMessageQueueId_t QueueForTaskOffset(task_offset_t taskOffset);
+
+        // Drain task completion queue and frame a USB_MSG_RESPONSE for each (far end
+        // of the full-path ack). Completions with msg_id 0 (internal) are dropped.
+        void ProcessCompletions();
+
+        // Frame a USB_MSG_RESPONSE into the TX buffer (echoes opcode/msg_id + status).
+        void SendResponse(task_offset_t taskOffset, uint16_t opcode, uint16_t msg_id, uint32_t status);
+
+        // Block until the host completes the USB_CMD_HELLO handshake (mock/debug path).
+        void WaitForHandshake();
 
         template <typename T>
         void AddToBuffer(T* msg, size_t msgSize) {
@@ -91,9 +119,13 @@ class USBController
 
         osMessageQueueId_t _taskMonitorToUsbControllerHandle;
         osMessageQueueId_t _sessionControllerToUsbController;
+        osMessageQueueId_t _forceSensorCommandQueue;   // route target for force-sensor settings
+        osMessageQueueId_t _taskCompletionQueue;       // shared: tasks post applied-command acks here
 
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
+
+        bool _appReady;   // set once the host completes the USB_CMD_HELLO handshake
 };
 
 #endif // INC_TASKS_USB_USBCONTROLLER_HPP_

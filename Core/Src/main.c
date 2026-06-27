@@ -186,6 +186,16 @@ osMessageQueueId_t taskMonitorToUsbControllerHandle;
 const osMessageQueueAttr_t taskMonitorToUsbController_attributes = {
   .name = "taskMonitorToUsbController"
 };
+/* Definitions for usbToForceSensorCommand (host settings routed to the force sensor) */
+osMessageQueueId_t usbToForceSensorCommandHandle;
+const osMessageQueueAttr_t usbToForceSensorCommand_attributes = {
+  .name = "usbToForceSensorCommand"
+};
+/* Definitions for taskToUsbController (applied-command acks back to the host) */
+osMessageQueueId_t taskToUsbControllerResponseHandle;
+const osMessageQueueAttr_t taskToUsbControllerResponse_attributes = {
+  .name = "taskToUsbControllerResponse"
+};
 /* Definitions for pidControllerToSessionControllerAck */
 osMessageQueueId_t pidControllerToSessionControllerAckHandle;
 const osMessageQueueAttr_t pidControllerToSessionControllerAck_attributes = {
@@ -343,6 +353,12 @@ int main(void)
 
   /* creation of taskMonitorToUsbController */
   taskMonitorToUsbControllerHandle = osMessageQueueNew (50, sizeof(task_monitor_output_data), &taskMonitorToUsbController_attributes);
+
+  /* creation of usbToForceSensorCommand */
+  usbToForceSensorCommandHandle = osMessageQueueNew (8, sizeof(usb_task_command), &usbToForceSensorCommand_attributes);
+
+  /* creation of taskToUsbController */
+  taskToUsbControllerResponseHandle = osMessageQueueNew (8, sizeof(usb_task_completion), &taskToUsbControllerResponse_attributes);
 
   /* creation of pidControllerToSessionControllerAck */
   pidControllerToSessionControllerAckHandle = osMessageQueueNew (5, sizeof(bool), &pidControllerToSessionControllerAck_attributes);
@@ -1261,7 +1277,7 @@ void forceSensorTaskEntryFunction(void *argument)
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 0) && (FORCE_SENSOR_ADC_TASK_ENABLE == 0)
      osThreadSuspend(osThreadGetId());
   #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE == 1)
-    forcesensor_ads1115_main(sessionControllerToForceSensorHandle);
+    forcesensor_ads1115_main(sessionControllerToForceSensorHandle, usbToForceSensorCommandHandle, taskToUsbControllerResponseHandle);
   #else
     forcesensor_adc_main(sessionControllerToForceSensorHandle);
   #endif
@@ -1398,7 +1414,7 @@ __weak void usbTaskEntryFunction(void *argument)
   #elif USB_CONTROLLER_TASK_ENABLE == 0
      osThreadSuspend(osThreadGetId());
   #else
-    usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle);
+    usbcontroller_main(sessionControllertoUsbControllerHandle, taskMonitorToUsbControllerHandle, usbToForceSensorCommandHandle, taskToUsbControllerResponseHandle);
   #endif
   /* USER CODE END 5 */
 }

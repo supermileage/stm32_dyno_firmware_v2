@@ -16,12 +16,16 @@ extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZ
 // Global interrupts
 static volatile bool ads1115_alert_status = false;
 
-ForceSensorADS1115::ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle) : 
+ForceSensorADS1115::ForceSensorADS1115(osMessageQueueId_t sessionControllerToForceSensorHandle,
+                                       osMessageQueueId_t usbToForceSensorCommandHandle,
+                                       osMessageQueueId_t taskCompletionHandle) :
 		// this comes directly from circular_buffers.h and config.h
 		_data_buffer_writer(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
         _task_error_buffer_writer(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
         _ads1115(forceSensorADS1115Handle),
-		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle) {}
+		_sessionControllerToForceSensorHandle(sessionControllerToForceSensorHandle),
+		_usbToForceSensorCommandHandle(usbToForceSensorCommandHandle),
+		_taskCompletionHandle(taskCompletionHandle) {}
 
 bool ForceSensorADS1115::Init()
 {
@@ -68,14 +72,18 @@ void ForceSensorADS1115::Run(void)
 
     while (1)
     {
-        // Get the latest enable/disable message
-        // If currently disabled, block forever; if enabled, poll non-blocking
+        // Get the latest enable/disable message. When enabled, poll non-blocking;
+        // when disabled, wait only a bounded time (not forever) so queued USB setting
+        // commands still get serviced and applied while the sensor is idle.
         GetLatestFromQueue(_sessionControllerToForceSensorHandle,
                                             &enableADS1115,
                                             sizeof(enableADS1115),
-                                            enableADS1115 ? 0 : osWaitForever);
+                                            enableADS1115 ? 0 : FORCESENSOR_COMMAND_POLL_OSDELAY);
 
-        // If the latest message says disabled, skip processing
+        // Apply any host setting commands (data rate, ...) and ack them, in any state.
+        ProcessCommands();
+
+        // If the latest message says disabled, skip sampling
         if (!enableADS1115)
         {
                continue;
@@ -136,6 +144,46 @@ float ForceSensorADS1115::GetForce(uint16_t raw_value)
     return _ads1115.getMvPerCount() * raw_value  / 1000 / ADS1115_VOLTAGE * MAX_FORCE_LBF * LBF_TO_NEWTON;
 }
 
+void ForceSensorADS1115::ProcessCommands()
+{
+    usb_task_command cmd;
+    while (osMessageQueueGet(_usbToForceSensorCommandHandle, &cmd, NULL, 0) == osOK)
+    {
+        uint32_t status = ApplyCommand(cmd);
+
+        // Host commands (msg_id != 0) get the applied-result ack relayed to the PC.
+        // Internal commands (msg_id 0) are fire-and-forget.
+        if (cmd.msg_id != 0)
+        {
+            usb_task_completion done;
+            done.task_offset = TASK_OFFSET_FORCE_SENSOR_ADS1115;
+            done.opcode = cmd.opcode;
+            done.msg_id = cmd.msg_id;
+            done.status = status;
+            osMessageQueuePut(_taskCompletionHandle, &done, 0, 0);
+        }
+    }
+}
+
+uint32_t ForceSensorADS1115::ApplyCommand(const usb_task_command& cmd)
+{
+    switch (cmd.opcode)
+    {
+        case FORCE_SENSOR_CMD_SET_DATA_RATE:
+        {
+            if (cmd.body_len < 1 || cmd.body[0] > ADS1115_RATE_860)
+            {
+                return USB_RSP_MALFORMED;
+            }
+            // setRate is an I2C config write; reflect its real result back to the host.
+            return _ads1115.setRate(cmd.body[0]) ? USB_RSP_OK : USB_RSP_DEVICE_ERROR;
+        }
+
+        default:
+            return USB_RSP_UNKNOWN_COMMAND;
+    }
+}
+
 
 
 extern "C" void forcesensor_ads1115_gpio_alert_interrupt(void)
@@ -143,9 +191,13 @@ extern "C" void forcesensor_ads1115_gpio_alert_interrupt(void)
     ads1115_alert_status = true;
 }
 
-extern "C" void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToForcesensorADS1115Handle)
+extern "C" void forcesensor_ads1115_main(osMessageQueueId_t sessionControllerToForcesensorADS1115Handle,
+                                         osMessageQueueId_t usbToForceSensorCommandHandle,
+                                         osMessageQueueId_t taskCompletionHandle)
 {
-	ForceSensorADS1115 forcesensor = ForceSensorADS1115(sessionControllerToForcesensorADS1115Handle);
+	ForceSensorADS1115 forcesensor = ForceSensorADS1115(sessionControllerToForcesensorADS1115Handle,
+	                                                    usbToForceSensorCommandHandle,
+	                                                    taskCompletionHandle);
 
 	if (!forcesensor.Init())
 	{

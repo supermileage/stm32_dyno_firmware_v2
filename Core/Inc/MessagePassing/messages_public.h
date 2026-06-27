@@ -2,6 +2,7 @@
 #define INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PUBLIC_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 
 // A task error/warning is reported as a single 32-bit code:
@@ -182,6 +183,91 @@ _Static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be
 #else
 static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be 12 bytes");
 #endif
+
+// ---- Host -> device framed command envelope -------------------------------
+// Inbound (PC -> STM32) frames are wrapped so the parser can resync after a ring
+// overflow drops bytes mid-stream:
+//   [uint16_t USB_FRAME_SOF][usb_msg_header_t header][payload bytes][uint16_t crc]
+// crc is CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) computed over the header
+// bytes followed by the payload bytes (the SOF marker and crc field themselves are
+// excluded). Multi-byte fields are little-endian, matching both the STM32 and the
+// x86 host. The same envelope is reused for the host-side parser.
+#define USB_FRAME_SOF        0xA55Au
+#define USB_FRAME_CRC_INIT   0xFFFFu
+#define USB_FRAME_CRC_POLY   0x1021u
+// Largest inbound payload the firmware accepts; frames claiming more are treated as
+// a spurious SOF and skipped during resync.
+#define USB_RX_MAX_PAYLOAD   128u
+
+// Shared CRC so firmware and host compute identical checksums over a frame body.
+static inline uint16_t usb_frame_crc16(const uint8_t *data, size_t len)
+{
+    uint16_t crc = USB_FRAME_CRC_INIT;
+    for (size_t i = 0; i < len; ++i)
+    {
+        crc ^= (uint16_t)((uint16_t)data[i] << 8);
+        for (int bit = 0; bit < 8; ++bit)
+        {
+            crc = (crc & 0x8000u) ? (uint16_t)((crc << 1) ^ USB_FRAME_CRC_POLY)
+                                  : (uint16_t)(crc << 1);
+        }
+    }
+    return crc;
+}
+
+// ---- Host command / firmware response payloads ----------------------------
+// COMMAND and CONFIG frame payloads (PC -> STM32) begin with this header. The
+// opcode is namespaced by the frame's task_offset (commands addressed to
+// TASK_OFFSET_USB_CONTROLLER use usb_controller_command_t, and so on). msg_id is
+// chosen by the host and echoed in the matching RESPONSE so a reply can be
+// correlated to its request. msg_id 0 is reserved for firmware-internal commands
+// that want no host ack; hosts use ids >= 1.
+typedef struct __attribute__((packed)) {
+    uint16_t opcode;
+    uint16_t msg_id;
+} usb_cmd_header_t;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(usb_cmd_header_t) == 4, "Size of usb_cmd_header_t must be 4 bytes");
+#else
+static_assert(sizeof(usb_cmd_header_t) == 4, "Size of usb_cmd_header_t must be 4 bytes");
+#endif
+
+// RESPONSE frame payload (STM32 -> PC): echoes the command's opcode + msg_id and
+// reports a status. Sent with task_offset set to the module that completed it, so
+// the host learns both which message (msg_id) and which module (frame task_offset)
+// acked. For a routed setting this is the full-path ack: it is emitted only after
+// the owning task has actually applied the command, with the real result status.
+typedef struct __attribute__((packed)) {
+    uint16_t opcode;
+    uint16_t msg_id;
+    uint32_t status;   // usb_response_status_t
+} usb_response_data_t;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(usb_response_data_t) == 8, "Size of usb_response_data_t must be 8 bytes");
+#else
+static_assert(sizeof(usb_response_data_t) == 8, "Size of usb_response_data_t must be 8 bytes");
+#endif
+
+typedef enum : uint32_t {
+    USB_RSP_OK = 0,
+    USB_RSP_UNKNOWN_COMMAND,   // opcode not recognised by the target module
+    USB_RSP_MALFORMED,         // payload too short / body out of range
+    USB_RSP_NOT_SUPPORTED,     // task_offset has no command route
+    USB_RSP_DEVICE_ERROR,      // target applied it but the device write failed (e.g. I2C)
+    USB_RSP_QUEUE_FULL,        // target task's command queue was full
+} usb_response_status_t;
+
+// USB-controller-local commands: frames addressed to TASK_OFFSET_USB_CONTROLLER.
+typedef enum : uint16_t {
+    USB_CMD_HELLO = 0,   // host handshake; firmware replies USB_MSG_RESPONSE / USB_RSP_OK
+} usb_controller_command_t;
+
+// Force-sensor (ADS1115) commands: frames addressed to TASK_OFFSET_FORCE_SENSOR_ADS1115.
+typedef enum : uint16_t {
+    FORCE_SENSOR_CMD_SET_DATA_RATE = 0,  // body[0] = ADS1115_RATE_* code (0..7)
+} force_sensor_command_opcode;
 
 typedef struct
 {

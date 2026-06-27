@@ -20,17 +20,21 @@ extern bpm_output_data bpm_circular_buffer[BPM_CIRCULAR_BUFFER_SIZE];
 extern size_t task_error_circular_buffer_index_writer;
 extern task_error_data task_error_circular_buffer[TASK_ERROR_CIRCULAR_BUFFER_SIZE];
 
-extern uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
-
-USBController::USBController(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
+USBController::USBController(osMessageQueueId_t sessionControllerToUsbController,
+                             osMessageQueueId_t taskMonitorToUsbControllerHandle,
+                             osMessageQueueId_t forceSensorCommandQueue,
+                             osMessageQueueId_t taskCompletionQueue)
     : _task_errors_buffer_reader(task_error_circular_buffer, &task_error_circular_buffer_index_writer, TASK_ERROR_CIRCULAR_BUFFER_SIZE),
         _buffer_reader_optical_encoder(optical_encoder_circular_buffer, &optical_encoder_circular_buffer_index_writer, BPM_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_forcesensor(forcesensor_circular_buffer, &forcesensor_circular_buffer_index_writer, FORCESENSOR_CIRCULAR_BUFFER_SIZE),
       _buffer_reader_bpm(bpm_circular_buffer, &bpm_circular_buffer_index_writer, OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE),
       _taskMonitorToUsbControllerHandle(taskMonitorToUsbControllerHandle),
       _sessionControllerToUsbController(sessionControllerToUsbController),
+      _forceSensorCommandQueue(forceSensorCommandQueue),
+      _taskCompletionQueue(taskCompletionQueue),
       _txBuffer{},
-      _txBufferIndex(0)
+      _txBufferIndex(0),
+      _appReady(false)
 {}
 
 bool USBController::Init()
@@ -38,79 +42,275 @@ bool USBController::Init()
 	return true;
 }
 
-void USBController::ReceiveAppAck()
+void USBController::ProcessIncomingFrames()
 {
-    while (true)
+    usb_msg_header_t header;
+    uint8_t payload[USB_RX_MAX_PAYLOAD];
+    size_t payloadLen = 0;
+
+    while (TryReadFrame(header, payload, sizeof(payload), payloadLen))
     {
-        // Attempt to receive data over USB
-        if (usb_controller_rx_buffer[0] == 'O' && usb_controller_rx_buffer[1] == 'K' && usb_controller_rx_buffer[2] == '\0')
-        {
+        DispatchFrame(header, payload, payloadLen);
+    }
+}
+
+osMessageQueueId_t USBController::QueueForTaskOffset(task_offset_t taskOffset)
+{
+    switch (taskOffset)
+    {
+        case TASK_OFFSET_FORCE_SENSOR_ADS1115:
+            return _forceSensorCommandQueue;
+        // Add more task_offset -> command queue routes here as tasks gain settings.
+        default:
+            return NULL;
+    }
+}
+
+void USBController::DispatchFrame(const usb_msg_header_t& header, const uint8_t* payload, size_t payloadLen)
+{
+    // Only COMMAND and CONFIG are valid inbound message types from the host.
+    if (header.msg_type != USB_MSG_COMMAND && header.msg_type != USB_MSG_CONFIG)
+    {
+        return;
+    }
+
+    // Every command/config payload begins with {opcode, msg_id}.
+    if (payloadLen < sizeof(usb_cmd_header_t))
+    {
+        return; // malformed; no msg_id to ack against, so drop silently
+    }
+
+    usb_cmd_header_t cmd;
+    memcpy(&cmd, payload, sizeof(cmd));
+    const uint8_t* body = payload + sizeof(cmd);
+    size_t bodyLen = payloadLen - sizeof(cmd);
+
+    // USB-controller-local commands are handled and acked here directly.
+    if (header.task_offset == TASK_OFFSET_USB_CONTROLLER)
+    {
+        HandleUsbLocalCommand(cmd, body, bodyLen);
+        return;
+    }
+
+    // Otherwise route straight to the owning task. The ack is non-posted: the task
+    // applies the command and posts a completion that we relay (ProcessCompletions).
+    // We only respond here for failures the task can never report.
+    osMessageQueueId_t target = QueueForTaskOffset(header.task_offset);
+    if (target == NULL)
+    {
+        SendResponse(header.task_offset, cmd.opcode, cmd.msg_id, USB_RSP_NOT_SUPPORTED);
+        return;
+    }
+    if (bodyLen > USB_TASK_CMD_BODY_MAX)
+    {
+        SendResponse(header.task_offset, cmd.opcode, cmd.msg_id, USB_RSP_MALFORMED);
+        return;
+    }
+
+    usb_task_command tc{};
+    tc.opcode = cmd.opcode;
+    tc.msg_id = cmd.msg_id;
+    tc.body_len = static_cast<uint8_t>(bodyLen);
+    if (bodyLen > 0)
+    {
+        memcpy(tc.body, body, bodyLen);
+    }
+
+    if (osMessageQueuePut(target, &tc, 0, 0) != osOK)
+    {
+        SendResponse(header.task_offset, cmd.opcode, cmd.msg_id, USB_RSP_QUEUE_FULL);
+    }
+}
+
+void USBController::HandleUsbLocalCommand(const usb_cmd_header_t& cmd, const uint8_t* body, size_t bodyLen)
+{
+    (void)body;
+    (void)bodyLen;
+
+    switch (cmd.opcode)
+    {
+        case USB_CMD_HELLO:
+            // Host is present and listening: unblock streaming and acknowledge.
+            _appReady = true;
+            SendResponse(TASK_OFFSET_USB_CONTROLLER, cmd.opcode, cmd.msg_id, USB_RSP_OK);
             break;
+
+        default:
+            SendResponse(TASK_OFFSET_USB_CONTROLLER, cmd.opcode, cmd.msg_id, USB_RSP_UNKNOWN_COMMAND);
+            break;
+    }
+}
+
+void USBController::ProcessCompletions()
+{
+    usb_task_completion done;
+    while (osMessageQueueGet(_taskCompletionQueue, &done, NULL, 0) == osOK)
+    {
+        if (done.msg_id == 0)
+        {
+            continue; // internal command; the host never asked for an ack
+        }
+        SendResponse(done.task_offset, done.opcode, done.msg_id, done.status);
+    }
+}
+
+void USBController::SendResponse(task_offset_t taskOffset, uint16_t opcode, uint16_t msg_id, uint32_t status)
+{
+    usb_response_data_t resp = { opcode, msg_id, status };
+
+    StallIfIsBufferFull(IsBufferFull(sizeof(resp)));
+
+    usb_msg_header_t header =
+    {
+        .msg_type = USB_MSG_RESPONSE,
+        .task_offset = taskOffset,
+        .payload_len = sizeof(resp)
+    };
+    AddToBuffer<usb_msg_header_t>(&header, sizeof(header));
+    AddToBuffer<usb_response_data_t>(&resp, sizeof(resp));
+}
+
+void USBController::WaitForHandshake()
+{
+    // Block until the host completes the USB_CMD_HELLO handshake, flushing the
+    // response as soon as it is queued. Used by the mock/debug path.
+    while (!_appReady)
+    {
+        ProcessIncomingFrames();
+
+        if (_txBufferIndex > 0 && CDC_Transmit_FS(_txBuffer, _txBufferIndex) != USBD_BUSY)
+        {
+            _txBufferIndex = 0;
         }
 
-        osDelay(10); // Small delay to prevent busy-waiting
+        osDelay(10);
     }
+}
+
+bool USBController::TryReadFrame(usb_msg_header_t& header, uint8_t* payload, size_t payloadCapacity, size_t& payloadLen)
+{
+    constexpr size_t SOF_SIZE = sizeof(uint16_t);
+    constexpr size_t HDR_SIZE = sizeof(usb_msg_header_t);
+    constexpr size_t CRC_SIZE = sizeof(uint16_t);
+    constexpr size_t MIN_FRAME = SOF_SIZE + HDR_SIZE + CRC_SIZE;
+
+    // A ring overflow means bytes were dropped and the stream is desynced; clearing
+    // the flag here is enough — the SOF/CRC scan below finds the next clean boundary.
+    usb_rx_overflowed();
+
+    while (usb_rx_available() >= MIN_FRAME)
+    {
+        uint8_t hdrPeek[SOF_SIZE + HDR_SIZE];
+        usb_rx_peek(hdrPeek, sizeof(hdrPeek));
+
+        uint16_t sof = static_cast<uint16_t>(hdrPeek[0] | (hdrPeek[1] << 8));
+        if (sof != USB_FRAME_SOF)
+        {
+            usb_rx_skip(1); // byte-wise resync until a start-of-frame marker lines up
+            continue;
+        }
+
+        usb_msg_header_t candidate;
+        memcpy(&candidate, hdrPeek + SOF_SIZE, HDR_SIZE);
+
+        if (candidate.payload_len > USB_RX_MAX_PAYLOAD || candidate.payload_len > payloadCapacity)
+        {
+            usb_rx_skip(1); // implausible length => spurious SOF, keep resyncing
+            continue;
+        }
+
+        size_t frameLen = SOF_SIZE + HDR_SIZE + candidate.payload_len + CRC_SIZE;
+        if (usb_rx_available() < frameLen)
+        {
+            return false; // full frame not in the ring yet; retry on the next poll
+        }
+
+        uint8_t frame[SOF_SIZE + HDR_SIZE + USB_RX_MAX_PAYLOAD + CRC_SIZE];
+        usb_rx_peek(frame, frameLen);
+
+        uint16_t crcRx = static_cast<uint16_t>(frame[frameLen - 2] | (frame[frameLen - 1] << 8));
+        uint16_t crcCalc = usb_frame_crc16(frame + SOF_SIZE, HDR_SIZE + candidate.payload_len);
+        if (crcRx != crcCalc)
+        {
+            usb_rx_skip(1); // corrupt / desynced; resync past this SOF
+            continue;
+        }
+
+        usb_rx_skip(frameLen); // consume only after the frame is fully validated
+        header = candidate;
+        payloadLen = candidate.payload_len;
+        if (payloadLen > 0)
+        {
+            memcpy(payload, frame + SOF_SIZE + HDR_SIZE, payloadLen);
+        }
+        return true;
+    }
+
+    return false;
 }
 
 void USBController::Run()
 {
     bool enableUSB = false;
 
-    // Wait for "OK" before starting data transmission
-    ReceiveAppAck();
-
     while (1)
     {
-        GetLatestFromQueue(
-            _sessionControllerToUsbController,
-            &enableUSB,
-            sizeof(enableUSB),
-            enableUSB ? 0 : osWaitForever
-        );
+        // 1. Always service inbound commands first, regardless of logging state, so
+        //    the host can handshake and configure before or after a session runs.
+        ProcessIncomingFrames();
 
-        if (!enableUSB)
+        // 2. Relay any applied-command acks the owning tasks have posted back.
+        ProcessCompletions();
+
+        // 3. Pick up the latest logging enable/disable from the SessionController.
+        GetLatestFromQueue(_sessionControllerToUsbController, &enableUSB, sizeof(enableUSB), 0);
+
+        // 4. Stream sensor/error data only once the host has handshaked (USB_CMD_HELLO)
+        //    and logging is enabled.
+        if (_appReady && enableUSB)
         {
-            continue;
+            #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
+            #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
+            #elif (OPTICAL_ENCODER_TASK_ENABLE == 1)
+            // Process optical encoder data
+            ProcessTaskData(_buffer_reader_optical_encoder, TASK_OFFSET_OPTICAL_ENCODER);
+            #endif
+
+            #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
+            #error "FORCE_SENSOR_TASK_ENABLE must be defined"
+            #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
+            // Process force sensor data
+            ProcessTaskData(_buffer_reader_forcesensor, ACTIVE_FORCE_SENSOR_TASK_OFFSET);
+            #endif
+
+            #if !defined(BPM_CONTROLLER_TASK_ENABLE)
+            #error "BPM_CONTROLLER_TASK_ENABLE must be defined"
+            #elif (BPM_CONTROLLER_TASK_ENABLE == 1)
+            // Process BPM data
+            ProcessTaskData(_buffer_reader_bpm, TASK_OFFSET_BPM_CONTROLLER);
+            #endif
+
+            #if !defined(TASK_MONITOR_TASK_ENABLE)
+            #error "TASK_MONITOR_TASK_ENABLE must be defined"
+            #elif (TASK_MONITOR_TASK_ENABLE == 1)
+            // Process Task Monitor data
+            ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_OFFSET_TASK_MONITOR);
+            #endif
+
+            ProcessErrorsAndWarnings();
         }
 
-
-
-        #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
-        #error "OPTICAL_ENCODER_TASK_ENABLE must be defined"
-        #elif (OPTICAL_ENCODER_TASK_ENABLE == 1)
-        // Process optical encoder data
-        ProcessTaskData(_buffer_reader_optical_encoder, TASK_OFFSET_OPTICAL_ENCODER);
-        #endif 
-
-        #if !defined(FORCE_SENSOR_ADC_TASK_ENABLE) || !defined(FORCE_SENSOR_ADS1115_TASK_ENABLE)
-        #error "FORCE_SENSOR_TASK_ENABLE must be defined"
-        #elif (FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE)
-        // Process force sensor data
-        ProcessTaskData(_buffer_reader_forcesensor, ACTIVE_FORCE_SENSOR_TASK_OFFSET);
-        #endif 
-
-        #if !defined(BPM_CONTROLLER_TASK_ENABLE)
-        #error "BPM_CONTROLLER_TASK_ENABLE must be defined"
-        #elif (BPM_CONTROLLER_TASK_ENABLE == 1)
-        // Process BPM data
-        ProcessTaskData(_buffer_reader_bpm, TASK_OFFSET_BPM_CONTROLLER);
-        #endif
-
-        #if !defined(TASK_MONITOR_TASK_ENABLE)
-        #error "TASK_MONITOR_TASK_ENABLE must be defined"
-        #elif (TASK_MONITOR_TASK_ENABLE == 1)
-        // Process Task Monitor data
-        ProcessTaskData<task_monitor_output_data>(_taskMonitorToUsbControllerHandle, TASK_OFFSET_TASK_MONITOR);
-        #endif
-
-        ProcessErrorsAndWarnings();
-
-        
-
-        if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-            continue;
+        // 5. Flush whatever accumulated this iteration: command responses and/or
+        //    stream records. Nothing is transmitted when the buffer is empty.
+        if (_txBufferIndex > 0)
+        {
+            if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY)
+            {
+                osDelay(USB_TASK_OSDELAY);
+                continue; // host busy; keep the buffer and retry next iteration
+            }
+            _txBufferIndex = 0;
         }
-        _txBufferIndex = 0;
 
         osDelay(USB_TASK_OSDELAY);
     }
@@ -147,9 +347,9 @@ void USBController::MockMessages(const bool forever)
     uint32_t timestamp = 0;
     usb_msg_header_t usb_header{};
 
-    // Wait for "OK" before starting data transmission
-    ReceiveAppAck();
-    
+    // Wait for the host handshake before starting data transmission
+    WaitForHandshake();
+
     while(forever)
     {
         #if !defined(OPTICAL_ENCODER_TASK_ENABLE)
@@ -306,9 +506,13 @@ bool USBController::IsBufferFull(std::size_t msgSize)
 
 }
 
-extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbController, osMessageQueueId_t taskMonitorToUsbControllerHandle)
+extern "C" void usbcontroller_main(osMessageQueueId_t sessionControllerToUsbController,
+                                   osMessageQueueId_t taskMonitorToUsbControllerHandle,
+                                   osMessageQueueId_t forceSensorCommandQueue,
+                                   osMessageQueueId_t taskCompletionQueue)
 {
-	USBController usb = USBController(sessionControllerToUsbController, taskMonitorToUsbControllerHandle);
+	USBController usb = USBController(sessionControllerToUsbController, taskMonitorToUsbControllerHandle,
+	                                  forceSensorCommandQueue, taskCompletionQueue);
 
 	if (!usb.Init())
 	{
