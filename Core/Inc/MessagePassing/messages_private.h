@@ -66,6 +66,33 @@ typedef struct
 
 _Static_assert(sizeof(session_controller_to_pid_controller) == 4 + 4, "Size of session_controller_to_pid_controller must be 8 bytes");
 
+
+// ---- USB host command routing (USB task <-> owning task) ------------------
+// Largest command body the USB task will forward to a task (after the
+// usb_cmd_header_t). Keep small; settings are a few bytes.
+#define USB_TASK_CMD_BODY_MAX 16
+
+// A host setting routed from the USB task straight to the owning task's command
+// queue. opcode/body are the task-local command; msg_id is the host correlation id
+// (0 => firmware-internal, no host ack). The target task parses body by opcode.
+typedef struct {
+	uint16_t opcode;
+	uint16_t msg_id;
+	uint8_t  body[USB_TASK_CMD_BODY_MAX];
+	uint8_t  body_len;
+} usb_task_command;
+
+// A completion the owning task posts back (shared queue) once it has applied a
+// command. The USB task drains these and frames a USB_MSG_RESPONSE to the host,
+// echoing msg_id with the real status — the far end of the full-path ack. msg_id 0
+// completions are dropped (internal commands the host never asked about).
+typedef struct {
+	task_offset_t task_offset;   // which module completed the command
+	uint16_t opcode;
+	uint16_t msg_id;
+	uint32_t status;             // usb_response_status_t
+} usb_task_completion;
+
 #ifdef __cplusplus
 }
 #endif

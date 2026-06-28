@@ -2,9 +2,19 @@
 #define INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PUBLIC_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 
-#define WARNING_ENUM_OFFSET 10000
+// A task error/warning is reported as a single 32-bit code:
+//   bits 31..16 : task offset (unique per task, see task_offset_t)
+//   bit  15     : warning flag (set => warning, clear => error)
+//   bits 14..0  : task-local error number
+// An error code is formed by OR-ing the task offset with the error number, so the
+// task id no longer needs to be sent as a separate field.
+#define TASK_OFFSET_SHIFT    16u
+#define WARNING_FLAG         (1u << 15)
+#define TASK_ERROR_NUM_MASK  (WARNING_FLAG - 1u)              // bits 0..14
+#define TASK_OFFSET_MASK     (0xFFFFu << TASK_OFFSET_SHIFT)   // bits 16..31
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,48 +23,47 @@ extern "C" {
 // ****************************************************
 // ERRORS AND WARNINGS
 // ****************************************************
-typedef enum : uint32_t 
+// Unique per-task offset occupying the high bits of an error code. OR-ed with a
+// task-local error number to form the error_code sent over USB.
+typedef enum : uint32_t
 {
-	TASK_ID_NO_TASK = 0xFFFF,
-    TASK_ID_TASK_MONITOR = 0,
-	TASK_ID_SESSION_CONTROLLER = 100,
-	TASK_ID_USB_CONTROLLER,
-	TASK_ID_SD_CONTROLLER,
-	TASK_ID_SENSOR_BOARD_CONTROLLER,
-    TASK_ID_OPTICAL_ENCODER,
-    TASK_ID_FORCE_SENSOR_ADC,
-    TASK_ID_FORCE_SENSOR_ADS1115,
-	TASK_ID_BPM_CONTROLLER,
-	TASK_ID_PID_CONTROLLER,
-	TASK_ID_LUMEX_LCD	
-} task_ids_t;
+	TASK_OFFSET_NO_TASK              = 0xFFFFu << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_TASK_MONITOR         = 0u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_SESSION_CONTROLLER   = 1u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_USB_CONTROLLER       = 2u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_SD_CONTROLLER        = 3u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_OPTICAL_ENCODER      = 4u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_FORCE_SENSOR_ADC     = 5u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_FORCE_SENSOR_ADS1115 = 6u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_BPM_CONTROLLER       = 7u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_PID_CONTROLLER       = 8u  << TASK_OFFSET_SHIFT,
+	TASK_OFFSET_LUMEX_LCD            = 9u  << TASK_OFFSET_SHIFT
+} task_offset_t;
 
 typedef struct __attribute__((packed))
 {
     uint32_t timestamp;
-    task_ids_t task_id;
-    uint32_t error_id;
+    uint32_t error_code;   // task_offset | (warning ? WARNING_FLAG : 0) | error number
 } task_error_data;
 
 #ifdef STM32H7xx_H
-_Static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
+_Static_assert(sizeof(task_error_data) == 4 + 4, "Size of task_error_data must be 8 bytes");
 #else
-static_assert(sizeof(task_error_data) == 4 + 4 + 4, "Size of task_error_data must be 12 bytes");
+static_assert(sizeof(task_error_data) == 4 + 4, "Size of task_error_data must be 8 bytes");
 #endif
 
-static inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_ids_t task_id, uint32_t error_id)
+static inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_offset_t task_offset, uint32_t error_id)
 {
     task_error_data error_data;
     error_data.timestamp = timestamp;
-    error_data.task_id = task_id;
-    error_data.error_id = error_id;
+    error_data.error_code = (uint32_t)task_offset | error_id;
     return error_data;
 }
 
 #ifdef STM32H7xx_H
-_Static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
+_Static_assert(sizeof(task_offset_t) == 4, "Size of task_offset_t must be 4 bytes");
 #else
-static_assert(sizeof(task_ids_t) == 4, "Size of task_id must be 4 bytes");
+static_assert(sizeof(task_offset_t) == 4, "Size of task_offset_t must be 4 bytes");
 #endif
 
 typedef enum : uint32_t
@@ -106,8 +115,8 @@ static_assert(sizeof(task_monitor_task_error_ids) == 4, "Size of task_monitor_ta
     
 typedef enum : uint32_t
 {
-    WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = 10000
-} pid_controller_task_error_ids;  
+    WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL = WARNING_FLAG
+} pid_controller_task_error_ids;
 
 #ifdef STM32H7xx_H
 _Static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controller_task_error_ids must be 4 bytes");
@@ -117,15 +126,27 @@ static_assert(sizeof(pid_controller_task_error_ids) == 4, "Size of pid_controlle
 
 typedef enum : uint32_t
 {
-    ERROR_SENSOR_BOARD_CONTROLLER_UART_INTERRUPT_START_FAILURE = 0,
-    ERROR_SENSOR_BOARD_CONTROLLER_INVALID_TASK_ID_RECEIVED,
-    WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_WRITE_FAILURE = 10000,
-    WARNING_SENSOR_BOARD_CONTROLLER_OPTICAL_SENSOR_CONFIG_ACK_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_WRITE_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADC_CONFIG_ACK_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_WRITE_FAILURE,
-    WARNING_SENSOR_BOARD_CONTROLLER_FORCE_SENSOR_ADS1115_CONFIG_ACK_FAILURE
-} sensor_board_controller_task_error_ids;
+    ERROR_FORCE_SENSOR_ADC_START_FAILURE = 0
+} force_sensor_adc_task_error_ids;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_adc_task_error_ids) == 4, "Size of force_sensor_adc_task_error_ids must be 4 bytes");
+#endif
+
+typedef enum : uint32_t
+{
+    ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE = 0,
+    WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE = WARNING_FLAG,
+    WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE
+} force_sensor_ads1115_error_ids;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+#else
+static_assert(sizeof(force_sensor_ads1115_error_ids) == 4, "Size of force_sensor_ads1115_error_ids must be 4 bytes");
+#endif
 
 
 // ****************************************************
@@ -153,7 +174,7 @@ static_assert(sizeof(usb_msg_type_t) == 4, "Size of usb_msg_type_t must be 4 byt
 
 typedef struct __attribute__((packed)) {
     usb_msg_type_t msg_type;     // protocol-level intent
-    task_ids_t  task_id;    // which module owns payload
+    task_offset_t  task_offset;  // which module owns payload
     uint32_t payload_len;  // bytes following header
 } usb_msg_header_t;
 
@@ -162,6 +183,91 @@ _Static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be
 #else
 static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be 12 bytes");
 #endif
+
+// ---- Host -> device framed command envelope -------------------------------
+// Inbound (PC -> STM32) frames are wrapped so the parser can resync after a ring
+// overflow drops bytes mid-stream:
+//   [uint16_t USB_FRAME_SOF][usb_msg_header_t header][payload bytes][uint16_t crc]
+// crc is CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) computed over the header
+// bytes followed by the payload bytes (the SOF marker and crc field themselves are
+// excluded). Multi-byte fields are little-endian, matching both the STM32 and the
+// x86 host. The same envelope is reused for the host-side parser.
+#define USB_FRAME_SOF        0xA55Au
+#define USB_FRAME_CRC_INIT   0xFFFFu
+#define USB_FRAME_CRC_POLY   0x1021u
+// Largest inbound payload the firmware accepts; frames claiming more are treated as
+// a spurious SOF and skipped during resync.
+#define USB_RX_MAX_PAYLOAD   128u
+
+// Shared CRC so firmware and host compute identical checksums over a frame body.
+static inline uint16_t usb_frame_crc16(const uint8_t *data, size_t len)
+{
+    uint16_t crc = USB_FRAME_CRC_INIT;
+    for (size_t i = 0; i < len; ++i)
+    {
+        crc ^= (uint16_t)((uint16_t)data[i] << 8);
+        for (int bit = 0; bit < 8; ++bit)
+        {
+            crc = (crc & 0x8000u) ? (uint16_t)((crc << 1) ^ USB_FRAME_CRC_POLY)
+                                  : (uint16_t)(crc << 1);
+        }
+    }
+    return crc;
+}
+
+// ---- Host command / firmware response payloads ----------------------------
+// COMMAND and CONFIG frame payloads (PC -> STM32) begin with this header. The
+// opcode is namespaced by the frame's task_offset (commands addressed to
+// TASK_OFFSET_USB_CONTROLLER use usb_controller_command_t, and so on). msg_id is
+// chosen by the host and echoed in the matching RESPONSE so a reply can be
+// correlated to its request. msg_id 0 is reserved for firmware-internal commands
+// that want no host ack; hosts use ids >= 1.
+typedef struct __attribute__((packed)) {
+    uint16_t opcode;
+    uint16_t msg_id;
+} usb_cmd_header_t;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(usb_cmd_header_t) == 4, "Size of usb_cmd_header_t must be 4 bytes");
+#else
+static_assert(sizeof(usb_cmd_header_t) == 4, "Size of usb_cmd_header_t must be 4 bytes");
+#endif
+
+// RESPONSE frame payload (STM32 -> PC): echoes the command's opcode + msg_id and
+// reports a status. Sent with task_offset set to the module that completed it, so
+// the host learns both which message (msg_id) and which module (frame task_offset)
+// acked. For a routed setting this is the full-path ack: it is emitted only after
+// the owning task has actually applied the command, with the real result status.
+typedef struct __attribute__((packed)) {
+    uint16_t opcode;
+    uint16_t msg_id;
+    uint32_t status;   // usb_response_status_t
+} usb_response_data_t;
+
+#ifdef STM32H7xx_H
+_Static_assert(sizeof(usb_response_data_t) == 8, "Size of usb_response_data_t must be 8 bytes");
+#else
+static_assert(sizeof(usb_response_data_t) == 8, "Size of usb_response_data_t must be 8 bytes");
+#endif
+
+typedef enum : uint32_t {
+    USB_RSP_OK = 0,
+    USB_RSP_UNKNOWN_COMMAND,   // opcode not recognised by the target module
+    USB_RSP_MALFORMED,         // payload too short / body out of range
+    USB_RSP_NOT_SUPPORTED,     // task_offset has no command route
+    USB_RSP_DEVICE_ERROR,      // target applied it but the device write failed (e.g. I2C)
+    USB_RSP_QUEUE_FULL,        // target task's command queue was full
+} usb_response_status_t;
+
+// USB-controller-local commands: frames addressed to TASK_OFFSET_USB_CONTROLLER.
+typedef enum : uint16_t {
+    USB_CMD_HELLO = 0,   // host handshake; firmware replies USB_MSG_RESPONSE / USB_RSP_OK
+} usb_controller_command_t;
+
+// Force-sensor (ADS1115) commands: frames addressed to TASK_OFFSET_FORCE_SENSOR_ADS1115.
+typedef enum : uint16_t {
+    FORCE_SENSOR_CMD_SET_DATA_RATE = 0,  // body[0] = ADS1115_RATE_* code (0..7)
+} force_sensor_command_opcode;
 
 typedef struct
 {
@@ -205,7 +311,7 @@ static_assert(sizeof(bpm_output_data) == 4 + 4 + 4, "Size of bpm_output_data mus
 typedef struct
 {
 	uint32_t timestamp;
-	task_ids_t task_id;
+	task_offset_t task_offset;
 	int task_state;
 	uint32_t free_bytes;
 } task_monitor_output_data;

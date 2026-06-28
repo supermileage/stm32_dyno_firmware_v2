@@ -120,7 +120,7 @@ bool LumexLCD::StartTimer(uint8_t microseconds)
 	{
 		task_error_data error_data = PopulateTaskErrorDataStruct(
 			get_timestamp(),
-			TASK_ID_LUMEX_LCD,
+			TASK_OFFSET_LUMEX_LCD,
 			static_cast<uint32_t>(ERROR_LUMEX_LCD_TIMER_START_FAILURE)
 		);
 		

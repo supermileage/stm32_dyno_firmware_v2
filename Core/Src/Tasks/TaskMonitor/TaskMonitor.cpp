@@ -23,8 +23,11 @@ bool TaskMonitor::Init()
 		#if SD_CONTROLLER_TASK_ENABLE
 		|| _osThreadIdPtrs->sd_controller == nullptr
 		#endif
-		#if SENSOR_BOARD_CONTROLLER_TASK_ENABLE
-		|| _osThreadIdPtrs->sensor_board_controller == nullptr
+		#if OPTICAL_ENCODER_TASK_ENABLE
+		|| _osThreadIdPtrs->optical_sensor == nullptr
+		#endif
+		#if FORCE_SENSOR_ADS1115_TASK_ENABLE || FORCE_SENSOR_ADC_TASK_ENABLE
+		|| _osThreadIdPtrs->force_sensor == nullptr
 		#endif
 		#if BPM_CONTROLLER_TASK_ENABLE
 		|| _osThreadIdPtrs->bpm_controller == nullptr
@@ -39,7 +42,7 @@ bool TaskMonitor::Init()
 	{
 		task_error_data error_data = PopulateTaskErrorDataStruct(
 			get_timestamp(),
-			TASK_ID_TASK_MONITOR,
+			TASK_OFFSET_TASK_MONITOR,
 			static_cast<uint32_t>(ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER)
 		);
 		_task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
@@ -49,12 +52,12 @@ bool TaskMonitor::Init()
 	return true;
 }
 
-void TaskMonitor::GetTaskDataAndSendToUsbController(task_ids_t task_id, osThreadId_t thread_id)
+void TaskMonitor::GetTaskDataAndSendToUsbController(task_offset_t task_offset, osThreadId_t thread_id)
 {
 	task_monitor_output_data msg{};
 	
 	msg.timestamp = get_timestamp();
-	msg.task_id = task_id;
+	msg.task_offset = task_offset;
 	msg.task_state = static_cast<int>(osThreadGetState(thread_id));
 	UBaseType_t free_words = uxTaskGetStackHighWaterMark((TaskHandle_t)thread_id);
 	msg.free_bytes = static_cast<uint32_t>(free_words) * sizeof(StackType_t);
@@ -68,28 +71,33 @@ void TaskMonitor::Run()
     while(1)
 	{
 		#if SESSION_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_SESSION_CONTROLLER, _osThreadIdPtrs->session_controller);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_SESSION_CONTROLLER, _osThreadIdPtrs->session_controller);
 		#endif
 		#if USB_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_USB_CONTROLLER, _osThreadIdPtrs->usb_controller);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_USB_CONTROLLER, _osThreadIdPtrs->usb_controller);
 		#endif
 		#if SD_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_SD_CONTROLLER, _osThreadIdPtrs->sd_controller);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_SD_CONTROLLER, _osThreadIdPtrs->sd_controller);
 		#endif
-		#if SENSOR_BOARD_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_SENSOR_BOARD_CONTROLLER, _osThreadIdPtrs->sensor_board_controller);
+		#if OPTICAL_ENCODER_TASK_ENABLE
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_OPTICAL_ENCODER, _osThreadIdPtrs->optical_sensor);
 		#endif 
+		#if FORCE_SENSOR_ADS1115_TASK_ENABLE
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_FORCE_SENSOR_ADS1115, _osThreadIdPtrs->force_sensor);
+		#elif FORCE_SENSOR_ADC_TASK_ENABLE
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_FORCE_SENSOR_ADC, _osThreadIdPtrs->force_sensor);
+		#endif
 		#if BPM_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_BPM_CONTROLLER, _osThreadIdPtrs->bpm_controller);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_BPM_CONTROLLER, _osThreadIdPtrs->bpm_controller);
 		#endif
 		#if PID_CONTROLLER_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_PID_CONTROLLER, _osThreadIdPtrs->pid_controller);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_PID_CONTROLLER, _osThreadIdPtrs->pid_controller);
 		#endif
 		#if LUMEX_LCD_TASK_ENABLE
-		GetTaskDataAndSendToUsbController(TASK_ID_LUMEX_LCD, _osThreadIdPtrs->lumex_lcd);
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_LUMEX_LCD, _osThreadIdPtrs->lumex_lcd);
 		#endif
 
-		GetTaskDataAndSendToUsbController(TASK_ID_TASK_MONITOR, osThreadGetId());
+		GetTaskDataAndSendToUsbController(TASK_OFFSET_TASK_MONITOR, osThreadGetId());
 		
 		osDelay(TASK_MONITOR_TASK_OSDELAY);
 	}

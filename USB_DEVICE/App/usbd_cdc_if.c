@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include <string.h>
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,8 +94,15 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-uint8_t usb_controller_rx_buffer[USB_CONTROLLER_RX_BUFFER_SIZE];
-size_t usb_controller_rx_index = 0;
+/* Host -> device byte ring. Producer: CDC_Receive_FS (USB ISR). Consumer: USB task.
+   Single-producer/single-consumer means no lock is required: the ISR only advances
+   usb_rx_write_index and the task only advances usb_rx_read_index, and aligned 32-bit
+   index reads/writes are atomic on Cortex-M. One slot is left empty so a full ring is
+   distinguishable from an empty one. */
+static uint8_t usb_rx_ring[USB_CONTROLLER_RX_BUFFER_SIZE];
+static volatile size_t usb_rx_write_index = 0;
+static volatile size_t usb_rx_read_index  = 0;
+static volatile uint8_t usb_rx_overflow   = 0;  /* set by the ISR when a write would lap the reader */
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -129,7 +136,7 @@ static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 static int8_t CDC_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
-
+static void usb_rx_push(const uint8_t *data, uint32_t len);
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**
@@ -262,36 +269,11 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  usb_rx_push(Buf, *Len);
 
-  uint8_t status = USBD_OK;
-  if (*Len > USB_CONTROLLER_RX_BUFFER_SIZE) 
-  {
-    // drop packet or set error flag
-    status = USBD_FAIL;
-    goto complete_transfer;
-  }
-
-  uint32_t len = *Len;
-  uint32_t idx = usb_controller_rx_index;
-
-  uint32_t space_to_end = USB_CONTROLLER_RX_BUFFER_SIZE - idx;
-
-  if (len <= space_to_end)
-  {
-    memcpy(&usb_controller_rx_buffer[idx], Buf, len);
-  }
-  else
-  {
-    memcpy(&usb_controller_rx_buffer[idx], Buf, space_to_end);
-    memcpy(&usb_controller_rx_buffer[0], Buf + space_to_end, len - space_to_end);
-  }
-
-  usb_controller_rx_index = (idx + len) % USB_CONTROLLER_RX_BUFFER_SIZE;
-
-complete_transfer:
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (status); 
+  return (USBD_OK);
   /* USER CODE END 6 */
 }
 
@@ -314,7 +296,14 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   if (hcdc->TxState != 0){
     return USBD_BUSY;
   }
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+  /* Copy into the CDC's own TX buffer and transmit from there so the caller can reuse
+     its buffer the moment this returns. The USB core reads from UserTxBufferFS (FIFO/DMA)
+     until the transfer completes; the TxState check above prevents a later call from
+     overwriting it while a transfer is still in flight. Without this copy, the caller's
+     buffer would be read by the core after the call returned, racing the next fill. */
+  if (Len > APP_TX_DATA_SIZE) { Len = APP_TX_DATA_SIZE; }
+  memcpy(UserTxBufferFS, Buf, Len);
+  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
   /* USER CODE END 7 */
   return result;
@@ -346,7 +335,74 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
-	
+
+}
+
+/* Producer side (USB ISR context): append bytes to the ring. If the ring would lap
+   the consumer, drop the remainder and raise the overflow flag so the frame parser
+   can resync at the next start-of-frame marker. */
+static void usb_rx_push(const uint8_t *data, uint32_t len)
+{
+  for (uint32_t i = 0; i < len; ++i)
+  {
+    size_t next = (usb_rx_write_index + 1u) % USB_CONTROLLER_RX_BUFFER_SIZE;
+    if (next == usb_rx_read_index)
+    {
+      usb_rx_overflow = 1;
+      return;
+    }
+    usb_rx_ring[usb_rx_write_index] = data[i];
+    usb_rx_write_index = next;
+  }
+}
+
+size_t usb_rx_available(void)
+{
+  size_t w = usb_rx_write_index;
+  size_t r = usb_rx_read_index;
+  return (w + USB_CONTROLLER_RX_BUFFER_SIZE - r) % USB_CONTROLLER_RX_BUFFER_SIZE;
+}
+
+size_t usb_rx_peek(uint8_t *dst, size_t n)
+{
+  size_t avail = usb_rx_available();
+  if (n > avail) { n = avail; }
+  size_t r = usb_rx_read_index;
+  for (size_t i = 0; i < n; ++i)
+  {
+    dst[i] = usb_rx_ring[(r + i) % USB_CONTROLLER_RX_BUFFER_SIZE];
+  }
+  return n;
+}
+
+void usb_rx_skip(size_t n)
+{
+  size_t avail = usb_rx_available();
+  if (n > avail) { n = avail; }
+  usb_rx_read_index = (usb_rx_read_index + n) % USB_CONTROLLER_RX_BUFFER_SIZE;
+}
+
+size_t usb_rx_read(uint8_t *dst, size_t n)
+{
+  n = usb_rx_peek(dst, n);
+  usb_rx_skip(n);
+  return n;
+}
+
+int usb_rx_overflowed(void)
+{
+  int o = usb_rx_overflow;
+  usb_rx_overflow = 0;
+  return o;
+}
+
+/* Consumer-side discard of everything currently buffered. Safe under the SPSC
+   contract: only the consumer advances read_index, so catching it up to a snapshot
+   of the producer's write_index drops the (now desynced) contents while preserving
+   any bytes that arrive afterward. Used to resync after an overflow. */
+void usb_rx_flush(void)
+{
+  usb_rx_read_index = usb_rx_write_index;
 }
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 

@@ -1,7 +1,7 @@
 #ifndef INC_CONFIG_CONFIG_H_
 #define INC_CONFIG_CONFIG_H_
 
-#include "ADS1115_defines.h"
+#include "ADS1115_main.h"
 
 // Voltage Reference (should be 3V3)
 #define VREF 3.3f
@@ -9,12 +9,6 @@
 // Mechanical Power Calculation Constants
 #define DISTANCE_FROM_FORCE_SENSOR_TO_CENTER_OF_SHAFT_M 1.0f
 #define MOMENT_OF_INERTIA_KG_M2 1.0f
-
-// Optical Encoder Config
-#define NUM_APERTURES 64
-
-// Force Sensor Config
-#define MAX_FORCE_LBF 25.0f
 
 // Main PID controller parameters
 #define K_P 1.0f
@@ -27,7 +21,7 @@
 #define VERTICAL_BIAS 0.0f
 
 // User Input Config (like buttons)
-#define USER_INPUT_CIRCULAR_BUFFER_SIZE 100
+#define USER_INPUT_CIRCULAR_BUFFER_SIZE 100u
 
 // Session Controller Config
 #define SESSIONCONTROLLER_TASK_OSDELAY 5
@@ -38,25 +32,23 @@
 #define BPM_CIRCULAR_BUFFER_SIZE 100
 #define BPM_TASK_OSDELAY 3
 
-// SENSOR BOARD CONTROLLER Config
-#define SENSOR_BOARD_CONTROLLER_TASK_OSDELAY 5
-#define ADS1115_FORCESENSOR_VOLTAGE 5.1f
+// FORCE SENSOR Config
+#define MAX_FORCE_LBF 25.0f
+#define FORCESENSOR_TASK_OSDELAY 1
 #define FORCESENSOR_CIRCULAR_BUFFER_SIZE 100
-#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 100
-
-#define OPTICAL_SENSOR_ACK_MAX_RETRIES 5
-#define FORCE_SENSOR_ADC_ACK_MAX_RETRIES 5
-#define ADS1115_ACK_MAX_RETRIES 5
+// Bounded wait (ms) on the enable queue while disabled, so USB setting commands
+// are still serviced when the sensor is idle (instead of blocking forever).
+#define FORCESENSOR_COMMAND_POLL_OSDELAY 50
 
 // ADS1115 I2C Config
-#define ADS1115_DEFAULT_MULTIPLEXER_SETTING ADS1115_MUX_P0_NG
-#define ADS1115_DEFAULT_COMPARATOR_MODE ADS1115_COMP_MODE_HYSTERESIS
-#define ADS1115_DEFAULT_COMPARATOR_POLARITY ADS1115_COMP_POL_ACTIVE_LOW
-#define ADS1115_DEFAULT_COMPARATOR_LATCH_ENABLED ADS1115_COMP_LAT_NON_LATCHING
-#define ADS1115_DEFAULT_COMPARATOR_QUEUE_MODE ADS1115_COMP_QUE_DISABLE
-#define ADS1115_DEFAULT_MODE ADS1115_MODE_SINGLESHOT
 #define ADS1115_SAMPLE_SPEED ADS1115_RATE_475
-#define ADS1115_DEFAULT_GAIN ADS1115_PGA_6P144
+
+
+// Optical Encoder Config
+#define OPTICAL_MAX_NUM_OVERFLOWS 3 // Meant to count overflows for optical encoder
+#define NUM_APERTURES 64 // Tied to physical 3D printed apparatus
+#define OPTICAL_ENCODER_CIRCULAR_BUFFER_SIZE 100 // Need to evaluate maximum possible size from STM32
+#define OPTICAL_ENCODER_TASK_OSDELAY 2
 
 // PID config
 #define PID_INITIAL_STATUS false
@@ -65,6 +57,10 @@
 // USB config
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 #define USB_TASK_OSDELAY 5
+// Bounded retries when flushing a full TX buffer before giving up, so a host that
+// stops draining the IN endpoint can't block the USB task and starve RX/command
+// handling. Each retry waits ~1ms (rides out a prior packet still in flight).
+#define USB_TX_FLUSH_MAX_RETRIES 5
 
 // LCD config
 #define LCD_TASK_OSDELAY 20

@@ -11,6 +11,7 @@
 
 #include "MessagePassing/messages_private.h"
 #include "MessagePassing/messages_public.h"
+#include "MessagePassing/messages_public.h"
 
 #include "TimeKeeping/timestamps.h"
 
@@ -29,7 +30,7 @@ public:
 
     void Run();
 private:
-    void GetTaskDataAndSendToUsbController(task_ids_t task_id, osThreadId_t thread_id);
+    void GetTaskDataAndSendToUsbController(task_offset_t task_offset, osThreadId_t thread_id);
 
     CircularBufferWriter<task_error_data> _task_error_buffer_writer;
 

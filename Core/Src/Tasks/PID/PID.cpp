@@ -176,7 +176,7 @@ void PIDController::SendBrakeDutyCycle(float new_duty_cycle_percent)
 	{
 		task_error_data error_data = PopulateTaskErrorDataStruct(
             get_timestamp(),
-            TASK_ID_PID_CONTROLLER,
+            TASK_OFFSET_PID_CONTROLLER,
             static_cast<uint32_t>(WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL)
         );
         _task_error_buffer_writer.WriteElementAndIncrementIndex(error_data);
