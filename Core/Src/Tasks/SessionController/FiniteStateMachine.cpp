@@ -506,7 +506,9 @@ void FSM::DisplayTorque(float torque)
     float value = std::round(torque * 100.0) / 100.0;
     snprintf(buf, sizeof(buf), "%5.2f", value);
 
-    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 0, 12, buf, sizeof(buf) - 1);
+    // %5.2f is 5 chars wide; start at col 11 (blank separator) so it fits cols 11-15
+    // instead of overflowing past col 15 and wrapping onto col 0 (overwriting 'n').
+    AddToLumexLCDMessageQueue(WRITE_TO_DISPLAY, 0, 11, buf, sizeof(buf) - 1);
 }
 
 void FSM::DisplayPower(float power)

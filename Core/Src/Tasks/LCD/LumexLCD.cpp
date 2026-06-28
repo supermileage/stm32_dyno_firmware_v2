@@ -245,7 +245,13 @@ bool LumexLCD::DisplayString(uint8_t row, uint8_t column, const char* string, si
 		}
 
 		column++;
-		column %= 16;
+
+		// Clamp instead of wrapping: drop any chars past the last column so an
+		// overflow fails visibly in one cell rather than corrupting another row.
+		if (column >= 16)
+		{
+			break;
+		}
 	}
 
 	return true;
