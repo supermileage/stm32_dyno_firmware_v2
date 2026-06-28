@@ -57,6 +57,10 @@
 // USB config
 #define USB_TX_BUFFER_SIZE 512 // Buffer that is being sent to USB peripheral
 #define USB_TASK_OSDELAY 5
+// Bounded retries when flushing a full TX buffer before giving up, so a host that
+// stops draining the IN endpoint can't block the USB task and starve RX/command
+// handling. Each retry waits ~1ms (rides out a prior packet still in flight).
+#define USB_TX_FLUSH_MAX_RETRIES 5
 
 // LCD config
 #define LCD_TASK_OSDELAY 20

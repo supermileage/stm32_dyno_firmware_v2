@@ -99,3 +99,7 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMENT "Generating ${CMAKE_PROJECT_NAME}.hex and ${CMAKE_PROJECT_NAME}.bin"
     VERBATIM
 )
+
+# `flash` target: program the built firmware over SWD/ST-Link using whichever
+# flashing tool is installed (auto-detected). Included after FW_BIN is defined.
+include(${CMAKE_SOURCE_DIR}/cmake/flash.cmake)

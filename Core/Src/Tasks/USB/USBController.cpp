@@ -194,9 +194,15 @@ bool USBController::TryReadFrame(usb_msg_header_t& header, uint8_t* payload, siz
     constexpr size_t CRC_SIZE = sizeof(uint16_t);
     constexpr size_t MIN_FRAME = SOF_SIZE + HDR_SIZE + CRC_SIZE;
 
-    // A ring overflow means bytes were dropped and the stream is desynced; clearing
-    // the flag here is enough — the SOF/CRC scan below finds the next clean boundary.
-    usb_rx_overflowed();
+    // A ring overflow means bytes were dropped: the stream is desynced and whatever is
+    // buffered now straddles the gap. Discard it and resync from fresh bytes rather than
+    // risk a torn frame whose (plausible) length field stalls the parser waiting for a
+    // completion that never comes. Any command lost this way is recovered by the host's
+    // ack-timeout retry (all inbound commands are acknowledged).
+    if (usb_rx_overflowed())
+    {
+        usb_rx_flush();
+    }
 
     while (usb_rx_available() >= MIN_FRAME)
     {
@@ -488,13 +494,24 @@ void USBController::ProcessErrorsAndWarnings()
 
 void USBController::StallIfIsBufferFull(bool bufferFull)
 {
-    // Ensure the buffer is not full before adding data
-    if (bufferFull) {
-        while (CDC_Transmit_FS(_txBuffer, _txBufferIndex) == USBD_BUSY) {
-            osDelay(1);
-        }
-        _txBufferIndex = 0;
+    if (!bufferFull) {
+        return;
     }
+    // Make room by flushing, but never block the task indefinitely. This runs on the
+    // single-threaded USB task, so spinning here while a host stops draining the IN
+    // endpoint would also starve RX/command handling. Retry a bounded number of times
+    // to ride out transient BUSY (a prior packet still in flight), then give up and drop
+    // the buffered batch so the loop can keep servicing inbound commands. Telemetry is
+    // lossy by nature; a dropped command response is recovered by the host's ack-timeout
+    // retry.
+    for (uint32_t attempt = 0; attempt < USB_TX_FLUSH_MAX_RETRIES; ++attempt) {
+        if (CDC_Transmit_FS(_txBuffer, _txBufferIndex) != USBD_BUSY) {
+            _txBufferIndex = 0;
+            return;
+        }
+        osDelay(1);
+    }
+    _txBufferIndex = 0; // host not draining; drop this batch and move on
 }
 
 bool USBController::IsBufferFull(std::size_t msgSize)

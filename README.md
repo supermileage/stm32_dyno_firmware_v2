@@ -30,8 +30,12 @@ You only need these to **build**:
 
 Additional, only if you need them:
 - **STM32CubeMX** — to regenerate code after editing `stm32_dyno_firmware_v2.ioc`
-  ([download](https://www.st.com/en/development-tools/stm32cubemx.html)).
-- **STM32CubeProgrammer** or **stlink** — to flash the board.
+  ([download](https://www.st.com/en/development-tools/stm32cubemx.html)). Not in
+  apt/dnf; the download requires a free ST (myST) account.
+- A **flashing tool** — to program the board. The open-source options
+  (`stlink`, `openocd`, `dfu-util`, `stm32flash`) install from apt/dnf with no
+  account; **STM32CubeProgrammer is _not_ available via apt/dnf** and requires a
+  free ST account to download. See [Flashing the Firmware](#flashing-the-firmware).
 
 ## Building the Project
 
@@ -75,14 +79,26 @@ printf 'config load %s/stm32_dyno_firmware_v2.ioc\nproject generate\nexit\n' "$P
 ```
 
 ## Flashing the Firmware
-Flash to address `0x08000000` over SWD/ST-Link. With **stlink**:
+Build once, then flash the generated binary — **no rebuild needed**. Three methods
+(SWD via ST-Link, USB DFU, or UART) work on Linux and Windows; you pick the method
+and tool explicitly.
+
 ```bash
-st-flash write build/Debug/stm32_dyno_firmware_v2.bin 0x08000000
+./Scripts/build-docker.sh Debug                 # build → build/Debug/*.elf,*.bin
+./Scripts/flash.sh Debug swd --tool st-flash    # flash that image (no rebuild)
 ```
-Or with **STM32CubeProgrammer**:
-```bash
-STM32_Programmer_CLI -c port=SWD -d build/Debug/stm32_dyno_firmware_v2.elf -rst
+```powershell
+.\Scripts\flash.ps1 -Config Debug -Method swd -Tool st-flash
 ```
+
+The open-source tools (`st-flash`, `openocd`, `dfu-util`, `stm32flash`) install
+from apt/dnf with no account; **STM32CubeProgrammer is _not_ in apt/dnf and needs
+a free ST account**. On Linux, USB access also needs a one-time udev-rule / group
+setup.
+
+See **[Scripts/README.md](Scripts/README.md)** for the full guide: installing each
+tool, choosing among multiple connected probes, device discovery, the CMake
+`flash` targets, and **Linux USB permissions**.
 
 ## Continuous Integration
 `.github/workflows/build.yml` builds both `Debug` and `Release` with CMake on every

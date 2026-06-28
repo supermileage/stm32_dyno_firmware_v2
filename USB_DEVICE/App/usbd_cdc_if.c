@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include <string.h>
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -296,7 +296,14 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   if (hcdc->TxState != 0){
     return USBD_BUSY;
   }
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+  /* Copy into the CDC's own TX buffer and transmit from there so the caller can reuse
+     its buffer the moment this returns. The USB core reads from UserTxBufferFS (FIFO/DMA)
+     until the transfer completes; the TxState check above prevents a later call from
+     overwriting it while a transfer is still in flight. Without this copy, the caller's
+     buffer would be read by the core after the call returned, racing the next fill. */
+  if (Len > APP_TX_DATA_SIZE) { Len = APP_TX_DATA_SIZE; }
+  memcpy(UserTxBufferFS, Buf, Len);
+  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
   /* USER CODE END 7 */
   return result;
@@ -387,6 +394,15 @@ int usb_rx_overflowed(void)
   int o = usb_rx_overflow;
   usb_rx_overflow = 0;
   return o;
+}
+
+/* Consumer-side discard of everything currently buffered. Safe under the SPSC
+   contract: only the consumer advances read_index, so catching it up to a snapshot
+   of the producer's write_index drops the (now desynced) contents while preserving
+   any bytes that arrive afterward. Used to resync after an overflow. */
+void usb_rx_flush(void)
+{
+  usb_rx_read_index = usb_rx_write_index;
 }
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 

@@ -118,6 +118,7 @@ size_t usb_rx_peek(uint8_t *dst, size_t n); /* copy up to n bytes without consum
 size_t usb_rx_read(uint8_t *dst, size_t n); /* copy and consume up to n bytes */
 void   usb_rx_skip(size_t n);               /* discard up to n bytes */
 int    usb_rx_overflowed(void);             /* read-and-clear the overflow flag */
+void   usb_rx_flush(void);                   /* discard all buffered bytes (resync after overflow) */
 /* USER CODE END EXPORTED_FUNCTIONS */
 
 /**
