@@ -1,0 +1,123 @@
+# Source-of-truth schema for Core/Inc/MessagePassing/messages_private.h
+#
+# Firmware-internal inter-task queue payloads (not part of the USB wire contract).
+# Section kinds and field options are documented in schema/messages_public.yaml and
+# templates/header.h.j2.
+
+guard: INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PRIVATE_H_
+includes:
+  - stdint.h
+  - stdbool.h
+  - stdlib.h
+  - stddef.h
+  - { local: cmsis_os2.h }
+  - { local: Config/config.h }
+  - { local: messages_public.h }
+
+sections:
+  - kind: code
+    text: |-
+      #ifdef __cplusplus
+      extern "C" {
+      #endif
+
+  - kind: enum
+    name: session_controller_to_lumex_lcd_opcode
+    base: uint32_t
+    comment: |-
+      Opcodes for controlling the Lumex LCD display from the session controller
+    values:
+      - { name: CLEAR_DISPLAY,    value: "0", comment: "Clear the entire display" }
+      - { name: WRITE_TO_DISPLAY, value: "1", comment: "Write a string to a specific location on the display" }
+
+  - { kind: static_assert, expr: "sizeof(session_controller_to_lumex_lcd_opcode) == 4", message: "Size of session_controller_to_lumex_lcd_opcode must be 4 bytes" }
+
+  - kind: struct
+    name: session_controller_to_lumex_lcd
+    comment: |-
+      Message sent from the session controller to the Lumex LCD
+    fields:
+      - { type: session_controller_to_lumex_lcd_opcode, name: op, comment: "Operation to perform on the display" }
+      - { type: uint32_t, name: row,    comment: "Row number on the LCD" }
+      - { type: uint32_t, name: column, comment: "Column number on the LCD" }
+      - { type: size_t,   name: size }
+      - { type: char,     name: display_string, array: SESSION_CONTROLLER_TO_LUMEX_LCD_MSG_STRING_SIZE, comment: "String to write (if WRITE_TO_DISPLAY)" }
+
+  - kind: static_assert
+    expr: "sizeof(session_controller_to_lumex_lcd) >= offsetof(session_controller_to_lumex_lcd, display_string) + sizeof(((session_controller_to_lumex_lcd *)0)->display_string)"
+    message: "Size of session_controller_to_lumex_lcd must be correct"
+
+  - kind: enum
+    name: session_controller_to_bpm_opcode
+    base: uint32_t
+    comment: |-
+      Opcodes for controlling the BPM (Pulse Width Modulation) module from the session controller
+    values:
+      - { name: READ_FROM_PID, value: "0", comment: "read from PID Controller" }
+      - { name: START_PWM, comment: "Start PWM output" }
+      - { name: STOP_PWM,  comment: "Stop PWM output" }
+
+  - { kind: static_assert, expr: "sizeof(session_controller_to_bpm_opcode) == 4", message: "Size of session_controller_to_bpm_opcode must be 4 bytes" }
+
+  - kind: struct
+    name: session_controller_to_bpm
+    comment: |-
+      Message sent from the session controller to the BPM module
+    fields:
+      - { type: session_controller_to_bpm_opcode, name: op, comment: "Operation to perform on the BPM" }
+      - { type: float, name: new_duty_cycle_percent, comment: "New duty cycle percentage from 0 - 1" }
+
+  - { kind: static_assert, expr: "sizeof(session_controller_to_bpm) == 4 + 4", message: "Size of session_controller_to_bpm must be 8 bytes" }
+
+  - kind: struct
+    name: session_controller_to_pid_controller
+    comment: |-
+      Message sent from the session controller to the PID controller
+    fields:
+      - { type: bool,  name: enable_status, comment: "Enable or disable the PID controller" }
+      - { type: float, name: desired_angular_velocity, comment: "Desired motor RPM setpoint" }
+
+  - { kind: static_assert, expr: "sizeof(session_controller_to_pid_controller) == 4 + 4", message: "Size of session_controller_to_pid_controller must be 8 bytes" }
+
+  - kind: comment
+    text: |-
+      ---- USB host command routing (USB task <-> owning task) ------------------
+      Largest command body the USB task will forward to a task (after the
+      usb_cmd_header_t). Keep small; settings are a few bytes.
+
+  - { kind: define, name: USB_TASK_CMD_BODY_MAX, value: "16" }
+
+  - kind: comment
+    text: |-
+      A host setting routed from the USB task straight to the owning task's command
+      queue. opcode/body are the task-local command; msg_id is the host correlation id
+      (0 => firmware-internal, no host ack). The target task parses body by opcode.
+
+  - kind: struct
+    name: usb_task_command
+    fields:
+      - { type: uint16_t, name: opcode }
+      - { type: uint16_t, name: msg_id }
+      - { type: uint8_t,  name: body, array: USB_TASK_CMD_BODY_MAX }
+      - { type: uint8_t,  name: body_len }
+
+  - kind: comment
+    text: |-
+      A completion the owning task posts back (shared queue) once it has applied a
+      command. The USB task drains these and frames a USB_MSG_RESPONSE to the host,
+      echoing msg_id with the real status — the far end of the full-path ack. msg_id 0
+      completions are dropped (internal commands the host never asked about).
+
+  - kind: struct
+    name: usb_task_completion
+    fields:
+      - { type: task_offset_t, name: task_offset, comment: "which module completed the command" }
+      - { type: uint16_t, name: opcode }
+      - { type: uint16_t, name: msg_id }
+      - { type: uint32_t, name: status, comment: "usb_response_status_t" }
+
+  - kind: code
+    text: |-
+      #ifdef __cplusplus
+      }
+      #endif

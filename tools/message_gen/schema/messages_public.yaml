@@ -1,0 +1,336 @@
+# Source-of-truth schema for Core/Inc/MessagePassing/messages_public.h
+#
+# This file is the contract shared with the PC software. Edit it, run
+#   tools/message_gen/generate.py
+# and the C header (and, later, the host-side parser) are regenerated.
+#
+# Section kinds (emitted top-to-bottom in the order listed):
+#   comment        a // banner / prose block               -> text
+#   define         a #define                                -> name, value, [comment]
+#   code           verbatim C (extern "C" guards, helpers)  -> text
+#   enum           typedef enum : base { ... }              -> name, base, [comment], values[]
+#   struct         typedef struct [packed] { ... }          -> name, [packed], [comment], fields[]
+#   static_assert  the STM32H7 / host dual-assert block     -> expr, message
+#
+# `static_assert` is its own section so it lands in the original order, and so the
+# 10-line #ifdef STM32H7xx_H / _Static_assert / static_assert boilerplate exists in
+# exactly one place (the template macro) instead of being hand-copied per type.
+
+guard: INC_MAIN_BOARD_MESSAGEPASSING_MESSAGES_PUBLIC_H_
+includes:
+  - stdint.h
+  - stddef.h
+  - assert.h
+
+sections:
+  - kind: comment
+    text: |-
+      A task error/warning is reported as a single 32-bit code:
+        bits 31..16 : task offset (unique per task, see task_offset_t)
+        bit  15     : warning flag (set => warning, clear => error)
+        bits 14..0  : task-local error number
+      An error code is formed by OR-ing the task offset with the error number, so the
+      task id no longer needs to be sent as a separate field.
+
+  - { kind: define, name: TASK_OFFSET_SHIFT,   value: "16u" }
+  - { kind: define, name: WARNING_FLAG,        value: "(1u << 15)" }
+  - { kind: define, name: TASK_ERROR_NUM_MASK, value: "(WARNING_FLAG - 1u)", comment: "bits 0..14" }
+  - { kind: define, name: TASK_OFFSET_MASK,    value: "(0xFFFFu << TASK_OFFSET_SHIFT)", comment: "bits 16..31" }
+
+  - kind: code
+    text: |-
+      #ifdef __cplusplus
+      extern "C" {
+      #endif
+
+  - kind: comment
+    text: |-
+      ****************************************************
+      ERRORS AND WARNINGS
+      ****************************************************
+
+  - kind: enum
+    name: task_offset_t
+    base: uint32_t
+    comment: |-
+      Unique per-task offset occupying the high bits of an error code. OR-ed with a
+      task-local error number to form the error_code sent over USB.
+    values:
+      - { name: TASK_OFFSET_NO_TASK,              value: "0xFFFFu << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_TASK_MONITOR,         value: "0u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_SESSION_CONTROLLER,   value: "1u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_USB_CONTROLLER,       value: "2u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_SD_CONTROLLER,        value: "3u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_OPTICAL_ENCODER,      value: "4u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_FORCE_SENSOR_ADC,     value: "5u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_FORCE_SENSOR_ADS1115, value: "6u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_BPM_CONTROLLER,       value: "7u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_PID_CONTROLLER,       value: "8u  << TASK_OFFSET_SHIFT" }
+      - { name: TASK_OFFSET_LUMEX_LCD,            value: "9u  << TASK_OFFSET_SHIFT" }
+
+  - kind: struct
+    name: task_error_data
+    packed: true
+    fields:
+      - { type: uint32_t, name: timestamp }
+      - { type: uint32_t, name: error_code, comment: "task_offset | (warning ? WARNING_FLAG : 0) | error number" }
+
+  - { kind: static_assert, expr: "sizeof(task_error_data) == 4 + 4", message: "Size of task_error_data must be 8 bytes" }
+
+  - kind: code
+    text: |-
+      static inline task_error_data PopulateTaskErrorDataStruct(uint32_t timestamp, task_offset_t task_offset, uint32_t error_id)
+      {
+          task_error_data error_data;
+          error_data.timestamp = timestamp;
+          error_data.error_code = (uint32_t)task_offset | error_id;
+          return error_data;
+      }
+
+  - { kind: static_assert, expr: "sizeof(task_offset_t) == 4", message: "Size of task_offset_t must be 4 bytes" }
+
+  - kind: enum
+    name: session_controller_task_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_SESSION_CONTROLLER_TIMESTAMP_TIMER_START_FAILURE, value: "0" }
+      - { name: ERROR_SESSION_CONTROLLER_INVALID_TASK_QUEUE_POINTER }
+      - { name: ERROR_SESSION_CONTROLLER_INVALID_UART1_MUTEX_POINTER }
+
+  - { kind: static_assert, expr: "sizeof(session_controller_task_error_ids) == 4", message: "Size of session_controller_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: bpm_task_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_BPM_PWM_START_FAILURE, value: "0" }
+      - { name: ERROR_BPM_PWM_STOP_FAILURE }
+
+  - { kind: static_assert, expr: "sizeof(bpm_task_error_ids) == 4", message: "Size of bpm_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: lumex_lcd_task_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_LUMEX_LCD_TIMER_START_FAILURE, value: "0" }
+
+  - { kind: static_assert, expr: "sizeof(lumex_lcd_task_error_ids) == 4", message: "Size of lumex_lcd_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: task_monitor_task_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_TASK_MONITOR_INVALID_THREAD_ID_POINTER, value: "0" }
+
+  - { kind: static_assert, expr: "sizeof(task_monitor_task_error_ids) == 4", message: "Size of task_monitor_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: pid_controller_task_error_ids
+    base: uint32_t
+    values:
+      - { name: WARNING_PID_CONTROLLER_MESSAGE_QUEUE_FULL, value: "WARNING_FLAG" }
+
+  - { kind: static_assert, expr: "sizeof(pid_controller_task_error_ids) == 4", message: "Size of pid_controller_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: force_sensor_adc_task_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_FORCE_SENSOR_ADC_START_FAILURE, value: "0" }
+
+  - { kind: static_assert, expr: "sizeof(force_sensor_adc_task_error_ids) == 4", message: "Size of force_sensor_adc_task_error_ids must be 4 bytes" }
+
+  - kind: enum
+    name: force_sensor_ads1115_error_ids
+    base: uint32_t
+    values:
+      - { name: ERROR_FORCE_SENSOR_ADS1115_INIT_FAILURE, value: "0" }
+      - { name: WARNING_FORCE_SENSOR_ADS1115_TRIGGER_CONVERSION_FAILURE, value: "WARNING_FLAG" }
+      - { name: WARNING_FORCE_SENSOR_ADS1115_GET_CONVERSION_FAILURE }
+
+  - { kind: static_assert, expr: "sizeof(force_sensor_ads1115_error_ids) == 4", message: "Size of force_sensor_ads1115_error_ids must be 4 bytes" }
+
+  - kind: comment
+    text: |-
+      ****************************************************
+      USB AND PUBLIC MESSAGES
+      ****************************************************
+
+  - kind: enum
+    name: usb_msg_type_t
+    base: uint32_t
+    values:
+      - { name: USB_MSG_INVALID, value: "0" }
+      - { name: USB_MSG_COMMAND,  blank_before: true, comment: "PC -> STM32 (do something)" }
+      - { name: USB_MSG_RESPONSE, comment: "STM32 -> PC (reply to command)" }
+      - { name: USB_MSG_EVENT,    comment: "STM32 -> PC (async event)" }
+      - { name: USB_MSG_STREAM,   comment: "STM32 -> PC (continuous data)" }
+      - { name: USB_MSG_CONFIG,   comment: "PC -> STM32 (set parameters)" }
+      - { name: USB_MSG_STATUS,   comment: "STM32 -> PC (health / state)" }
+      - { name: USB_MSG_ERROR,    blank_before: true, comment: "STM32 -> PC (error report)" }
+      - { name: USB_MSG_WARNING,  comment: "STM32 -> PC (warning report)" }
+
+  - { kind: static_assert, expr: "sizeof(usb_msg_type_t) == 4", message: "Size of usb_msg_type_t must be 4 bytes" }
+
+  - kind: struct
+    name: usb_msg_header_t
+    packed: true
+    fields:
+      - { type: usb_msg_type_t, name: msg_type,    comment: "protocol-level intent" }
+      - { type: task_offset_t,  name: task_offset, comment: "which module owns payload" }
+      - { type: uint32_t,       name: payload_len, comment: "bytes following header" }
+
+  - { kind: static_assert, expr: "sizeof(usb_msg_header_t) == 12", message: "Size of usb_msg_header_t must be 12 bytes" }
+
+  - kind: comment
+    text: |-
+      ---- Host -> device framed command envelope -------------------------------
+      Inbound (PC -> STM32) frames are wrapped so the parser can resync after a ring
+      overflow drops bytes mid-stream:
+        [uint16_t USB_FRAME_SOF][usb_msg_header_t header][payload bytes][uint16_t crc]
+      crc is CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) computed over the header
+      bytes followed by the payload bytes (the SOF marker and crc field themselves are
+      excluded). Multi-byte fields are little-endian, matching both the STM32 and the
+      x86 host. The same envelope is reused for the host-side parser.
+
+  - { kind: define, name: USB_FRAME_SOF,      value: "0xA55Au" }
+  - { kind: define, name: USB_FRAME_CRC_INIT, value: "0xFFFFu" }
+  - { kind: define, name: USB_FRAME_CRC_POLY, value: "0x1021u" }
+
+  - kind: comment
+    text: |-
+      Largest inbound payload the firmware accepts; frames claiming more are treated as
+      a spurious SOF and skipped during resync.
+
+  - { kind: define, name: USB_RX_MAX_PAYLOAD, value: "128u" }
+
+  - kind: comment
+    text: |-
+      Shared CRC so firmware and host compute identical checksums over a frame body.
+
+  - kind: code
+    text: |-
+      static inline uint16_t usb_frame_crc16(const uint8_t *data, size_t len)
+      {
+          uint16_t crc = USB_FRAME_CRC_INIT;
+          for (size_t i = 0; i < len; ++i)
+          {
+              crc ^= (uint16_t)((uint16_t)data[i] << 8);
+              for (int bit = 0; bit < 8; ++bit)
+              {
+                  crc = (crc & 0x8000u) ? (uint16_t)((crc << 1) ^ USB_FRAME_CRC_POLY)
+                                        : (uint16_t)(crc << 1);
+              }
+          }
+          return crc;
+      }
+
+  - kind: comment
+    text: |-
+      ---- Host command / firmware response payloads ----------------------------
+      COMMAND and CONFIG frame payloads (PC -> STM32) begin with this header. The
+      opcode is namespaced by the frame's task_offset (commands addressed to
+      TASK_OFFSET_USB_CONTROLLER use usb_controller_command_t, and so on). msg_id is
+      chosen by the host and echoed in the matching RESPONSE so a reply can be
+      correlated to its request. msg_id 0 is reserved for firmware-internal commands
+      that want no host ack; hosts use ids >= 1.
+
+  - kind: struct
+    name: usb_cmd_header_t
+    packed: true
+    fields:
+      - { type: uint16_t, name: opcode }
+      - { type: uint16_t, name: msg_id }
+
+  - { kind: static_assert, expr: "sizeof(usb_cmd_header_t) == 4", message: "Size of usb_cmd_header_t must be 4 bytes" }
+
+  - kind: comment
+    text: |-
+      RESPONSE frame payload (STM32 -> PC): echoes the command's opcode + msg_id and
+      reports a status. Sent with task_offset set to the module that completed it, so
+      the host learns both which message (msg_id) and which module (frame task_offset)
+      acked. For a routed setting this is the full-path ack: it is emitted only after
+      the owning task has actually applied the command, with the real result status.
+    # NOTE: see [[usb-command-routing-direct-to-task]] -- USB routes settings straight
+    # to the owning task; the RESPONSE is the far end of that round trip.
+
+  - kind: struct
+    name: usb_response_data_t
+    packed: true
+    fields:
+      - { type: uint16_t, name: opcode }
+      - { type: uint16_t, name: msg_id }
+      - { type: uint32_t, name: status, comment: "usb_response_status_t" }
+
+  - { kind: static_assert, expr: "sizeof(usb_response_data_t) == 8", message: "Size of usb_response_data_t must be 8 bytes" }
+
+  - kind: enum
+    name: usb_response_status_t
+    base: uint32_t
+    values:
+      - { name: USB_RSP_OK, value: "0" }
+      - { name: USB_RSP_UNKNOWN_COMMAND, comment: "opcode not recognised by the target module" }
+      - { name: USB_RSP_MALFORMED,       comment: "payload too short / body out of range" }
+      - { name: USB_RSP_NOT_SUPPORTED,   comment: "task_offset has no command route" }
+      - { name: USB_RSP_DEVICE_ERROR,    comment: "target applied it but the device write failed (e.g. I2C)" }
+      - { name: USB_RSP_QUEUE_FULL,      comment: "target task's command queue was full" }
+
+  - kind: enum
+    name: usb_controller_command_t
+    base: uint16_t
+    comment: |-
+      USB-controller-local commands: frames addressed to TASK_OFFSET_USB_CONTROLLER.
+    values:
+      - { name: USB_CMD_HELLO, value: "0", comment: "host handshake; firmware replies USB_MSG_RESPONSE / USB_RSP_OK" }
+
+  - kind: enum
+    name: force_sensor_command_opcode
+    base: uint16_t
+    comment: |-
+      Force-sensor (ADS1115) commands: frames addressed to TASK_OFFSET_FORCE_SENSOR_ADS1115.
+    values:
+      - { name: FORCE_SENSOR_CMD_SET_DATA_RATE, value: "0", comment: "body[0] = ADS1115_RATE_* code (0..7)" }
+
+  - kind: struct
+    name: optical_encoder_output_data
+    fields:
+      - { type: uint32_t, name: timestamp,            comment: "Timestamp of the reading" }
+      - { type: float,    name: angular_velocity,     comment: "Measured angular velocity" }
+      - { type: uint32_t, name: raw_value,            comment: "In case users want to have custom implementation with it" }
+      - { type: float,    name: angular_acceleration, comment: "Measured angular acceleration" }
+
+  - { kind: static_assert, expr: "sizeof(optical_encoder_output_data) == 4 + 4 + 4 + 4", message: "Size of optical_encoder_output_data must be 16 bytes" }
+
+  - kind: struct
+    name: forcesensor_output_data
+    fields:
+      - { type: uint32_t, name: timestamp }
+      - { type: float,    name: force }
+      - { type: uint32_t, name: raw_value }
+
+  - { kind: static_assert, expr: "sizeof(forcesensor_output_data) == 4 + 4 + 4", message: "Size of forcesensor_output_data must be 12 bytes" }
+
+  - kind: struct
+    name: bpm_output_data
+    fields:
+      - { type: uint32_t, name: timestamp }
+      - { type: float,    name: duty_cycle }
+      - { type: uint32_t, name: raw_value, comment: "Really just padding to match the other output data types" }
+
+  - { kind: static_assert, expr: "sizeof(bpm_output_data) == 4 + 4 + 4", message: "Size of bpm_output_data must be 12 bytes" }
+
+  - kind: struct
+    name: task_monitor_output_data
+    fields:
+      - { type: uint32_t,      name: timestamp }
+      - { type: task_offset_t, name: task_offset }
+      - { type: int,           name: task_state }
+      - { type: uint32_t,      name: free_bytes }
+
+  - { kind: static_assert, expr: "sizeof(task_monitor_output_data) == 4 + 4 + 4 + 4", message: "Size of task_monitor_output_data must be 16 bytes" }
+
+  - kind: code
+    text: |-
+      #ifdef __cplusplus
+      }
+      #endif

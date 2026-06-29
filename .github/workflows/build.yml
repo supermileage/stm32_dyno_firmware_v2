@@ -6,6 +6,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  generated-headers:
+    name: generated headers in sync with schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install codegen dependencies
+        run: pip install -r tools/message_gen/requirements.txt
+
+      - name: Verify committed headers match their schema
+        run: python tools/message_gen/check.py
+
   build:
     name: build (${{ matrix.config }})
     runs-on: ubuntu-latest
