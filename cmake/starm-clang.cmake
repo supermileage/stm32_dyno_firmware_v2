@@ -50,7 +50,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions -fno-threadsafe-
 set(CMAKE_EXE_LINKER_FLAGS "${TARGET_FLAGS}")
 
 if (STARM_TOOLCHAIN_CONFIG STREQUAL "STARM_HYBRID")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --gcc-specs=nano.specs")
+  # nano.specs omits %f printf support unless _printf_float is forced in (see gcc-arm-none-eabi.cmake).
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --gcc-specs=nano.specs -Wl,-u,_printf_float")
   set(TOOLCHAIN_LINK_LIBRARIES "m")
 elseif(STARM_TOOLCHAIN_CONFIG STREQUAL "STARM_NEWLIB")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcrt0-nosys")
