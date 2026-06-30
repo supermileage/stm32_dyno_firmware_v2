@@ -9,6 +9,9 @@
 #define ACTIVE_FORCE_SENSOR_TASK_OFFSET TASK_OFFSET_FORCE_SENSOR_ADC
 #endif
 
+// Cadence of the device-ready announcement while waiting for the host's USB_CMD_ACK.
+static constexpr uint32_t DEVICE_READY_ANNOUNCE_MS = 200;
+
 extern size_t optical_encoder_circular_buffer_index_writer;
 extern size_t forcesensor_circular_buffer_index_writer;
 extern size_t bpm_circular_buffer_index_writer;
@@ -34,7 +37,8 @@ USBController::USBController(osMessageQueueId_t sessionControllerToUsbController
       _taskCompletionQueue(taskCompletionQueue),
       _txBuffer{},
       _txBufferIndex(0),
-      _appReady(false)
+      _appReady(false),
+      _lastAnnounceTick(0)
 {}
 
 bool USBController::Init()
@@ -124,16 +128,28 @@ void USBController::DispatchFrame(const usb_msg_header_t& header, const uint8_t*
 
 void USBController::HandleUsbLocalCommand(const usb_cmd_header_t& cmd, const uint8_t* body, size_t bodyLen)
 {
-    (void)body;
-    (void)bodyLen;
-
     switch (cmd.opcode)
     {
-        case USB_CMD_HELLO:
-            // Host is present and listening: unblock streaming and acknowledge.
+        case USB_CMD_ACK:
+        {
+            // Host acknowledges the device-ready announce. Its body carries the host's
+            // protocol version; refuse the link (and keep announcing) if it disagrees with
+            // ours, so a host built against an older schema never mis-decodes the stream.
+            uint32_t hostVersion = 0;
+            if (bodyLen >= sizeof(uint32_t))
+            {
+                memcpy(&hostVersion, body, sizeof(uint32_t));
+            }
+            if (hostVersion != USB_PROTOCOL_VERSION)
+            {
+                SendResponse(TASK_OFFSET_USB_CONTROLLER, cmd.opcode, cmd.msg_id, USB_RSP_VERSION_MISMATCH);
+                break;
+            }
+            // Versions match: unblock streaming and acknowledge.
             _appReady = true;
             SendResponse(TASK_OFFSET_USB_CONTROLLER, cmd.opcode, cmd.msg_id, USB_RSP_OK);
             break;
+        }
 
         default:
             SendResponse(TASK_OFFSET_USB_CONTROLLER, cmd.opcode, cmd.msg_id, USB_RSP_UNKNOWN_COMMAND);
@@ -170,13 +186,43 @@ void USBController::SendResponse(task_offset_t taskOffset, uint16_t opcode, uint
     AddToBuffer<usb_response_data_t>(&resp, sizeof(resp));
 }
 
+void USBController::SendDeviceReady()
+{
+    usb_device_ready_event evt = { USB_PROTOCOL_VERSION };
+
+    StallIfIsBufferFull(IsBufferFull(sizeof(evt)));
+
+    usb_msg_header_t header =
+    {
+        .msg_type = USB_MSG_EVENT,
+        .task_offset = TASK_OFFSET_USB_CONTROLLER,
+        .payload_len = sizeof(evt)
+    };
+    AddToBuffer<usb_msg_header_t>(&header, sizeof(header));
+    AddToBuffer<usb_device_ready_event>(&evt, sizeof(evt));
+}
+
+void USBController::AnnounceReadyIfDue()
+{
+    uint32_t now = osKernelGetTickCount();
+    // First call (_lastAnnounceTick == 0) announces immediately so a host already
+    // listening when the task starts is not made to wait a full interval.
+    if (_lastAnnounceTick != 0 && (now - _lastAnnounceTick) < DEVICE_READY_ANNOUNCE_MS)
+    {
+        return;
+    }
+    _lastAnnounceTick = now;
+    SendDeviceReady();
+}
+
 void USBController::WaitForHandshake()
 {
-    // Block until the host completes the USB_CMD_HELLO handshake, flushing the
-    // response as soon as it is queued. Used by the mock/debug path.
+    // Block until the host completes the USB_CMD_ACK handshake, announcing device-ready
+    // and flushing the TX buffer as it goes. Used by the mock/debug path.
     while (!_appReady)
     {
         ProcessIncomingFrames();
+        AnnounceReadyIfDue();
 
         if (_txBufferIndex > 0 && CDC_Transmit_FS(_txBuffer, _txBufferIndex) != USBD_BUSY)
         {
@@ -271,7 +317,14 @@ void USBController::Run()
         // 3. Pick up the latest logging enable/disable from the SessionController.
         GetLatestFromQueue(_sessionControllerToUsbController, &enableUSB, sizeof(enableUSB), 0);
 
-        // 4. Stream sensor/error data only once the host has handshaked (USB_CMD_HELLO)
+        // 3b. Until the host handshakes, periodically announce that the device is ready so
+        //     the host knows to reply USB_CMD_ACK. Self-throttled; stops once _appReady.
+        if (!_appReady)
+        {
+            AnnounceReadyIfDue();
+        }
+
+        // 4. Stream sensor/error data only once the host has handshaked (USB_CMD_ACK)
         //    and logging is enabled.
         if (_appReady && enableUSB)
         {

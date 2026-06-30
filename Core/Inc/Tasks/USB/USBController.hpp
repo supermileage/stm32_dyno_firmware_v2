@@ -61,7 +61,15 @@ class USBController
         // Frame a USB_MSG_RESPONSE into the TX buffer (echoes opcode/msg_id + status).
         void SendResponse(task_offset_t taskOffset, uint16_t opcode, uint16_t msg_id, uint32_t status);
 
-        // Block until the host completes the USB_CMD_HELLO handshake (mock/debug path).
+        // Frame a USB_MSG_EVENT carrying usb_device_ready_event{USB_PROTOCOL_VERSION}. The
+        // host watches for this and replies USB_CMD_ACK to start the link.
+        void SendDeviceReady();
+
+        // While the host has not yet handshaked, re-announce device-ready at most every
+        // DEVICE_READY_ANNOUNCE_MS so a host that connects late still sees one. No-op once ready.
+        void AnnounceReadyIfDue();
+
+        // Block until the host completes the USB_CMD_ACK handshake (mock/debug path).
         void WaitForHandshake();
 
         template <typename T>
@@ -125,7 +133,8 @@ class USBController
         uint8_t _txBuffer[USB_TX_BUFFER_SIZE];
         int _txBufferIndex = 0;
 
-        bool _appReady;   // set once the host completes the USB_CMD_HELLO handshake
+        bool _appReady;            // set once the host completes the USB_CMD_ACK handshake
+        uint32_t _lastAnnounceTick; // tick of the last device-ready announce (AnnounceReadyIfDue)
 };
 
 #endif // INC_TASKS_USB_USBCONTROLLER_HPP_

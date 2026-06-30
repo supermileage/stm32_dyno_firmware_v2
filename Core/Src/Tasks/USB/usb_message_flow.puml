@@ -1,0 +1,93 @@
+@startuml USB Message Flow
+
+title USB Controller — Host Link, Streaming & Command Routing
+
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+skinparam sequence {
+    LifeLineBorderColor #2C7BB6
+    ArrowColor #1A5276
+    ArrowFontColor #1A5276
+    ArrowFontSize 11
+}
+
+actor "PC App\n(Dyno.App / Dyno.Core)" as App
+box "STM32 firmware" #F4F9FF
+participant "USB Controller\n(usbcontroller_main)" as USB
+participant "Owning Task\n(e.g. ForceSensor)" as Task
+participant "SessionController" as Session
+end box
+
+== Handshake — device-announced, version-checked ==
+
+note over USB
+  _appReady = false
+  → the device streams nothing yet
+end note
+
+loop every ~DEVICE_READY_ANNOUNCE_MS, until _appReady
+    USB -> App : **USB_MSG_EVENT** / TASK_OFFSET_USB_CONTROLLER\nusb_device_ready_event{ USB_PROTOCOL_VERSION }
+end
+
+App -> USB : **USB_MSG_COMMAND** / TASK_OFFSET_USB_CONTROLLER\nUSB_CMD_ACK, body = host USB_PROTOCOL_VERSION
+note over USB : HandleUsbLocalCommand()\ncompare host vs firmware version
+
+alt versions match
+    USB -> App : **USB_MSG_RESPONSE**  USB_RSP_OK\n(sets _appReady = true)
+else mismatch
+    USB -> App : **USB_MSG_RESPONSE**  USB_RSP_VERSION_MISMATCH\n(stays not-ready, keeps announcing)
+end
+
+== Streaming — only while _appReady && SessionController enabled ==
+
+Session -> USB : enable USB logging
+note over USB, Task : sensor tasks fill circular buffers / the task-monitor queue
+
+loop each Run() iteration (drain & frame)
+    USB -> App : USB_MSG_STREAM  optical_encoder_output_data   (TASK_OFFSET_OPTICAL_ENCODER)
+    USB -> App : USB_MSG_STREAM  forcesensor_output_data       (active force-sensor offset)
+    USB -> App : USB_MSG_STREAM  bpm_output_data               (TASK_OFFSET_BPM_CONTROLLER)
+    USB -> App : USB_MSG_STREAM  task_monitor_output_data      (TASK_OFFSET_TASK_MONITOR)
+    USB -> App : USB_MSG_ERROR / USB_MSG_WARNING  task_error_data\n(task_offset + number packed in error_code)
+end
+
+== Host command — USB-controller-local (handled in place) ==
+
+App -> USB : USB_MSG_COMMAND / TASK_OFFSET_USB_CONTROLLER\nopcode, msg_id (>= 1)
+note over USB : HandleUsbLocalCommand() answers directly
+USB -> App : USB_MSG_RESPONSE  echo opcode + msg_id, status
+
+== Host command — routed to a task (full-path "non-posted" ack) ==
+
+App -> USB : USB_MSG_COMMAND / e.g. TASK_OFFSET_FORCE_SENSOR_ADS1115\nopcode (FORCE_SENSOR_CMD_SET_DATA_RATE), msg_id (>= 1), body
+note over USB
+  DispatchFrame() → QueueForTaskOffset()
+  Ack is **non-posted**: the USB task sends
+  no RESPONSE here — the owning task will.
+end note
+
+alt route exists & body fits & queue not full
+    USB -> Task : usb_task_command{ opcode, msg_id, body }\n(owning task's command queue)
+    note over Task : ProcessCommands() → ApplyCommand()\n(real device write, e.g. ADS1115 setRate)
+    Task -> USB : usb_task_completion{ task_offset, opcode, msg_id, status }\n(shared completion queue)
+    note over USB : ProcessCompletions()\n(msg_id 0 = internal command → dropped, no ack)
+    USB -> App : USB_MSG_RESPONSE  echo opcode + msg_id, **real applied status**
+else no route / body too big / queue full
+    USB -> App : USB_MSG_RESPONSE\nUSB_RSP_NOT_SUPPORTED | USB_RSP_MALFORMED | USB_RSP_QUEUE_FULL
+end
+
+note over App, Task
+  **Framing.** Inbound (PC → STM32) frames are wrapped so the parser can resync:
+  [uint16 SOF][usb_msg_header_t][payload][uint16 CRC-16/CCITT-FALSE].
+  Outbound (STM32 → PC) records are unframed: usb_msg_header_t + payload (USB-CDC is reliable).
+
+  **Correlation.** msg_id ties each RESPONSE to its COMMAND; msg_id 0 is firmware-internal (no host ack).
+
+  **Contract.** All struct/enum layouts are generated from messages_public.yaml (single source of
+  truth); USB_PROTOCOL_VERSION guards that the host and firmware agree at runtime.
+end note
+
+@enduml
