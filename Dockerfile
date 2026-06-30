@@ -12,7 +12,8 @@ ARG ARM_TOOLCHAIN_VERSION=13.3.rel1
 # Update alongside ARM_TOOLCHAIN_VERSION.
 ARG ARM_TOOLCHAIN_SHA256=95c011cee430e64dd6087c75c800f04b9c49832cc1000127a92a97f9c8d83af4
 
-# Host build tools
+# Host build tools. python3 + jinja2 + pyyaml are for tools/message_gen, which
+# regenerates the MessagePassing headers from their YAML schema before each build.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         ninja-build \
@@ -22,6 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         xz-utils \
         libncurses-dev \
+        python3 \
+        python3-jinja2 \
+        python3-yaml \
     && rm -rf /var/lib/apt/lists/*
 
 # Arm GNU bare-metal toolchain (x86_64 host), pinned and installed to /opt

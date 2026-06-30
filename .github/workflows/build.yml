@@ -6,6 +6,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  generated-headers:
+    name: generated headers in sync with schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install codegen dependencies
+        run: pip install -r tools/message_gen/requirements.txt
+
+      - name: Verify committed headers match their schema
+        run: python tools/message_gen/check.py
+
   build:
     name: build (${{ matrix.config }})
     runs-on: ubuntu-latest
@@ -36,7 +52,7 @@ jobs:
             -v "${{ github.workspace }}:/work:z" -w /work \
             --user "$(id -u):$(id -g)" -e HOME=/tmp \
             stm32-dyno-builder:latest \
-            bash -lc "cmake --preset ${{ matrix.config }} && cmake --build --preset ${{ matrix.config }}"
+            bash -lc "python3 tools/message_gen/generate.py && cmake --preset ${{ matrix.config }} && cmake --build --preset ${{ matrix.config }}"
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4

@@ -59,7 +59,7 @@ docker run --rm \
     -v "$MOUNT" -w /work \
     "${USER_FLAGS[@]}" \
     "$IMAGE" \
-    bash -lc "cmake --preset $CONFIG && cmake --build --preset $CONFIG"
+    bash -lc "python3 tools/message_gen/generate.py && cmake --preset $CONFIG && cmake --build --preset $CONFIG"
 
 echo
 echo "Build succeeded! Artifacts in build/$CONFIG/"
