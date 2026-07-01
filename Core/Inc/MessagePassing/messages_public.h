@@ -167,6 +167,14 @@ _Static_assert(sizeof(usb_msg_header_t) == 12, "Size of usb_msg_header_t must be
 
 #define USB_RX_MAX_PAYLOAD 128u
 
+// Wire-format version the device announces (usb_device_ready_event) and the host
+// echoes back in its USB_CMD_ACK. Bump whenever any struct/enum below changes layout
+// so a host built against an older schema is rejected at the handshake instead of
+// silently mis-decoding the stream. Build-time static_asserts guard struct sizes;
+// this guards the live link at runtime.
+
+#define USB_PROTOCOL_VERSION 1u
+
 // Shared CRC so firmware and host compute identical checksums over a frame body.
 
 static inline uint16_t usb_frame_crc16(const uint8_t *data, size_t len)
@@ -220,14 +228,26 @@ typedef enum : uint32_t
     USB_RSP_MALFORMED,   // payload too short / body out of range
     USB_RSP_NOT_SUPPORTED,   // task_offset has no command route
     USB_RSP_DEVICE_ERROR,   // target applied it but the device write failed (e.g. I2C)
-    USB_RSP_QUEUE_FULL   // target task's command queue was full
+    USB_RSP_QUEUE_FULL,   // target task's command queue was full
+    USB_RSP_VERSION_MISMATCH   // ACK protocol_version != USB_PROTOCOL_VERSION; link refused
 } usb_response_status_t;
 
 // USB-controller-local commands: frames addressed to TASK_OFFSET_USB_CONTROLLER.
 typedef enum : uint16_t
 {
-    USB_CMD_HELLO = 0   // host handshake; firmware replies USB_MSG_RESPONSE / USB_RSP_OK
+    USB_CMD_ACK = 0   // host acks the device-ready announce; body = uint32 protocol_version. Firmware replies USB_RSP_OK or USB_RSP_VERSION_MISMATCH
 } usb_controller_command_t;
+
+// Device-ready announcement (STM32 -> PC): emitted as USB_MSG_EVENT with task_offset
+// TASK_OFFSET_USB_CONTROLLER and repeated (~every 200ms) until the host answers with
+// USB_CMD_ACK. Carries the firmware's USB_PROTOCOL_VERSION so the host can confirm the
+// wire format matches before it trusts -- or acks -- the stream.
+
+typedef struct {
+    uint32_t protocol_version;   // == USB_PROTOCOL_VERSION
+} usb_device_ready_event;
+
+_Static_assert(sizeof(usb_device_ready_event) == 4, "Size of usb_device_ready_event must be 4 bytes");
 
 // Force-sensor (ADS1115) commands: frames addressed to TASK_OFFSET_FORCE_SENSOR_ADS1115.
 typedef enum : uint16_t
